@@ -1,0 +1,17 @@
+# env
+.env
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Backend
+Backend/target/
+
+# Web
+Web/node_modules/
+Web/dist/
+*.tsbuildinfo

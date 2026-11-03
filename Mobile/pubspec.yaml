@@ -1,0 +1,20 @@
+name: pps_smart_english
+description: PPS Smart English mobile app.
+publish_to: none
+version: 0.0.1+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: pps-smart-english
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/pps}
+    username: ${DB_USER:pps}
+    password: ${DB_PASSWORD:pps}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
