@@ -45,8 +45,23 @@ cd Mobile && flutter analyze && flutter test
 
 ## CI/CD (GitHub Actions)
 
-- `backend-ci.yml`, `web-ci.yml`, `mobile-ci.yml`: chạy khi có thay đổi trong thư mục tương ứng (push `main` và pull request).
-- `docker-publish.yml`: khi push `main` hoặc tag `v*`, build và đẩy image `backend` và `web` lên GHCR
-  (`ghcr.io/<owner>/<repo>/backend|web`). Job `deploy` chỉ chạy khi đã đặt repository variable
-  `DEPLOY_ENABLED=true` và các secrets `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PATH`
-  (server cần clone repo này tại `DEPLOY_PATH` và có file `.env`). Server chạy `docker-compose.prod.yml`.
+| Nhánh | Vai trò |
+|---|---|
+| `feat/*` | Làm tính năng, mở PR vào `develop` |
+| `develop` | Chỉ tích hợp và chạy CI, không deploy |
+| `main` | Staging: push thì build image `staging-*` và deploy |
+| `production` | Bản cho người dùng: merge từ `main`, build image `prod-*` và deploy |
+| `hotfix/*` | Sửa gấp, merge vào `production` rồi vào `main` |
+
+- `backend-ci.yml`, `web-ci.yml`, `mobile-ci.yml`: chạy khi push `develop`, `main`, `production` và khi có pull request (chạy trên `ubuntu-latest`).
+- `docker-publish.yml`: sau khi CI pass, build và đẩy image `backend`, `web` lên GHCR. Job `deploy` chạy trên self-hosted runner,
+  chỉ khi repository variable `DEPLOY_ENABLED=true`; nó chép `docker-compose.prod.yml` vào `/opt/pps-smart-english/<môi trường>/docker-compose.yml`
+  rồi `docker compose pull` và `up -d`.
+
+Chuẩn bị máy chủ (dùng chung với pps-education, không có IP tĩnh nên phải dùng self-hosted runner):
+
+1. Đăng ký self-hosted runner cho repo này với label `pps-smart-english`.
+2. Tạo `/opt/pps-smart-english/staging/.env` và `/opt/pps-smart-english/production/.env` theo `.env.example`
+   (staging: `APP_ENV=staging`, `WEB_PORT=8091`, `TAG=staging-latest`; production: `APP_ENV=production`, `WEB_PORT=8090`, `TAG=prod-latest`).
+3. Trỏ hostname của cloudflared vào `127.0.0.1:WEB_PORT` của từng môi trường.
+4. Tạo GitHub Environment `staging` và `production`, rồi đặt repository variable `DEPLOY_ENABLED=true`.

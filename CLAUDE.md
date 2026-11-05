@@ -38,6 +38,10 @@ Tài liệu (SRS 2.1) là nguồn; mục nào lệch tài liệu ghi rõ ở "Ch
 
 Lệch SRS 2.1 đã được chủ dự án chọn: PostgreSQL 17 (SRS: 16), React 19 (SRS: 18). Lệch SRS FR-AUTH-01: MVP chưa làm đăng ký bằng số điện thoại và Apple Sign-in. Lệch SRS 2.2, FR-AUTH-01 và PRD FR-AUTH-02, 4.1: tài khoản mới không được tặng 3 lượt AI; lượt AI chỉ cấp khi mua khóa. SRS chưa được cập nhật; chỉ sửa khi chủ dự án cho phép.
 
+## Nhánh
+
+`feat/*` → `develop` (chỉ tích hợp, không deploy) → `main` (staging) → `production` (người dùng). `hotfix/*` vào `production` rồi vào `main`. Chi tiết và cách chuẩn bị server: `README.md` mục CI/CD.
+
 ## Commit
 
 Theo Conventional Commits: `type(scope): subject`
