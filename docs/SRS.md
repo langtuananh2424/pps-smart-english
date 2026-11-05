@@ -135,6 +135,7 @@ Hệ thống vận hành theo kiến trúc Client-Server hiện đại, phi tậ
 | **FR-COM-01** | Quản lý Giỏ hàng & Đơn hàng | Hỗ trợ mua khóa học lẻ theo Level, mua Combo lộ trình, hoặc mua các gói Token Add-on nạp thêm lượt dùng AI. |
 | **FR-COM-02** | Thanh toán VietQR tự động | Sinh mã VietQR động chứa số tiền và mã giao dịch duy nhất; webhook đối soát tự động kích hoạt tài khoản trong vòng 3 giây không cần can thiệp thủ công. |
 | **FR-COM-03** | Phân quyền & Kích hoạt bản quyền | Cập nhật trạng thái `PAID` trên hệ thống và mở khóa toàn bộ quyền truy cập nội dung bài giảng, bài tập tương ứng với gói đã mua. |
+| **FR-COM-04** | Kích hoạt bằng link | Admin tạo, xem và thu hồi link kích hoạt gắn với một sản phẩm, có số lượt dùng tối đa và ngày hết hạn. Người dùng đã đăng nhập, đã xác thực email, kích hoạt một lần cho mỗi link và nhận đúng thời hạn, lượt AI của sản phẩm mà không cần thanh toán. |
 
 ## **PHÂN HỆ 7: GIỮ CHÂN & GAMIFICATION (MODULE 7: RETENTION & GAMIFICATION)**
 
@@ -204,7 +205,7 @@ Hệ thống kế thừa cấu trúc dữ liệu đã được kiểm chứng t�
 | Phân hệ 3 | Bài giảng Video Từ kết nối | FR-LMS-01 đến 03 | High | MVP |
 | Phân hệ 4 | Bài tập 8 Yếu tố ngữ pháp & Từ nối | FR-EX-01 đến 03 | High | MVP |
 | Phân hệ 5 | AI Viết phát triển ý & Chấm chữa | FR-AI-01 đến 04 | High | MVP |
-| Phân hệ 6 | Đơn hàng & Thanh toán VietQR | FR-COM-01 đến 03 | High | MVP |
+| Phân hệ 6 | Đơn hàng & Thanh toán VietQR | FR-COM-01 đến 04 | High | MVP |
 | Phân hệ 7 | Streak, XP & Thông báo đẩy | FR-RET-01 đến 03 | Medium | MVP |
 | Phân hệ 8 | CMS Quản trị & Import câu hỏi | FR-ADM-01 đến 03 | High | MVP |
 | Kiến trúc NFR | Hiệu năng, Bảo mật, Mở rộng 24 nguyên tắc | NFR-PERF, NFR-SEC, NFR-SCAL | High | Toàn chu kỳ |

@@ -110,7 +110,8 @@ Kế thừa các dạng bài từ core engine của pps-education và mở rộn
 
 * **FR-COM-01 (Quản lý Gói bán):** Hỗ trợ cấu hình bán khóa học theo Level lẻ, Combo theo lộ trình mục tiêu, hoặc gói nạp thêm lượt dùng AI (Add-on Quota).  
 * **FR-COM-02 (Thanh toán trực tuyến):** Tạo đơn hàng, hiển thị mã VietQR động tự động kích hoạt tài khoản ngay sau khi thanh toán thành công (hoặc cổng VNPay/MoMo).  
-* **FR-COM-03 (Kích hoạt & Phân quyền nội dung):** Tự động mở khóa các Level/Topic tương ứng trong hồ sơ người dùng ngay khi giao dịch hoàn tất.
+* **FR-COM-03 (Kích hoạt & Phân quyền nội dung):** Tự động mở khóa các Level/Topic tương ứng trong hồ sơ người dùng ngay khi giao dịch hoàn tất.  
+* **FR-COM-04 (Kích hoạt bằng link):** Admin tạo link kích hoạt gắn với một gói bán để phục vụ kiểm thử và khuyến mãi, không cần thanh toán. Link có số người dùng tối đa, ngày hết hạn và có thể thu hồi. Người dùng đăng nhập, đã xác thực email, được kích hoạt một lần cho mỗi link và nhận đúng thời hạn, lượt AI của gói.
 
 ## **5.7. Phân hệ 7: Giữ chân & Gamification (Retention & Engagement)**
 

@@ -83,7 +83,7 @@ Package theo phân hệ SRS, mỗi package có `controller → service → repos
 | `lms` | Phát video, phụ đề, tiến độ | FR-LMS-02, 03 |
 | `exercise` | Ngân hàng câu hỏi, làm bài, chấm tức thì | FR-EX-01..03 |
 | `ai` | Scaffolding, chấm viết, chấm nói, quota | FR-AI-01..04 |
-| `commerce` | Sản phẩm, đơn hàng, thanh toán, kích hoạt | FR-COM-01..03 |
+| `commerce` | Sản phẩm, đơn hàng, thanh toán, kích hoạt | FR-COM-01..04 |
 | `retention` | Streak, XP, danh hiệu, thông báo đẩy | FR-RET-01..03 |
 | `admin` | CMS, import câu hỏi, báo cáo | FR-ADM-01..03 |
 | `shared` | Bảo mật, lưu trữ R2, lỗi chung, thời gian | — |
@@ -188,7 +188,9 @@ Chấm tự động (< 100 ms, FR-EX-03) chạy trong `api`: so `answer` với `
 | `orders` | `user_id`, `code` unique, `status` (PENDING/PAID/EXPIRED/CANCELLED), `total_vnd`, `paid_at` | |
 | `order_items` | `order_id`, `product_id`, `price_vnd` (giá lúc mua) | |
 | `payment_transactions` | `order_id`, `provider`, `provider_ref` unique, `amount_vnd`, `status`, `raw_payload jsonb`, `received_at` | Nhật ký webhook (SRS 6) |
-| `user_course_enrollments` | `user_id`, `level_id`, `order_id`, `status`, `starts_at`, `expires_at` null | Unique (user, level) đang ACTIVE |
+| `user_course_enrollments` | `user_id`, `level_id`, `order_id` null, `status`, `starts_at`, `expires_at` null | Unique (user, level) đang ACTIVE; `order_id` null khi kích hoạt bằng link |
+| **`activation_links`** | `token_hash` unique, `product_id`, `max_uses`, `used_count`, `expires_at`, `revoked_at`, `note`, `created_by` | FR-COM-04; chỉ lưu hash của mã |
+| **`activation_redemptions`** | `link_id`, `user_id`, `redeemed_at`, unique (link, user) | Mỗi tài khoản dùng một lần cho mỗi link |
 
 ### 4.5 AI
 
