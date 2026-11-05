@@ -10,19 +10,20 @@
 ## Chạy bằng Docker Compose
 
 ```bash
-cp .env.example .env     # đổi POSTGRES_PASSWORD
+cp .env.example .env     # đổi POSTGRES_PASSWORD, JWT_SECRET (>= 32 byte; giữ giá trị mẫu thì backend không khởi động)
 docker compose up --build
 ```
 
 - Web: http://localhost:3000 (nginx proxy `/api` sang backend)
-- Backend: http://localhost:8080/api/courses, `/actuator/health`
+- Backend: http://localhost:8080/actuator/health
 - PostgreSQL: localhost:5432
+- Redis: 127.0.0.1:6379 (bộ đếm rate limit; Redis lỗi thì backend vẫn chạy, giới hạn chuyển sang bộ nhớ)
 
 ## Chạy từng phần khi phát triển
 
 ```bash
-docker compose up -d db                 # chỉ chạy DB
-cd Backend && mvn spring-boot:run       # http://localhost:8080
+docker compose up -d db redis            # chỉ chạy DB và Redis
+cd Backend && JWT_SECRET=<chuỗi-32-byte-trở-lên> mvn spring-boot:run   # http://localhost:8080
 cd Web && npm install && npm run dev    # http://localhost:5173 (proxy /api -> 8080)
 ```
 
@@ -31,7 +32,7 @@ Mobile (cần Flutter SDK). Lần đầu tạo thư mục nền tảng android/i
 ```bash
 cd Mobile
 flutter create . --platforms=android,ios --project-name pps_smart_english
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080   # 10.0.2.2 = máy host từ Android emulator
+flutter run
 ```
 
 ## Test
