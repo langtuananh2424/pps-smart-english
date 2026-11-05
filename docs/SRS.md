@@ -116,7 +116,7 @@ Hệ thống vận hành theo kiến trúc Client-Server hiện đại, phi tậ
 | Mã Yêu Cầu | Tên Chức Năng | Mô Tả Nghiệp Vụ & Quy Tắc Thực Thi |
 | :---- | :---- | :---- |
 | **FR-EX-01** | Bài tập Học từ kết nối | Bao gồm: Trắc nghiệm logic ngữ cảnh (Cause, Effect, Contrast, Addition); Ghép nối 2 vế câu bằng liên từ; Điền từ nối vào chỗ trống trong đoạn văn ngữ cảnh. |
-| **FR-EX-02** | Bài tập 8 Yếu tố ngữ pháp | Bao gồm: Chạm nhận diện từ loại (Color-Coded Tapping); Kéo thả phân loại từ vựng vào hộp từ loại; Biến đổi dạng từ (Contextual Cloze); Tìm và sửa lỗi sai (Spot & Fix); Xếp khối tạo câu hoàn chỉnh. |
+| **FR-EX-02** | Bài tập 8 Yếu tố ngữ pháp | 8 yếu tố là các cấu trúc áp dụng vào bài viết IELTS: Mệnh đề quan hệ tính ngữ; Câu đảo ngữ; Câu bị động; Chủ ngữ giả; Mệnh đề phân từ; Mệnh đề danh từ; Sử dụng "seem, be likely, tend to"; Các cấu trúc quen thuộc khác. Bài tập bao gồm: Nhận diện cấu trúc trong câu mẫu; Tìm và sửa lỗi sai (Spot & Fix); Xếp khối tạo câu đúng cấu trúc; Viết lại câu bằng cấu trúc yêu cầu. |
 | **FR-EX-03** | Chấm điểm & Giải thích tức thì | Tự động chấm điểm bài tập cấu trúc tức thì (\< 100ms) kèm lời giải thích ngữ pháp chi tiết cho các phương án đúng và sai. |
 
 ## **PHÂN HỆ 5: TRỢ LÝ AI VIẾT PHÁT TRIỂN Ý & CHẤM CHỮA BÀI (MODULE 5: AI WRITING & EVALUATION ENGINE)**
@@ -124,7 +124,7 @@ Hệ thống vận hành theo kiến trúc Client-Server hiện đại, phi tậ
 | Mã Yêu Cầu | Tên Chức Năng | Mô Tả Nghiệp Vụ & Quy Tắc Thực Thi |
 | :---- | :---- | :---- |
 | **FR-AI-01** | Dẫn dắt phát triển ý (Scaffolding) | Bước 1: Hiển thị câu hỏi dẫn dắt (Root Question). Bước 2: AI hỏi sâu 2–3 câu hỏi tiếp nối dựa trên câu trả lời của học viên. Bước 3: AI tự động tổng hợp câu trả lời thành bản nháp hoàn chỉnh có từ kết nối. |
-| **FR-AI-02** | Chấm bài tự luận AI chuyên sâu | Kế thừa rubric PPS: Bôi đỏ lỗi sai trên bài gốc (`markedAnswer`), đưa ra bản sửa chuẩn (`correctedAnswer`) bảo toàn ý tưởng gốc, phân tích tần suất/độ chính xác của từ kết nối, cảnh báo lạc đề (`gateNote`). |
+| **FR-AI-02** | Chấm bài tự luận AI chuyên sâu | Kế thừa rubric PPS: Bôi đỏ lỗi sai trên bài gốc (`markedAnswer`), đưa ra bản sửa chuẩn (`correctedAnswer`) bảo toàn ý tưởng gốc, phân tích tần suất/độ chính xác của từ kết nối, đánh giá các yếu tố trong 8 Yếu tố ngữ pháp đã dùng đúng hoặc sai kèm gợi ý nâng cấp câu, cảnh báo lạc đề (`gateNote`). |
 | **FR-AI-03** | Chấm phát âm & Phản xạ nói | Thu âm câu trả lời qua mic; sử dụng Whisper STT chuyển thành văn bản; chấm điểm độ chính xác phát âm, độ trôi chảy và thời gian phản xạ theo rubric. |
 | **FR-AI-04** | Kiểm soát Quota & Token AI | Kiểm tra số dư token trước khi gọi AI; ghi nhận chi tiết số lượng token tiêu hao vào bảng `ai_grading_token_usage` để kiểm soát chi phí API. |
 
@@ -149,7 +149,7 @@ Hệ thống vận hành theo kiến trúc Client-Server hiện đại, phi tậ
 | Mã Yêu Cầu | Tên Chức Năng | Mô Tả Nghiệp Vụ & Quy Tắc Thực Thi |
 | :---- | :---- | :---- |
 | **FR-ADM-01** | Quản lý Khóa học & Bài giảng | Cho phép tạo Level, Topic, upload video trực tiếp lên Cloudflare R2 hoặc dán mã nhúng YouTube, tải lên và đồng bộ file phụ đề VTT/SRT. |
-| **FR-ADM-02** | Quản lý & Import ngân hàng câu hỏi | Kế thừa công cụ import hàng loạt từ file Excel/Word của `pps-education`, hỗ trợ cấu hình gắn thẻ từ loại và thiết lập đáp án tự động. |
+| **FR-ADM-02** | Quản lý & Import ngân hàng câu hỏi | Kế thừa công cụ import hàng loạt từ file Excel/Word của `pps-education`, hỗ trợ cấu hình gắn thẻ yếu tố ngữ pháp và thiết lập đáp án tự động. |
 | **FR-ADM-03** | Báo cáo & Thống kê Doanh thu | Dashboard thời gian thực theo dõi số lượng người dùng mới, tỷ lệ chuyển đổi Freemium sang Paid, doanh thu theo gói học và chi phí tiêu thụ token AI. |
 
 # **5\. ĐẶC TẢ YÊU CẦU PHI CHỨC NĂNG (NON-FUNCTIONAL REQUIREMENTS \- NFR)**

@@ -24,7 +24,7 @@ Hệ thống là một ứng dụng bán lẻ (B2C) độc lập, cung cấp cá
 ## **2.2. Lộ trình triển khai 24 Nguyên tắc vàng — Giai đoạn 1 (MVP)**
 
 * **Học từ kết nối (Connective Words & Collocations):** Tiếp thu từ vựng và cấu trúc liên kết thông qua video ngữ cảnh ngắn (1–1.5 phút), hiểu bản chất câu chuyện và rèn luyện phản xạ dùng cụm từ tự nhiên.  
-* **8 Yếu tố ngữ pháp (8 Grammar Elements):** Nắm vững các thành phần cấu thành câu chuẩn mực qua bài tập tương tác chạm, kéo thả, sửa lỗi và xếp khối câu.  
+* **8 Yếu tố ngữ pháp (8 Grammar Elements):** Nắm vững và áp dụng 8 cấu trúc vào bài viết IELTS để đạt điểm cao, qua bài tập nhận diện cấu trúc, sửa lỗi, xếp khối câu và viết lại câu.  
 * **Viết phát triển ý (Idea Development Writing with AI):** Giải quyết triệt để rào cản "bí ý" khi viết thông qua mô hình phỏng vấn dẫn dắt đa tầng (Scaffolding Q\&A), sau đó AI hỗ trợ sửa lỗi ngữ pháp và chấm điểm độ mạch lạc.  
 * **Kiến trúc module hóa mở rộng (Extensible Architecture):** Giai đoạn 1 (MVP) tập trung phát triển trước 3 nguyên tắc đầu tiên. Cơ sở dữ liệu và cấu trúc bài học/bài tập được thiết kế module hóa linh hoạt để sẵn sàng mở rộng tuần tự cho 21 nguyên tắc còn lại trong các giai đoạn tiếp theo mà không làm xáo trộn kiến trúc hệ thống.
 
@@ -79,11 +79,11 @@ Kế thừa các dạng bài từ core engine của pps-education và mở rộn
   * Nối 2 vế câu bằng từ liên kết thích hợp.  
   * Viết lại câu có sử dụng từ kết nối cho trước.  
 * **FR-EX-02 (Dạng bài 8 Yếu tố ngữ pháp):**  
-  * *Chạm nhận diện (Color-Coded Tapping):* Xác định đúng từ loại trong câu.  
-  * *Kéo thả phân loại (Drag & Drop):* Phân loại danh sách từ vào các nhóm từ loại.  
-  * *Điền dạng đúng của từ (Contextual Cloze):* Chia đúng loại từ theo vị trí ngữ pháp.  
-  * *Tìm và sửa lỗi sai (Spot & Fix):* Xác định thành phần ngữ pháp dùng sai trong câu.  
-  * *Xếp khối tạo câu (Sentence Building):* Sắp xếp các cụm từ/thành phần ngữ pháp thành câu chuẩn.  
+  * *8 yếu tố:* Mệnh đề quan hệ tính ngữ; Câu đảo ngữ; Câu bị động; Chủ ngữ giả; Mệnh đề phân từ; Mệnh đề danh từ; Sử dụng "seem, be likely, tend to"; Các cấu trúc quen thuộc khác. Đây là các cấu trúc áp dụng vào bài viết IELTS, không phải bài luyện từ loại.  
+  * *Nhận diện cấu trúc (Structure Identification):* Xác định cấu trúc được dùng trong câu mẫu.  
+  * *Tìm và sửa lỗi sai (Spot & Fix):* Xác định và sửa cấu trúc dùng sai trong câu.  
+  * *Xếp khối tạo câu (Sentence Building):* Sắp xếp các cụm từ thành câu đúng cấu trúc.  
+  * *Viết lại câu (Sentence Rewriting):* Viết lại câu cho trước bằng cấu trúc được yêu cầu.  
 * **FR-EX-03 (Cơ chế chấm điểm tức thì):** Chấm tự động cho các bài tập dạng cấu trúc, hiển thị lời giải thích chi tiết vì sao đáp án đó đúng/sai.
 
 ## **5.5. Phân hệ 5: Trợ lý AI & Chấm bài tự động (AI Engine)**
@@ -97,6 +97,7 @@ Kế thừa các dạng bài từ core engine của pps-education và mở rộn
   * Đánh dấu lỗi ngữ pháp/từ vựng trực tiếp trên câu trả lời gốc (markedAnswer).  
   * Trả về bản sửa lỗi chuẩn xác (correctedAnswer) giữ nguyên ý tưởng gốc của học viên.  
   * Báo cáo phân tích việc sử dụng Từ kết nối và đánh giá độ phát triển mạch lạc của các ý.  
+  * Báo cáo các yếu tố trong 8 Yếu tố ngữ pháp đã dùng đúng hoặc sai, kèm gợi ý nâng cấp câu.  
   * Cảnh báo nếu bài viết đi lệch trọng tâm câu hỏi (gateNote).  
 * **FR-AI-03 (Chấm phát âm & Luyện nói phản xạ \- Speaking Reflex):**  
   * Thu âm giọng đọc học viên, chuyển giọng nói thành văn bản (Speech-to-Text qua Whisper).  
