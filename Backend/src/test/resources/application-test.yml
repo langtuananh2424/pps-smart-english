@@ -7,5 +7,7 @@ spring:
     locations: classpath:db/migration
 
 app:
+  storage:
+    enabled: false # test dùng ObjectStorage giả
   jwt:
     secret: test-secret-test-secret-test-secret-0123456789
