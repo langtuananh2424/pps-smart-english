@@ -146,7 +146,7 @@ Mở rộng từ SRS mục 6. Bảng **in đậm** là bổ sung của thiết k
 | `lessons` | `topic_id`, `principle_id`, `type` (CONNECTIVE_VIDEO/REFLEX_VIDEO), `title`, `video_source` (R2/YOUTUBE), `video_ref`, `duration_sec`, `sort_order`, `status` | FR-LMS-01 |
 | **`lesson_subtitles`** | `lesson_id`, `lang` (en/vi), `storage_key` (VTT gốc) | FR-ADM-01: tải VTT/SRT; SRT chuyển sang VTT khi lưu |
 | **`lesson_glossary`** | `lesson_id`, `phrase`, `meaning_vi`, `audio_key` null, `example` | Popup giải nghĩa FR-LMS-02 `[Q-07]` |
-| **`grammar_elements`** | `code`, `name`, `color_hex`, `sort_order` | Taxonomy 8 yếu tố, nội dung chờ `[Q-01]` |
+| **`grammar_elements`** | `code`, `name`, `color_hex`, `sort_order` | 8 cấu trúc áp dụng vào bài viết IELTS `[Q-01]`, dùng làm thẻ phân loại câu hỏi và nhận xét của AI |
 
 Thêm nguyên tắc mới = thêm dòng `principles` + nội dung, không đổi bảng (NFR-SCAL-02).
 
@@ -157,7 +157,7 @@ Thêm nguyên tắc mới = thêm dòng `principles` + nội dung, không đổi
 | `question_banks` | `topic_id`, `lesson_id` null, `principle_id`, `title`, `is_trial` | `lesson_id` để nút "Làm bài tập" sau bài giảng |
 | `questions` | `bank_id`, `type`, `prompt`, `payload jsonb`, `answer_key jsonb`, `explanation`, `sort_order` | Một bảng cho mọi dạng; `payload` theo `type` |
 | `question_choices` | `question_id`, `label`, `content`, `is_correct`, `explanation` | Dùng cho trắc nghiệm |
-| **`question_grammar_tags`** | `question_id`, `grammar_element_id` | Gắn thẻ từ loại (FR-ADM-02) |
+| **`question_grammar_tags`** | `question_id`, `grammar_element_id` | Gắn thẻ yếu tố ngữ pháp (FR-ADM-02) |
 | `student_exercise_attempts` | `user_id`, `bank_id`, `started_at`, `submitted_at`, `score`, `max_score` | |
 | `student_answers` | `attempt_id`, `question_id`, `answer jsonb`, `is_correct` null | |
 | `student_answer_grading` | `answer_id`, `grader` (RULE/AI), `score`, `result jsonb` | Kết quả AI: `markedAnswer`, `correctedAnswer`, `gateNote`… (FR-AI-02) |
@@ -170,11 +170,10 @@ Giá trị `questions.type` (FR-EX-01, 02, PRD 5.4):
 | `CONNECTIVE_MATCH` | Ghép 2 vế câu | `left[]`, `right[]`; key = cặp |
 | `CONNECTIVE_CLOZE` | Điền từ nối vào đoạn | đoạn có chỗ trống; key = đáp án từng chỗ |
 | `CONNECTIVE_REWRITE` | Viết lại câu dùng từ nối (chỉ có ở PRD) | chấm AI `[Q-06]` |
-| `GRAMMAR_TAP` | Chạm nhận diện từ loại | token câu; key = token → element |
-| `GRAMMAR_DRAG_SORT` | Kéo thả vào hộp từ loại | từ, hộp; key = từ → hộp |
-| `GRAMMAR_CLOZE` | Biến đổi dạng từ | key = dạng đúng (cho phép nhiều) |
-| `GRAMMAR_SPOT_FIX` | Tìm và sửa lỗi | key = vị trí lỗi + bản sửa |
-| `GRAMMAR_BUILD` | Xếp khối tạo câu | khối; key = thứ tự |
+| `GRAMMAR_IDENTIFY` | Nhận diện cấu trúc trong câu mẫu | token câu; key = cụm → element |
+| `GRAMMAR_SPOT_FIX` | Tìm và sửa lỗi dùng cấu trúc | key = vị trí lỗi + bản sửa |
+| `GRAMMAR_BUILD` | Xếp khối tạo câu theo cấu trúc | khối; key = thứ tự |
+| `GRAMMAR_REWRITE` | Viết lại câu bằng cấu trúc yêu cầu | chấm AI `[Q-30]` |
 | `WRITING` | Viết phát triển ý | chấm AI (mục 5.4) |
 | `SPEAKING` | Phản xạ nói | chấm AI (mục 5.5) |
 
@@ -292,7 +291,7 @@ Web giữ access token trong bộ nhớ. Mobile không có cookie trình duyệt
 4. Client gửi `POST /api/lessons/{id}/progress {positionSec, watchedDeltaSec}` mỗi 15 s và khi rời trang. Server cộng `watched_sec` (chặn delta > 15 s + sai số để không tua nhanh mà tính là xem).
 5. `watched_sec ≥ 0,8 × duration_sec` ⇒ đặt `completed_at` (một lần), ghi `activity_days`, `xp_events` (mục 5.7).
 
-Video R2 nên là MP4 faststart cho MVP để mở ≤ 1 s (NFR-PERF-02) `[Q-14]`.
+Video dùng MP4 faststart (H.264 + AAC) cho MVP để mở ≤ 1 s (NFR-PERF-02) `[Q-14]`.
 
 ### 5.4 Viết phát triển ý và chấm AI (FR-AI-01, 02, 04, NFR-PERF-03)
 
@@ -632,29 +631,29 @@ Mỗi bước chạy được end-to-end trước khi sang bước sau.
 1. Nền: `shared` (lỗi, bảo mật), `auth`, `profile` + Redis vào compose.
 2. `catalog` + `lms` + CMS phần nội dung (cần nội dung để test).
 3. `exercise` + import câu hỏi.
-4. `ai` (quota, hàng đợi, worker, viết rồi nói).
-5. `retention`.
-6. `commerce` với cổng giả lập; kết nối PayOS khi chủ dự án cho phép.
+4. `commerce` với cổng giả lập; kết nối PayOS khi chủ dự án cho phép. Làm trước `ai` vì lượt AI chỉ có từ việc mua.
+5. `ai` (quota, hàng đợi, worker, viết rồi nói).
+6. `retention`.
 7. Báo cáo Admin.
 
 ## 13. Câu hỏi mở
 
 | Mã | Câu hỏi | Nguồn | Chặn phần |
 |---|---|---|---|
-| Q-01 | Danh sách chính thức 8 yếu tố ngữ pháp? | PRD 7 #1 | Dữ liệu `grammar_elements`, dạng `GRAMMAR_*` |
-| Q-02 | Figma có màn Q&A khóa học, Luyện thêm (Ôn lại / Thử thách), Trợ lý AI nhưng PRD/SRS không có. Bổ sung vào tài liệu hay bỏ khỏi MVP? | Figma vs SRS | Thiết kế bảng, API |
-| Q-03 | Học thử "1–2 Topic đầu" — mặc định 1 hay 2? (đã làm thành cờ `is_free_trial`) | SRS 2.2 | Dữ liệu mẫu |
-| Q-04 | Quy tắc đề xuất: khớp `self_level` với Level nào của từng khóa? | FR-GOAL-03 | Đề xuất khóa |
-| Q-05 | Khách vãng lai làm thử bài nào, có lưu kết quả không? PRD FR-AUTH-02 nhắc "bài test đầu vào" nhưng FR-TEST-01 hoãn. | SRS 2.2, PRD 5.1 | Quyền khách |
-| Q-06 | "Viết lại câu dùng từ nối" (chỉ có ở PRD) chấm bằng AI có trừ lượt không? | PRD FR-EX-01 | Exercise, quota |
-| Q-07 | Giải nghĩa và phát âm từ nối lấy từ đâu: Admin nhập tay hay từ điển ngoài? | FR-LMS-02 | `lesson_glossary`, CMS |
-| Q-08 | Mua đứt theo thời hạn (6–12 tháng), combo hay thuê bao? | PRD 7 #4 | `products.access_days`, gia hạn |
+| Q-01 | (Đã trả lời: mệnh đề quan hệ tính ngữ, câu đảo ngữ, câu bị động, chủ ngữ giả, mệnh đề phân từ, mệnh đề danh từ, "seem, be likely, tend to", các cấu trúc quen thuộc khác.) Xem Q-30. | PRD 7 #1 | Dữ liệu `grammar_elements`, dạng `GRAMMAR_*` |
+| Q-02 | (Đã trả lời: có, bổ sung Q&A khóa học, Luyện thêm, Trợ lý AI vào tài liệu.) Còn lại: cần Figma để viết yêu cầu trước khi sửa PRD/SRS. | Figma vs SRS | Thiết kế bảng, API |
+| Q-03 | (Đã trả lời: mặc định 1 Topic, chỉnh được trong trang thiết lập khóa học.) | SRS 2.2 | Dữ liệu mẫu, CMS |
+| Q-04 | (Đã trả lời: đề xuất khóa qua bộ câu hỏi tư vấn, xây bản tạm để demo; có 4 Course riêng 0→3.0, 3.0→5.0, 5.0→7.0, 7.0→8.0. Bản tạm đã duyệt: 5 câu gồm nhóm mục tiêu, trình độ tự đánh giá, band mục tiêu nếu chọn IELTS, thời gian học mỗi tuần, kỹ năng muốn cải thiện. Câu 1 chọn nhóm khóa; với IELTS, Mất gốc → 0→3.0, Cơ bản → 3.0→5.0, Trung cấp → 5.0→7.0, Khá → 7.0→8.0; band mục tiêu cao hơn thì gợi ý thêm combo; câu 4, 5 chỉ dùng cho lời khuyên.) Còn lại: nội dung và quy tắc thật. | FR-GOAL-03 | Đề xuất khóa |
+| Q-05 | (Đã trả lời: khách vãng lai làm bộ câu hỏi tư vấn ở Q-04 không cần đăng ký; kết quả chỉ lưu ở trình duyệt, ghi vào hồ sơ sau khi đăng ký.) | SRS 2.2, PRD 5.1 | Quyền khách |
+| Q-06 | (Đã trả lời: chấm bằng AI và có trừ lượt.) | PRD FR-EX-01 | Exercise, quota |
+| Q-07 | (Đã trả lời: dùng Wiktionary qua Kaikki, nhập một lần vào hệ thống, Biên tập viên sửa được trong `lesson_glossary`.) Còn lại: xác nhận điều kiện CC BY-SA, giấy phép từng file audio, độ phủ từ nối. | FR-LMS-02 | `lesson_glossary`, CMS |
+| Q-08 | (Tạm: soạn dữ liệu demo cho mỗi nhóm mục tiêu và mỗi loại sản phẩm LEVEL, COMBO, AI_ADDON; production dùng dữ liệu thật.) Còn lại: hình thức bán thật. | PRD 7 #4 | `products.access_days`, gia hạn |
 | Q-09 | Mỗi gói cấp bao nhiêu lượt AI, giá Add-on? Lượt AI giờ chỉ có từ gói mua (xem Q-27). | PRD 7 #5 | `products.ai_quota` |
 | Q-10 | (Đã trả lời: bỏ SĐT khỏi MVP; email phải xác thực và có quên mật khẩu.) Còn lại: chính sách mật khẩu tối thiểu có đủ không (8 ký tự `[Q-28]`)? | FR-AUTH-01 | Auth |
 | Q-11 | (Đã trả lời: chưa có Apple Developer, Apple Sign-in để sau, bắt buộc trước khi phát hành app iOS có Google.) Cần tạo Google Cloud OAuth Client ID cho web | FR-AUTH-01 | Auth |
 | Q-12 | Admin và Biên tập viên có cần tách quyền (ví dụ biên tập viên không xem doanh thu)? | SRS 2.2 | Phân quyền CMS |
 | Q-13 | Mobile lưu refresh token trong secure storage thay cookie — chấp nhận? | FR-AUTH-02 | Mobile (giai đoạn 2) |
-| Q-14 | Video R2 dạng MP4 hay HLS? | NFR-PERF-02 | Pipeline video |
+| Q-14 | (Đã trả lời: media lưu trên server qua MinIO riêng của dự án, thay Cloudflare R2, gồm cả file ghi âm; lệch SRS. Các mục còn ghi R2 sẽ sửa khi làm `ObjectStorage`. Video dùng MP4 faststart, H.264 + AAC.) Xem Q-29. | NFR-PERF-02 | Pipeline video |
 | Q-15 | Lượt AI trừ ở bước nào: chỉ chấm bài, hay cả câu hỏi đào sâu và bản nháp? | FR-AI-01, 04 | Quota |
 | Q-16 | Giới hạn thời lượng / dung lượng file ghi âm? | FR-AI-03 | Upload |
 | Q-17 | Rubric speaking (trọng số phát âm, trôi chảy, phản xạ) và cách đo thời gian phản xạ? | FR-AI-03 | Chấm nói |
@@ -669,6 +668,8 @@ Mỗi bước chạy được end-to-end trước khi sang bước sau.
 | Q-26 | (Đã trả lời: 1 SSD, backup chép tay sang máy 2 developer; ổ thứ hai thêm sau; **chưa chuyển sang R2**, chỉ chuẩn bị luồng ở mục 8.2.) Còn lại: khi nào bật `BACKUP_R2_ENABLED`? | NFR-AVAIL-02 | Backup |
 | Q-27 | (Đã trả lời: không cấp lượt AI khi đăng ký hay khi xác thực email; chỉ cấp sau khi mua khóa. Học viên chưa mua vẫn xem video và làm trắc nghiệm ở Topic học thử, chỉ không dùng được AI.) Còn lại: số lượt mỗi gói là bao nhiêu, "3 lượt" có còn là mức mặc định cho gói khóa không (gộp vào Q-09)? | FR-AUTH-01, FR-AI-04 | Quota |
 | Q-28 | Mật khẩu tối thiểu 8 ký tự, có cần chữ hoa/số/ký tự đặc biệt không? | NFR-SEC-01 | Kiểm tra đầu vào |
+| Q-29 | Video từ MinIO đi qua server và Cloudflare Tunnel, trong khi mục 1.2 ước ~450 Mbps giờ cao điểm và yêu cầu không đi qua server. Đường truyền có chịu được không, hay video chính dùng YouTube Private? Dung lượng SSD có đủ không? | Mục 1.2, Q-14 | Hạ tầng media |
+| Q-30 | (Đã trả lời: 8 yếu tố là phương pháp áp dụng cấu trúc vào bài viết IELTS, không phải luyện từ loại. Dạng bài đổi theo cấu trúc, bỏ hai dạng từ loại và Biến đổi dạng từ, thêm viết lại câu. AI chấm viết đánh giá yếu tố đã dùng và gợi ý nâng cấp câu.) Còn lại: `GRAMMAR_REWRITE` có trừ lượt như Q-06 không. | PRD, SRS FR-EX-02 | `grammar_elements`, dạng `GRAMMAR_*` |
 
 ## 14. Kiểm tra thiết kế
 

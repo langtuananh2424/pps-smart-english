@@ -48,6 +48,7 @@ services:
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-pps}
       DB_USER: ${POSTGRES_USER:-pps}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DEMO_FLYWAY_LOCATION: ${DEMO_FLYWAY_LOCATION:-} # mặc định tắt dữ liệu demo
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD}
