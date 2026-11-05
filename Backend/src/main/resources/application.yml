@@ -49,6 +49,12 @@ app:
     access-key: ${MINIO_ACCESS_KEY}
     secret-key: ${MINIO_SECRET_KEY}
     bucket: ${MINIO_BUCKET:pps-media}
+  payment:
+    # cổng giả để dev/test luồng mua; production để false cho tới khi có cổng thật
+    fake-enabled: ${PAYMENT_FAKE_ENABLED:false}
+    fake-secret: ${PAYMENT_FAKE_SECRET:}
+  commerce:
+    order-ttl-minutes: ${ORDER_TTL_MINUTES:30}
 
 logging:
   structured:

@@ -44,6 +44,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, PUBLIC_POST).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/catalog/courses", "/api/catalog/courses/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/lessons/*").permitAll() // FR-LMS-02: bài học thử cho khách
+                        .requestMatchers(HttpMethod.GET, "/api/products").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/activation-links/*").permitAll() // xem trước gói trước khi đăng nhập
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // webhook xác thực bằng chữ ký của cổng thanh toán, không bằng token
+                        .requestMatchers(HttpMethod.POST, "/api/payments/webhook/*").permitAll()
                         .requestMatchers("/actuator/health/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o -> o
