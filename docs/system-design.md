@@ -640,13 +640,13 @@ Mỗi bước chạy được end-to-end trước khi sang bước sau.
 
 | Mã | Câu hỏi | Nguồn | Chặn phần |
 |---|---|---|---|
-| Q-01 | (Đã trả lời: mệnh đề quan hệ tính ngữ, câu đảo ngữ, câu bị động, chủ ngữ giả, mệnh đề phân từ, mệnh đề danh từ, "seem, be likely, tend to", các cấu trúc quen thuộc khác.) Xem Q-30. | PRD 7 #1 | Dữ liệu `grammar_elements`, dạng `GRAMMAR_*` |
+| Q-01 | (Đã trả lời: mệnh đề quan hệ tính ngữ, câu đảo ngữ, câu bị động, chủ ngữ giả, mệnh đề phân từ, mệnh đề danh từ, "seem, be likely, tend to", các cấu trúc quen thuộc khác. Chưa phải bản chính thức, đủ dùng cho MVP.) Xem Q-30. | PRD 7 #1 | Dữ liệu `grammar_elements`, dạng `GRAMMAR_*` |
 | Q-02 | (Đã trả lời: có, bổ sung Q&A khóa học, Luyện thêm, Trợ lý AI vào tài liệu.) Còn lại: cần Figma để viết yêu cầu trước khi sửa PRD/SRS. | Figma vs SRS | Thiết kế bảng, API |
 | Q-03 | (Đã trả lời: mặc định 1 Topic, chỉnh được trong trang thiết lập khóa học.) | SRS 2.2 | Dữ liệu mẫu, CMS |
 | Q-04 | (Đã trả lời: đề xuất khóa qua bộ câu hỏi tư vấn, xây bản tạm để demo; có 4 Course riêng 0→3.0, 3.0→5.0, 5.0→7.0, 7.0→8.0. Bản tạm đã duyệt: 5 câu gồm nhóm mục tiêu, trình độ tự đánh giá, band mục tiêu nếu chọn IELTS, thời gian học mỗi tuần, kỹ năng muốn cải thiện. Câu 1 chọn nhóm khóa; với IELTS, Mất gốc → 0→3.0, Cơ bản → 3.0→5.0, Trung cấp → 5.0→7.0, Khá → 7.0→8.0; band mục tiêu cao hơn thì gợi ý thêm combo; câu 4, 5 chỉ dùng cho lời khuyên.) Còn lại: nội dung và quy tắc thật. | FR-GOAL-03 | Đề xuất khóa |
 | Q-05 | (Đã trả lời: khách vãng lai làm bộ câu hỏi tư vấn ở Q-04 không cần đăng ký; kết quả chỉ lưu ở trình duyệt, ghi vào hồ sơ sau khi đăng ký.) | SRS 2.2, PRD 5.1 | Quyền khách |
 | Q-06 | (Đã trả lời: chấm bằng AI và có trừ lượt.) | PRD FR-EX-01 | Exercise, quota |
-| Q-07 | (Đã trả lời: dùng Wiktionary qua Kaikki, nhập một lần vào hệ thống, Biên tập viên sửa được trong `lesson_glossary`.) Còn lại: xác nhận điều kiện CC BY-SA, giấy phép từng file audio, độ phủ từ nối. | FR-LMS-02 | `lesson_glossary`, CMS |
+| Q-07 | (Đã trả lời: dùng Wiktionary qua Kaikki, nhập một lần làm bản nháp, Biên tập viên duyệt nghĩa và tự nhập cụm còn thiếu trong `lesson_glossary`.) Còn lại: xác nhận điều kiện CC BY-SA, giấy phép từng file audio. | FR-LMS-02 | `lesson_glossary`, CMS |
 | Q-08 | (Tạm: soạn dữ liệu demo cho mỗi nhóm mục tiêu và mỗi loại sản phẩm LEVEL, COMBO, AI_ADDON; production dùng dữ liệu thật.) Còn lại: hình thức bán thật. | PRD 7 #4 | `products.access_days`, gia hạn |
 | Q-09 | Mỗi gói cấp bao nhiêu lượt AI, giá Add-on? Lượt AI giờ chỉ có từ gói mua (xem Q-27). | PRD 7 #5 | `products.ai_quota` |
 | Q-10 | (Đã trả lời: bỏ SĐT khỏi MVP; email phải xác thực và có quên mật khẩu.) Còn lại: chính sách mật khẩu tối thiểu có đủ không (8 ký tự `[Q-28]`)? | FR-AUTH-01 | Auth |
@@ -669,7 +669,7 @@ Mỗi bước chạy được end-to-end trước khi sang bước sau.
 | Q-27 | (Đã trả lời: không cấp lượt AI khi đăng ký hay khi xác thực email; chỉ cấp sau khi mua khóa. Học viên chưa mua vẫn xem video và làm trắc nghiệm ở Topic học thử, chỉ không dùng được AI.) Còn lại: số lượt mỗi gói là bao nhiêu, "3 lượt" có còn là mức mặc định cho gói khóa không (gộp vào Q-09)? | FR-AUTH-01, FR-AI-04 | Quota |
 | Q-28 | Mật khẩu tối thiểu 8 ký tự, có cần chữ hoa/số/ký tự đặc biệt không? | NFR-SEC-01 | Kiểm tra đầu vào |
 | Q-29 | Video từ MinIO đi qua server và Cloudflare Tunnel, trong khi mục 1.2 ước ~450 Mbps giờ cao điểm và yêu cầu không đi qua server. Đường truyền có chịu được không, hay video chính dùng YouTube Private? Dung lượng SSD có đủ không? | Mục 1.2, Q-14 | Hạ tầng media |
-| Q-30 | (Đã trả lời: 8 yếu tố là phương pháp áp dụng cấu trúc vào bài viết IELTS, không phải luyện từ loại. Dạng bài đổi theo cấu trúc, bỏ hai dạng từ loại và Biến đổi dạng từ, thêm viết lại câu. AI chấm viết đánh giá yếu tố đã dùng và gợi ý nâng cấp câu.) Còn lại: `GRAMMAR_REWRITE` có trừ lượt như Q-06 không. | PRD, SRS FR-EX-02 | `grammar_elements`, dạng `GRAMMAR_*` |
+| Q-30 | (Đã trả lời: 8 yếu tố là phương pháp áp dụng cấu trúc vào bài viết IELTS, không phải luyện từ loại. Dạng bài đổi theo cấu trúc, bỏ hai dạng từ loại và Biến đổi dạng từ, thêm viết lại câu. AI chấm viết đánh giá yếu tố đã dùng và gợi ý nâng cấp câu. `GRAMMAR_REWRITE` chấm AI và trừ lượt như Q-06.) | PRD, SRS FR-EX-02 | `grammar_elements`, dạng `GRAMMAR_*` |
 
 ## 14. Kiểm tra thiết kế
 
