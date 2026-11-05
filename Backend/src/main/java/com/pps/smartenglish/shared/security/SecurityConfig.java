@@ -43,6 +43,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(a -> a
                         .requestMatchers(HttpMethod.POST, PUBLIC_POST).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/catalog/courses", "/api/catalog/courses/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/lessons/*").permitAll() // FR-LMS-02: bài học thử cho khách
                         .requestMatchers("/actuator/health/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o -> o

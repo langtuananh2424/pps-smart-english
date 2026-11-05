@@ -13,6 +13,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
@@ -29,6 +30,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
  * Mỗi test dùng email và IP riêng vì DB H2 và bộ đếm dùng chung giữa các test.
  */
 @SpringBootTest
+@Import(FakeStorageConfig.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 public abstract class ApiTestBase {
