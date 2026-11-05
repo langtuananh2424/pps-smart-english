@@ -12,7 +12,13 @@ permissions:
   packages: write
 
 jobs:
+  backend-ci:
+    uses: ./.github/workflows/backend-ci.yml
+  web-ci:
+    uses: ./.github/workflows/web-ci.yml
+
   publish:
+    needs: [backend-ci, web-ci]
     runs-on: ubuntu-latest
     strategy:
       matrix:
