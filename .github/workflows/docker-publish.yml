@@ -1,15 +1,20 @@
 name: Docker publish & deploy
 
+# main = staging, production = bản cho người dùng. develop chỉ tích hợp, không build image, không deploy.
 on:
   push:
-    branches: [main]
-    tags: ["v*"]
-    paths: ["Backend/**", "Web/**", ".github/workflows/docker-publish.yml"]
+    branches: [main, production]
+    paths: ["Backend/**", "Web/**", "docker-compose.prod.yml", ".github/workflows/docker-publish.yml"]
   workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
+
+env:
+  # prod-latest / prod-<sha> cho nhánh production, staging-latest / staging-<sha> cho các nhánh còn lại
+  IMAGE_ENV: ${{ github.ref_name == 'production' && 'prod' || 'staging' }}
+  DEPLOY_DIR: ${{ github.ref_name == 'production' && 'production' || 'staging' }}
 
 jobs:
   backend-ci:
@@ -19,6 +24,8 @@ jobs:
 
   publish:
     needs: [backend-ci, web-ci]
+    # Chạy tay từ nhánh khác không được ghi đè image staging.
+    if: github.ref_name == 'main' || github.ref_name == 'production'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -38,9 +45,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}/${{ matrix.name }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha
-            type=semver,pattern={{version}}
+            type=raw,value=${{ env.IMAGE_ENV }}-latest
+            type=sha,prefix=${{ env.IMAGE_ENV }}-
       - uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
@@ -50,24 +56,29 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
 
-  # Runs only when the repository variable DEPLOY_ENABLED is "true" and the
-  # secrets DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY, DEPLOY_PATH are set.
-  # The server needs a clone of this repo at DEPLOY_PATH and a filled .env.
+  # Chạy trên self-hosted runner đặt ngay trên máy chủ (không có IP tĩnh nên GitHub cloud không SSH vào được).
+  # Chỉ job này dùng self-hosted; CI luôn dùng ubuntu-latest vì repo public, không để PR chạy trên máy chủ.
   deploy:
     needs: publish
-    if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
-    runs-on: ubuntu-latest
-    environment: production
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: [self-hosted, pps-smart-english]
+    environment: ${{ github.ref_name == 'production' && 'production' || 'staging' }}
+    permissions:
+      contents: read
+      packages: read
     steps:
-      - uses: appleboy/ssh-action@v1.2.0
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            set -e
-            cd ${{ secrets.DEPLOY_PATH }}
-            git pull --ff-only
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d
-            docker image prune -f
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Đồng bộ file compose lên máy chủ; thiếu bước này file trên máy chủ sẽ lệch repo.
+      - name: Sync compose file
+        run: cp docker-compose.prod.yml /opt/pps-smart-english/${{ env.DEPLOY_DIR }}/docker-compose.yml
+      - name: Pull and restart
+        working-directory: /opt/pps-smart-english/${{ env.DEPLOY_DIR }}
+        run: |
+          docker compose pull
+          docker compose up -d
+          docker image prune -f
