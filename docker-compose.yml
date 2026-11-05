@@ -34,6 +34,7 @@ services:
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-pps}
       DB_USER: ${POSTGRES_USER:-pps}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-pps}
+      DEMO_FLYWAY_LOCATION: ${DEMO_FLYWAY_LOCATION-,classpath:db/demo} # dev nạp dữ liệu demo; đặt rỗng để tắt
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-not-for-production-0123456789}

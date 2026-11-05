@@ -11,7 +11,8 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
-    locations: classpath:db/migration,classpath:db/migration-pg
+    # DEMO_FLYWAY_LOCATION=",classpath:db/demo" nạp dữ liệu demo; mặc định rỗng (production)
+    locations: classpath:db/migration,classpath:db/migration-pg${DEMO_FLYWAY_LOCATION:}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
