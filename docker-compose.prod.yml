@@ -1,5 +1,7 @@
-# Production stack: pulls images built by .github/workflows/docker-publish.yml.
-# Required in .env on the server: IMAGE_PREFIX, POSTGRES_PASSWORD, REDIS_PASSWORD, JWT_SECRET, APP_BASE_URL (see .env.example).
+# Một file cho cả staging và production: pulls images built by .github/workflows/docker-publish.yml.
+# Required in .env on the server: APP_ENV, WEB_PORT, TAG, IMAGE_PREFIX, POSTGRES_PASSWORD, REDIS_PASSWORD, JWT_SECRET, APP_BASE_URL (see .env.example).
+name: pps-english-${APP_ENV:?set APP_ENV}
+
 x-logging: &logging
   driver: json-file
   options:
@@ -75,7 +77,7 @@ services:
     restart: unless-stopped
     logging: *logging
     ports:
-      - "127.0.0.1:80:80" # chỉ Cloudflare Tunnel cùng máy được vào, tránh giả mạo CF-Connecting-IP
+      - "127.0.0.1:${WEB_PORT:?set WEB_PORT}:80" # chỉ cloudflared cùng máy được vào (nginx máy chủ giữ cổng 80), tránh giả mạo CF-Connecting-IP
     depends_on:
       backend:
         condition: service_healthy

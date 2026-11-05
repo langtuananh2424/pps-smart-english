@@ -2,7 +2,7 @@ name: Mobile CI
 
 on:
   push:
-    branches: [main]
+    branches: [develop, main, production]
     paths: ["Mobile/**", ".github/workflows/mobile-ci.yml"]
   pull_request:
     paths: ["Mobile/**", ".github/workflows/mobile-ci.yml"]
