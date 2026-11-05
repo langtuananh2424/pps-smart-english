@@ -8,10 +8,9 @@ import com.pps.smartenglish.exercise.repository.StudentAnswerRepository;
 import com.pps.smartenglish.exercise.repository.StudentAttemptRepository;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.web.CursorPage;
-import java.nio.charset.StandardCharsets;
+import com.pps.smartenglish.shared.web.Cursors;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.List;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -68,24 +67,12 @@ public class AttemptService {
             throw ApiException.validation("limit", "Phải từ 1 trở lên");
         }
         size = Math.min(size, MAX_LIMIT);
-        long before = cursor == null || cursor.isBlank() ? Long.MAX_VALUE : decode(cursor);
+        long before = Cursors.decode(cursor);
         List<StudentAttempt> rows = attempts.findPage(userId, before, PageRequest.of(0, size + 1));
         boolean more = rows.size() > size;
         List<StudentAttempt> page = more ? rows.subList(0, size) : rows;
         var data = page.stream().map(a -> new AttemptSummary(a.getId(), a.getBankId(), a.getStartedAt(),
                 a.getSubmittedAt(), a.getScore(), a.getMaxScore())).toList();
-        return new CursorPage<>(data, more ? encode(page.get(size - 1).getId()) : null);
-    }
-
-    private static String encode(long id) {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(Long.toString(id).getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static long decode(String cursor) {
-        try {
-            return Long.parseLong(new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.UTF_8));
-        } catch (IllegalArgumentException e) { // NumberFormatException cũng là IllegalArgumentException
-            throw ApiException.validation("cursor", "Con trỏ không hợp lệ");
-        }
+        return new CursorPage<>(data, more ? Cursors.encode(page.get(size - 1).getId()) : null);
     }
 }

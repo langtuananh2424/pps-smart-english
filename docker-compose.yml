@@ -62,6 +62,8 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-no-reply@localhost}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
+      PAYMENT_FAKE_ENABLED: ${PAYMENT_FAKE_ENABLED:-true}
+      PAYMENT_FAKE_SECRET: ${PAYMENT_FAKE_SECRET:-dev-only-fake-payment-secret}
       MINIO_ENDPOINT: http://minio:9000
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-http://localhost:9100}
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}

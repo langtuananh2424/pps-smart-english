@@ -9,5 +9,8 @@ spring:
 app:
   storage:
     enabled: false # test dùng ObjectStorage giả
+  payment:
+    fake-enabled: true
+    fake-secret: test-fake-payment-secret
   jwt:
     secret: test-secret-test-secret-test-secret-0123456789
