@@ -20,6 +20,8 @@
         <aws.sdk.version>2.46.7</aws.sdk.version>
         <anthropic.sdk.version>3.2.0</anthropic.sdk.version>
         <webpush.version>5.1.2</webpush.version>
+        <!-- surefire đọc thuộc tính argLine: test chạy ở UTC giống CI, ghi đè được bằng -DargLine="-Duser.timezone=..." -->
+        <argLine>-Duser.timezone=UTC</argLine>
     </properties>
 
     <dependencies>

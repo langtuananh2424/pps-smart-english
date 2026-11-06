@@ -36,6 +36,7 @@ flowchart LR
 | Đẩy kết quả AI về API để phát SSE | Pub/Sub kênh `ai:result:{jobId}` | SRS 3.2 |
 | Rate limit endpoint AI | counter `rl:ai:{userId}` TTL 60s | NFR-SEC-03 |
 | Cache danh mục khóa học | key `catalog:*`, xóa khi Admin sửa | NFR-PERF-01 |
+| Cache báo cáo Admin | key `report:dashboard:{from}:{to}` TTL 60s; Redis lỗi thì tính thẳng từ PG | FR-ADM-03 |
 
 Redis chỉ giữ dữ liệu **mất được**. Hàng đợi AI và chống lặp webhook nằm trong PostgreSQL (`ai_jobs`, unique `payment_transactions.provider_ref`): ở tải ~4 job/s (mục 1.2), bảng + `FOR UPDATE SKIP LOCKED` là đủ, và tránh ghi hai nơi (ghi PG xong mà đẩy Redis lỗi thì job treo). Đây cũng là cách `ReflexGradingJob` của `pps-education` đang chạy.
 
@@ -378,6 +379,12 @@ sequenceDiagram
 - CRUD Course/Level/Topic/Lesson; upload video và phụ đề bằng pre-signed PUT lên R2 (file lớn không đi qua backend).
 - Import câu hỏi Excel/Word: dùng lại parser của `pps-education`; import là transaction, lỗi dòng nào báo dòng đó, không ghi một phần.
 - Báo cáo: user mới, tỷ lệ Free → Paid, doanh thu theo sản phẩm, chi phí AI từ `ai_grading_token_usage`. "Thời gian thực" = truy vấn trực tiếp, cache 1 phút.
+  - Đã chốt với chủ dự án: `GET /api/admin/reports/dashboard?from&to`, chỉ ADMIN (Q-12 chưa trả lời, nên chưa cấp cho Biên tập viên). Mặc định 30 ngày, tối đa 366 ngày, ngày theo Asia/Ho_Chi_Minh. Chưa xuất file.
+  - User mới: học viên (role STUDENT) đăng ký trong kỳ, kèm số đã xác thực email.
+  - Free → Paid: trong nhóm đăng ký của kỳ, % người đã có đơn PAID tính đến lúc xem. Người chỉ nhận khóa qua link kích hoạt là số riêng, không tính là Paid.
+  - Doanh thu: doanh thu gộp, cộng giá lúc mua của đơn PAID theo `paid_at`, tách theo sản phẩm, gồm cả gói thêm lượt AI. Không trừ phí cổng, VAT; chưa có hoàn tiền.
+  - Chi phí AI: USD và token theo loại job, quy đổi VND bằng tỷ giá cố định `REPORT_USD_VND_RATE`; chưa khai báo thì các trường VND là null. Chưa có chi phí chấm nói.
+  - Module `admin` khai báo port (`UserReportSource`, `SalesReportSource`, `AiCostReportSource`), module sở hữu dữ liệu cài đặt. Ngoại lệ có chủ đích: truy vấn chuyển đổi của `commerce` JOIN bảng `users`, chỉ đọc.
 
 ## 6. API
 

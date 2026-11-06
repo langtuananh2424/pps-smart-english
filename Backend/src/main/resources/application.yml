@@ -55,6 +55,11 @@ app:
     fake-secret: ${PAYMENT_FAKE_SECRET:}
   commerce:
     order-ttl-minutes: ${ORDER_TTL_MINUTES:30}
+  reports:
+    # múi giờ tính ngày trong báo cáo Admin
+    zone: Asia/Ho_Chi_Minh
+    # tỷ giá USD/VND để quy đổi chi phí AI; không có mặc định, để trống thì báo cáo chỉ có USD
+    usd-vnd-rate: ${REPORT_USD_VND_RATE:}
   retention:
     # múi giờ tính "ngày có học" cho mọi người dùng (Q-18)
     zone: Asia/Ho_Chi_Minh
