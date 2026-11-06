@@ -9,8 +9,9 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 
 /**
- * Chọn grader theo type. shortcut: CONNECTIVE_REWRITE, GRAMMAR_REWRITE, WRITING, SPEAKING chưa có grader vì chấm AI,
- * chờ module ai; hiện chỉ lưu câu trả lời, is_correct null và không tính vào điểm.
+ * Chọn grader theo type, chấm thuần trong bộ nhớ. Các dạng không có ở đây không chấm theo answer_key:
+ * CONNECTIVE_REWRITE và GRAMMAR_REWRITE đi qua RewriteRules rồi job AI trong SubmissionService;
+ * WRITING chấm ở luồng phiên viết của module ai; SPEAKING chờ FR-AI-03.
  */
 @Component
 public class GraderRegistry {

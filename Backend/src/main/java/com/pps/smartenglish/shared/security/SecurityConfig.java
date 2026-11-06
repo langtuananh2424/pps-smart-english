@@ -1,5 +1,6 @@
 package com.pps.smartenglish.shared.security;
 
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -41,6 +42,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
+                        // SSE: request gốc đã xác thực; lần dispatch ASYNC chỉ để ghi nốt phản hồi, không có JWT để kiểm lại
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                         .requestMatchers(HttpMethod.POST, PUBLIC_POST).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/catalog/courses", "/api/catalog/courses/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/lessons/*").permitAll() // FR-LMS-02: bài học thử cho khách

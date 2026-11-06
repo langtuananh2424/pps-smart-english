@@ -1,9 +1,13 @@
 package com.pps.smartenglish.exercise.service;
 
+import com.pps.smartenglish.ai.service.AiJobService;
+import com.pps.smartenglish.exercise.domain.AnswerGrading;
+import com.pps.smartenglish.exercise.domain.StudentAnswer;
 import com.pps.smartenglish.exercise.domain.StudentAttempt;
 import com.pps.smartenglish.exercise.dto.AttemptResponse;
 import com.pps.smartenglish.exercise.dto.AttemptStarted;
 import com.pps.smartenglish.exercise.dto.AttemptSummary;
+import com.pps.smartenglish.exercise.repository.AnswerGradingRepository;
 import com.pps.smartenglish.exercise.repository.StudentAnswerRepository;
 import com.pps.smartenglish.exercise.repository.StudentAttemptRepository;
 import com.pps.smartenglish.shared.error.ApiException;
@@ -26,15 +30,20 @@ public class AttemptService {
     private final BankGate gate;
     private final StudentAttemptRepository attempts;
     private final StudentAnswerRepository answers;
+    private final AnswerGradingRepository gradings;
+    private final AiJobService aiJobs;
     private final QuestionLoader loader;
     private final ResultAssembler assembler;
     private final Clock clock;
 
     AttemptService(BankGate gate, StudentAttemptRepository attempts, StudentAnswerRepository answers,
-                   QuestionLoader loader, ResultAssembler assembler, Clock clock) {
+                   AnswerGradingRepository gradings, AiJobService aiJobs, QuestionLoader loader, ResultAssembler assembler,
+                   Clock clock) {
         this.gate = gate;
         this.attempts = attempts;
         this.answers = answers;
+        this.gradings = gradings;
+        this.aiJobs = aiJobs;
         this.loader = loader;
         this.assembler = assembler;
         this.clock = clock;
@@ -53,10 +62,13 @@ public class AttemptService {
         var a = attempts.findByIdAndUserId(attemptId, userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "attempt_not_found", "Không tìm thấy lượt làm bài"));
         if (a.getSubmittedAt() == null) {
-            return new AttemptResponse(a.getId(), a.getBankId(), a.getStartedAt(), null, null, null, null, null);
+            return new AttemptResponse(a.getId(), a.getBankId(), a.getStartedAt(), null, null, null, null, null, null, null);
         }
-        return assembler.submitted(a, a.getSubmittedAt(), a.getScore(), a.getMaxScore(), loader.load(a.getBankId()),
-                answers.findByAttemptId(a.getId()));
+        var stored = answers.findByAttemptId(a.getId());
+        var gradingRows = stored.isEmpty() ? List.<AnswerGrading>of()
+                : gradings.findByAnswerIdIn(stored.stream().map(StudentAnswer::getId).toList());
+        return assembler.submitted(a, a.getSubmittedAt(), a.getScore(), a.getMaxScore(), loader.load(a.getBankId()), stored,
+                gradingRows, aiJobs.pendingIds(a.getId()), null);
     }
 
     /** Mới nhất trước; con trỏ là id của phần tử cuối trang, mã hóa mờ. */

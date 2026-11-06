@@ -39,6 +39,7 @@ public class Question {
     protected Question() {}
 
     public Long getId() { return id; }
+    public Long getBankId() { return bankId; }
     public QuestionType getType() { return QuestionType.valueOf(type); }
     public String getPrompt() { return prompt; }
     public JsonNode getPayload() { return payload; }

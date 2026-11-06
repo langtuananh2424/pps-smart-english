@@ -9,6 +9,10 @@ spring:
 app:
   storage:
     enabled: false # test dùng ObjectStorage giả
+  ai:
+    provider: fake
+    worker-enabled: false # test gọi AiJobRunner.runDueNow() để chạy job đúng lúc
+    redis-notify: false
   payment:
     fake-enabled: true
     fake-secret: test-fake-payment-secret

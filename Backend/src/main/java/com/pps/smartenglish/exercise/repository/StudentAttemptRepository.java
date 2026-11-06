@@ -24,4 +24,9 @@ public interface StudentAttemptRepository extends JpaRepository<StudentAttempt, 
             + "where a.id = :id and a.submittedAt is null")
     int claimSubmission(@Param("id") Long id, @Param("now") Instant now, @Param("score") int score,
                         @Param("maxScore") int maxScore);
+
+    /** Cộng điểm do AI chấm sau khi nộp, nguyên tử để nhiều kết quả không ghi đè nhau. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update StudentAttempt a set a.score = a.score + :points where a.id = :id and a.submittedAt is not null")
+    int addScore(@Param("id") Long id, @Param("points") int points);
 }

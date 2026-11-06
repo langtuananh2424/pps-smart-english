@@ -55,6 +55,22 @@ app:
     fake-secret: ${PAYMENT_FAKE_SECRET:}
   commerce:
     order-ttl-minutes: ${ORDER_TTL_MINUTES:30}
+  ai:
+    # anthropic (thiếu ANTHROPIC_API_KEY thì không khởi động) hoặc fake (kết quả cố định, cho local/test)
+    provider: ${AI_PROVIDER:anthropic}
+    model: ${AI_MODEL:claude-haiku-5-5}
+    api-key: ${ANTHROPIC_API_KEY:}
+    max-pending: ${AI_MAX_PENDING:200}
+    # false để tách vai api/worker
+    worker-enabled: ${AI_WORKER_ENABLED:true}
+    concurrency: ${AI_CONCURRENCY:10}
+    redis-notify: true
+    # USD cho 1 triệu token
+    price:
+      input: 0.10
+      output: 0.50
+      cache-read: 0.01
+      cache-write: 0.125
 
 logging:
   structured:

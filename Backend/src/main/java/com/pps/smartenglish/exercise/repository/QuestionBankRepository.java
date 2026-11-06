@@ -15,4 +15,11 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long
             where b.id = :id and t.id = b.topicId and lv.id = t.levelId and c.id = lv.courseId and c.status = 'PUBLISHED'
             """)
     Optional<BankInfo> findInfo(@Param("id") Long id);
+
+    /** Tên khóa học chứa bộ câu hỏi, đưa vào prompt chấm viết để model chấm theo mục tiêu của khóa. */
+    @Query("""
+            select c.title from QuestionBank b, Topic t, CourseLevel lv, Course c
+            where b.id = :id and t.id = b.topicId and lv.id = t.levelId and c.id = lv.courseId
+            """)
+    Optional<String> findCourseTitle(@Param("id") Long id);
 }

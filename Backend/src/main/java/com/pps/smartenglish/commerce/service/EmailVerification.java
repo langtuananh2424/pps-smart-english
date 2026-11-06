@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 /** Mua hàng và kích hoạt link đều yêu cầu email đã xác thực (system-design 5.1). */
 @Component
-class EmailVerification {
+public class EmailVerification {
 
     private final UserRepository users;
 
@@ -15,7 +15,7 @@ class EmailVerification {
         this.users = users;
     }
 
-    void require(long userId) {
+    public void require(long userId) {
         boolean verified = users.findById(userId).map(u -> u.getEmailVerifiedAt() != null).orElse(false);
         if (!verified) {
             throw new ApiException(HttpStatus.FORBIDDEN, "email_not_verified", "Hãy xác thực email trước khi mua hàng hoặc kích hoạt");

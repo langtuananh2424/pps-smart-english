@@ -56,7 +56,7 @@ public class IdempotencyService {
             return tx.execute(s -> {
                 var record = keys.saveAndFlush(new IdempotencyRecord(userId, key, requestHash, Instant.now(clock)));
                 T result = action.get();
-                record.complete(status, write(result));
+                keys.complete(record.getId(), status, write(result));
                 return new Outcome<>(status, result);
             });
         } catch (DataIntegrityViolationException e) {
