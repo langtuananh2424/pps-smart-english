@@ -197,8 +197,8 @@ Chấm tự động (< 100 ms, FR-EX-03) chạy trong `api`: so `answer` với `
 | Bảng | Cột chính | Ghi chú |
 |---|---|---|
 | **`user_ai_quota`** | `user_id` PK, `balance`, `updated_at` | PRD Q5; số dư lượt |
-| **`ai_quota_ledger`** | `user_id`, `delta` (+/−), `reason` (PURCHASE/GRADING/REFUND), `ref_id` | Truy vết mọi thay đổi số dư; không có dòng cấp tặng khi đăng ký |
-| **`ai_jobs`** | `user_id`, `kind` (WRITING_GRADE/SCAFFOLD_FOLLOWUP/SCAFFOLD_DRAFT/SPEAKING_GRADE), `status` (PENDING/RUNNING/DONE/FAILED), `input jsonb`, `output jsonb`, `error`, `attempts`, `run_after`, `locked_until`, `answer_id` null | Chính là hàng đợi (khóa chống lặp nằm ở bảng `idempotency_keys`, mục 4.7); index `(kind, status, run_after)` |
+| **`ai_quota_ledger`** | `user_id`, `delta` (+/−), `reason` (PURCHASE/ACTIVATION_LINK/GRADING/REFUND), `ref_id` | Truy vết mọi thay đổi số dư; không có dòng cấp tặng khi đăng ký |
+| **`ai_jobs`** | `user_id`, `kind` (WRITING_GRADE/SCAFFOLD_FOLLOWUP/SCAFFOLD_DRAFT/REWRITE_GRADE/SPEAKING_GRADE), `status` (PENDING/RUNNING/DONE/FAILED), `input jsonb`, `output jsonb`, `error`, `attempts`, `run_after`, `locked_until`, `answer_id` null | Chính là hàng đợi (khóa chống lặp nằm ở bảng `idempotency_keys`, mục 4.7); index `(kind, status, run_after)` |
 | **`writing_sessions`** | `user_id`, `question_id`, `step`, `turns jsonb`, `draft`, `status` | Trạng thái Scaffolding (FR-AI-01) |
 | `ai_grading_token_usage` | `job_id`, `user_id`, `provider`, `model`, `input_tokens`, `output_tokens`, `cache_read_tokens`, `audio_seconds` null, `cost_usd` | FR-AI-04, báo cáo chi phí FR-ADM-03 |
 
@@ -327,7 +327,7 @@ sequenceDiagram
 
 Quy tắc:
 
-- Kiểm tra quota trước khi gọi AI. Hết lượt ⇒ 402 kèm sản phẩm AI_ADDON. Job FAILED sau hết lượt thử ⇒ hoàn lượt (`REFUND`). Bước nào trừ lượt: `[Q-15]`.
+- Kiểm tra quota trước khi gọi AI. Hết lượt ⇒ 402 kèm sản phẩm AI_ADDON. Job FAILED sau hết lượt thử ⇒ hoàn lượt (`REFUND`). Chỉ trừ lượt khi chấm bài; câu hỏi đào sâu và bản nháp không trừ nhưng vẫn cần số dư > 0 (`Q-15`).
 - Rate limit 5 request/phút/user trên mọi endpoint AI ⇒ 429 (NFR-SEC-03).
 - Kết quả theo rubric PPS: `markedAnswer`, `correctedAnswer`, phân tích từ nối, `gateNote` (FR-AI-02). Prompt lấy từ `writing-grading-system-prompt` của `pps-education`.
 - Để đạt 3–5 s: stream token về client qua SSE, prompt cache phần rubric cố định, tắt thinking, giới hạn `max_tokens` theo độ dài bài. UI luôn có animation tiến độ (NFR-PERF-03).
@@ -570,7 +570,7 @@ Mọi lời gọi ra ngoài có timeout; chỉ thử lại lời gọi an toàn 
 | Anthropic chậm/lỗi | Bài viết "đang chấm", có thông báo đẩy khi xong | Timeout 10 s chờ token đầu, 60 s tổng; thử lại 2 lần với 429/5xx; ngắt mạch sau 5 lỗi liên tiếp/30 s, job nằm lại PENDING; lỗi hẳn thì FAILED + hoàn lượt. Bài tập trắc nghiệm không bị ảnh hưởng |
 | Groq Whisper lỗi | Chấm nói chậm hơn (~30 s thay vì ~10 s) | Engine chuyển sang Whisper chạy cục bộ (đã có trong pps-speaking-engine). Cổng nộp tính công suất theo thời gian ~30 s khi đang ở chế độ dự phòng, nên hạ ngưỡng nhận job tương ứng; client hiện "đang chấm, báo khi xong" thay vì chờ tại chỗ |
 | pps-speaking-engine quá tải/chết | Nút nộp bài nói báo "thử lại sau N giây" | Chặn từ cổng nộp (503 + `Retry-After`, không trừ lượt); hàng đợi giới hạn, không phình vô hạn |
-| Redis chết | Kết quả AI hiện sau vài giây thay vì chạy dần; danh mục tải chậm hơn | SSE chuyển sang client hỏi lại mỗi 2 s; cache bỏ qua, đọc thẳng PG; rate limit AI **đóng** (từ chối) để không cháy chi phí |
+| Redis chết | Kết quả AI hiện sau vài giây thay vì chạy dần; danh mục tải chậm hơn | SSE chuyển sang client hỏi lại mỗi 2 s; cache bỏ qua, đọc thẳng PG; rate limit AI chuyển sang bộ đếm trong bộ nhớ từng instance, vẫn giới hạn chi phí |
 | PostgreSQL chết | Toàn hệ thống lỗi | Điểm chết duy nhất. Backup hằng ngày lên R2 (mục 8); khôi phục ≤ 2 h |
 | R2 lỗi | Video R2 và ghi âm không dùng được | Bài YouTube vẫn chạy; nộp bài nói báo lỗi rõ, không trừ lượt |
 | Webhook PayOS không tới | Đơn vẫn "chờ thanh toán" | Job đối soát hỏi trạng thái cổng cho đơn PENDING mỗi phút (khi kết nối thật) |
@@ -656,7 +656,7 @@ Mỗi bước chạy được end-to-end trước khi sang bước sau.
 | Q-12 | Admin và Biên tập viên có cần tách quyền (ví dụ biên tập viên không xem doanh thu)? | SRS 2.2 | Phân quyền CMS |
 | Q-13 | Mobile lưu refresh token trong secure storage thay cookie — chấp nhận? | FR-AUTH-02 | Mobile (giai đoạn 2) |
 | Q-14 | (Đã trả lời: media lưu trên server qua MinIO riêng của dự án, thay Cloudflare R2, gồm cả file ghi âm; lệch SRS. Các mục còn ghi R2 sẽ sửa khi làm `ObjectStorage`. Video dùng MP4 faststart, H.264 + AAC.) Xem Q-29. | NFR-PERF-02 | Pipeline video |
-| Q-15 | Lượt AI trừ ở bước nào: chỉ chấm bài, hay cả câu hỏi đào sâu và bản nháp? | FR-AI-01, 04 | Quota |
+| Q-15 | (Đã trả lời: chỉ trừ khi chấm bài. Dạng viết lại câu trừ 1 lượt mỗi lần nộp bộ, chỉ khi còn câu cần AI; câu khớp đáp án mẫu hoặc thiếu từ bắt buộc chấm bằng luật, không trừ lượt; các câu cần AI gộp vào một lời gọi.) | FR-AI-01, 04 | Quota |
 | Q-16 | Giới hạn thời lượng / dung lượng file ghi âm? | FR-AI-03 | Upload |
 | Q-17 | Rubric speaking (trọng số phát âm, trôi chảy, phản xạ) và cách đo thời gian phản xạ? | FR-AI-03 | Chấm nói |
 | Q-18 | Ngày tính streak theo giờ Việt Nam cho mọi người dùng? | FR-RET-01 | Streak |
