@@ -14,6 +14,9 @@ public interface StudentAnswerRepository extends JpaRepository<StudentAnswer, Lo
 
     Optional<StudentAnswer> findByAttemptIdAndQuestionId(Long attemptId, Long questionId);
 
+    /** CMS: câu đã có bài nộp thì khóa type, payload, answerKey và choices (chưa có chức năng chấm lại). */
+    boolean existsByQuestionId(Long questionId);
+
     /** Ghi kết quả AI một lần: chỉ khi còn null nên chạy lại cùng job không ghi đè hay tính điểm hai lần. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update StudentAnswer a set a.correct = :correct where a.attemptId = :attemptId and a.questionId = :questionId "

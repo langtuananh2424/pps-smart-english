@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface QuestionChoiceRepository extends JpaRepository<QuestionChoice, Long> {
 
     List<QuestionChoice> findByQuestionIdInOrderByLabelAscIdAsc(Collection<Long> questionIds);
+
+    void deleteByQuestionId(Long questionId);
 }

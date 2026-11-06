@@ -2,19 +2,21 @@ package com.pps.smartenglish.exercise.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.Immutable;
 
+/** Lựa chọn của câu trắc nghiệm; is_correct chỉ ở đây, không bao giờ trả cho học viên trước khi nộp. */
 @Entity
-@Immutable
 @Table(name = "question_choices")
 public class QuestionChoice {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "question_id")
+    @Column(name = "question_id", updatable = false)
     private Long questionId;
 
     private String label;
@@ -27,9 +29,18 @@ public class QuestionChoice {
 
     protected QuestionChoice() {}
 
+    public QuestionChoice(Long questionId, String label, String content, boolean correct, String explanation) {
+        this.questionId = questionId;
+        this.label = label;
+        this.content = content;
+        this.correct = correct;
+        this.explanation = explanation;
+    }
+
     public Long getId() { return id; }
     public Long getQuestionId() { return questionId; }
     public String getLabel() { return label; }
     public String getContent() { return content; }
     public boolean isCorrect() { return correct; }
+    public String getExplanation() { return explanation; }
 }
