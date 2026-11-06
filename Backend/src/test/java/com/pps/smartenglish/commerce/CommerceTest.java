@@ -47,13 +47,13 @@ class CommerceTest extends ApiTestBase {
 
     private Content content() {
         long c = insert("courses", Map.of("slug", "com-" + UUID.randomUUID(), "title", "Khóa", "status", "PUBLISHED"));
-        long lv = insert("course_levels", Map.of("course_id", c, "code", "A", "title", "Level A"));
-        long t = insert("topics", Map.of("level_id", lv, "title", "Topic", "is_free_trial", false));
+        long lv = insert("course_levels", Map.of("course_id", c, "code", "A", "title", "Level A", "status", "PUBLISHED"));
+        long t = insert("topics", Map.of("level_id", lv, "title", "Topic", "is_free_trial", false, "status", "PUBLISHED"));
         var lesson = new HashMap<String, Object>(Map.of("topic_id", t, "type", "CONNECTIVE_VIDEO", "title", "Bài", "status", "PUBLISHED"));
         lesson.put("video_source", "YOUTUBE");
         lesson.put("video_ref", "abc");
         lesson.put("duration_sec", 60);
-        long bank = insert("question_banks", Map.of("topic_id", t, "title", "Bộ", "is_trial", false));
+        long bank = insert("question_banks", Map.of("topic_id", t, "title", "Bộ", "is_trial", false, "status", "PUBLISHED"));
         return new Content(lv, insert("lessons", lesson), bank);
     }
 

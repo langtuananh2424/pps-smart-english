@@ -73,8 +73,8 @@ class StreakXpTest extends AiTestSupport {
 
     private long freeLesson(int duration) {
         long c = insert("courses", Map.of("slug", "ret-" + UUID.randomUUID(), "title", "Khóa", "status", "PUBLISHED"));
-        long lv = insert("course_levels", Map.of("course_id", c, "code", "A", "title", "Level A"));
-        long t = insert("topics", Map.of("level_id", lv, "title", "Topic", "is_free_trial", true));
+        long lv = insert("course_levels", Map.of("course_id", c, "code", "A", "title", "Level A", "status", "PUBLISHED"));
+        long t = insert("topics", Map.of("level_id", lv, "title", "Topic", "is_free_trial", true, "status", "PUBLISHED"));
         return insert("lessons", Map.of("topic_id", t, "type", "CONNECTIVE_VIDEO", "title", "Bài", "status", "PUBLISHED",
                 "video_source", "YOUTUBE", "video_ref", "abc", "duration_sec", duration));
     }

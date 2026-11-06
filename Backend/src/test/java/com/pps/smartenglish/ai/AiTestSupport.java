@@ -40,9 +40,9 @@ public abstract class AiTestSupport extends ApiTestBase {
     /** Bank trong topic học thử (mở cho mọi học viên) hoặc topic khóa. */
     protected long bank(boolean topicFree) {
         long c = insert("courses", Map.of("slug", "ai-" + UUID.randomUUID(), "title", "IELTS 3.0 → 5.0", "status", "PUBLISHED"));
-        long lv = insert("course_levels", Map.of("course_id", c, "code", "A", "title", "Level A"));
-        long t = insert("topics", Map.of("level_id", lv, "title", "Topic", "is_free_trial", topicFree));
-        return insert("question_banks", Map.of("topic_id", t, "title", "Bộ", "is_trial", false));
+        long lv = insert("course_levels", Map.of("course_id", c, "code", "A", "title", "Level A", "status", "PUBLISHED"));
+        long t = insert("topics", Map.of("level_id", lv, "title", "Topic", "is_free_trial", topicFree, "status", "PUBLISHED"));
+        return insert("question_banks", Map.of("topic_id", t, "title", "Bộ", "is_trial", false, "status", "PUBLISHED"));
     }
 
     /** json trên H2 phải chèn bằng FORMAT JSON, nếu không sẽ thành chuỗi JSON. */

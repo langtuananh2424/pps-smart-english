@@ -25,5 +25,8 @@ public class QuestionBank {
     @Column(name = "is_trial")
     private boolean trial;
 
+    /** DRAFT/PUBLISHED; chỉ dùng trong truy vấn của đường đọc (QuestionBankRepository.findInfo). */
+    private String status;
+
     protected QuestionBank() {}
 }

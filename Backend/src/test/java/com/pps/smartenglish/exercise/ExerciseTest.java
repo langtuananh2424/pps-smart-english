@@ -41,9 +41,9 @@ class ExerciseTest extends ApiTestBase {
 
     private long bankRow(boolean topicFree, boolean bankTrial) {
         long c = insert("courses", Map.of("slug", "ex-" + UUID.randomUUID(), "title", "Khóa", "status", "PUBLISHED"));
-        long lv = insert("course_levels", Map.of("course_id", c, "code", "A", "title", "Level A"));
-        long t = insert("topics", Map.of("level_id", lv, "title", "Topic", "is_free_trial", topicFree));
-        return insert("question_banks", Map.of("topic_id", t, "title", "Bộ câu hỏi", "is_trial", bankTrial));
+        long lv = insert("course_levels", Map.of("course_id", c, "code", "A", "title", "Level A", "status", "PUBLISHED"));
+        long t = insert("topics", Map.of("level_id", lv, "title", "Topic", "is_free_trial", topicFree, "status", "PUBLISHED"));
+        return insert("question_banks", Map.of("topic_id", t, "title", "Bộ câu hỏi", "is_trial", bankTrial, "status", "PUBLISHED"));
     }
 
     /** H2: json phải chèn bằng FORMAT JSON, nếu không sẽ thành chuỗi JSON. */

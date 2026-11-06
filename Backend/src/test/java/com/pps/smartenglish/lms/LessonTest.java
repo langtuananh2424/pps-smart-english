@@ -35,8 +35,8 @@ class LessonTest extends ApiTestBase {
     /** Dựng course > level > topic > lesson; source/ref/duration null nghĩa là chưa có video / chưa biết thời lượng. */
     private long lesson(boolean free, String source, String ref, Integer duration, String lessonStatus, String courseStatus) {
         long c = insert("courses", Map.of("slug", "lms-" + UUID.randomUUID(), "title", "Khóa", "status", courseStatus));
-        long lv = insert("course_levels", Map.of("course_id", c, "code", "A", "title", "Level A"));
-        long t = insert("topics", Map.of("level_id", lv, "title", "Topic", "is_free_trial", free));
+        long lv = insert("course_levels", Map.of("course_id", c, "code", "A", "title", "Level A", "status", "PUBLISHED"));
+        long t = insert("topics", Map.of("level_id", lv, "title", "Topic", "is_free_trial", free, "status", "PUBLISHED"));
         var cols = new HashMap<String, Object>(
                 Map.of("topic_id", t, "type", "CONNECTIVE_VIDEO", "title", "Bài", "status", lessonStatus));
         cols.put("video_source", source);

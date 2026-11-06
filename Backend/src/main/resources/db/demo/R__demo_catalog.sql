@@ -28,17 +28,17 @@ BEGIN
         RETURNING id INTO cid;
 
         FOR lv IN 1..2 LOOP
-            INSERT INTO course_levels (course_id, code, title, sort_order)
-            VALUES (cid, 'L' || lv, 'Cấp độ ' || lv, lv)
+            INSERT INTO course_levels (course_id, code, title, sort_order, status)
+            VALUES (cid, 'L' || lv, 'Cấp độ ' || lv, lv, 'PUBLISHED')
             ON CONFLICT (course_id, code) DO UPDATE
-                SET title = EXCLUDED.title, sort_order = EXCLUDED.sort_order, updated_at = CURRENT_TIMESTAMP
+                SET title = EXCLUDED.title, sort_order = EXCLUDED.sort_order, status = 'PUBLISHED', updated_at = CURRENT_TIMESTAMP
             RETURNING id INTO lid;
 
             FOR tp IN 1..2 LOOP
                 SELECT id INTO tid FROM topics WHERE level_id = lid AND sort_order = tp;
                 IF tid IS NULL THEN
-                    INSERT INTO topics (level_id, title, sort_order, is_free_trial)
-                    VALUES (lid, 'Chủ đề ' || lv || '.' || tp, tp, tp = 1)
+                    INSERT INTO topics (level_id, title, sort_order, is_free_trial, status)
+                    VALUES (lid, 'Chủ đề ' || lv || '.' || tp, tp, tp = 1, 'PUBLISHED')
                     RETURNING id INTO tid;
                 END IF;
 
