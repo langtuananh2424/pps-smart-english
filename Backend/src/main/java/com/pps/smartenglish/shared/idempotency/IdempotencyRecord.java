@@ -46,11 +46,7 @@ class IdempotencyRecord {
         this.createdAt = createdAt;
     }
 
-    void complete(int status, String body) {
-        this.responseStatus = status;
-        this.responseBody = body;
-    }
-
+    Long getId() { return id; }
     String getRequestHash() { return requestHash; }
     int getResponseStatus() { return responseStatus; }
     String getResponseBody() { return responseBody; }
