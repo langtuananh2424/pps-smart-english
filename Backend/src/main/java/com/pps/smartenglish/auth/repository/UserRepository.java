@@ -26,10 +26,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * Học viên đăng ký trong [start, end) theo ngày của múi giờ zone: [ngày, số đăng ký, số đã xác thực email].
      * Gom ngày bằng AT TIME ZONE ngay trong SQL; truy vấn con để GROUP BY theo cột đã tính, không lặp biểu thức
      * (mỗi tham số :zone là một tham số khác nhau, PostgreSQL sẽ không coi hai biểu thức là một).
+     * Dùng TO_CHAR thay vì CAST AS date: H2 đổi ngày về múi giờ của phiên (JVM) khi CAST nên kết quả đổi theo máy chạy.
      */
     @Query(nativeQuery = true, value = """
             SELECT d, COUNT(*), COUNT(verified_at) FROM (
-                SELECT CAST(created_at AT TIME ZONE CAST(:zone AS varchar(64)) AS date) AS d, email_verified_at AS verified_at
+                SELECT TO_CHAR(created_at AT TIME ZONE CAST(:zone AS varchar(64)), 'YYYY-MM-DD') AS d, email_verified_at AS verified_at
                 FROM users WHERE role = 'STUDENT' AND created_at >= :start AND created_at < :end) t
             GROUP BY d ORDER BY d
             """)

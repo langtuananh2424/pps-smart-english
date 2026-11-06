@@ -48,10 +48,13 @@ public interface OrderRepository extends JpaRepository<ShopOrder, Long> {
             """)
     List<Object[]> revenueByProduct(@Param("start") Instant start, @Param("end") Instant end);
 
-    /** Doanh thu theo ngày paid_at của múi giờ zone: [ngày, tổng]. Truy vấn con vì lý do như UserRepository.registrationsByDay. */
+    /**
+     * Doanh thu theo ngày paid_at của múi giờ zone: [ngày dạng YYYY-MM-DD, tổng]. Truy vấn con và TO_CHAR (không CAST AS date)
+     * vì lý do như UserRepository.registrationsByDay.
+     */
     @Query(nativeQuery = true, value = """
             SELECT d, SUM(price) FROM (
-                SELECT CAST(o.paid_at AT TIME ZONE CAST(:zone AS varchar(64)) AS date) AS d, i.price_vnd AS price
+                SELECT TO_CHAR(o.paid_at AT TIME ZONE CAST(:zone AS varchar(64)), 'YYYY-MM-DD') AS d, i.price_vnd AS price
                 FROM orders o JOIN order_items i ON i.order_id = o.id
                 WHERE o.status = 'PAID' AND o.paid_at >= :start AND o.paid_at < :end) t
             GROUP BY d ORDER BY d
