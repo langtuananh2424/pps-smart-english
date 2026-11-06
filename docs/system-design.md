@@ -379,7 +379,8 @@ sequenceDiagram
 - CRUD Course/Level/Topic/Lesson; upload video và phụ đề bằng pre-signed PUT lên R2 (file lớn không đi qua backend).
   - Đã chốt với chủ dự án: Course, Level, Topic, Lesson, bộ câu hỏi đều có DRAFT/PUBLISHED, xuất bản không cần duyệt. Học viên chỉ thấy khi nó và mọi cấp cha đều PUBLISHED.
   - Video: hỗ trợ cả mã YouTube và tải lên MinIO. Phần MinIO chờ giới hạn dung lượng và kết quả đo tải (`Q-29` còn mở).
-  - Sửa đáp án câu đã có bài nộp: cho sửa và chấm lại bài cũ. Quy tắc XP, thưởng khi chấm lại chưa chốt, nên chưa code.
+  - Sửa đáp án câu đã có bài nộp: cho sửa và chấm lại bài cũ, kể cả bài do AI chấm. Không trừ XP, không thu hồi thưởng điểm cao. Giữ điểm cũ để đối chiếu. Chấm lại bài AI không trừ lượt của học viên, công ty chịu chi phí. Admin xem số bài bị ảnh hưởng rồi bấm xác nhận mới chạy, không tự chấm lại khi sửa. Trước khi có chức năng chấm lại, API tạm trả 409 cho thay đổi này.
+  - Chuẩn dữ liệu câu hỏi: giữ `requiredWord` cho `CONNECTIVE_REWRITE`, `requiredElement` cho `GRAMMAR_REWRITE`, `requiredWords` (số từ) cho `WRITING`.
 - Import câu hỏi Excel/Word: dùng lại parser của `pps-education`; import là transaction, lỗi dòng nào báo dòng đó, không ghi một phần.
 - Báo cáo: user mới, tỷ lệ Free → Paid, doanh thu theo sản phẩm, chi phí AI từ `ai_grading_token_usage`. "Thời gian thực" = truy vấn trực tiếp, cache 1 phút.
   - Đã chốt với chủ dự án: `GET /api/admin/reports/dashboard?from&to`, chỉ ADMIN (Q-12 chưa trả lời, nên chưa cấp cho Biên tập viên). Mặc định 30 ngày, tối đa 366 ngày, ngày theo Asia/Ho_Chi_Minh. Chưa xuất file.
