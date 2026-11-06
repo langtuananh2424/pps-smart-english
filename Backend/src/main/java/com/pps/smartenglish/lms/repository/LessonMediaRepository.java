@@ -9,13 +9,15 @@ import org.springframework.data.repository.query.Param;
 
 public interface LessonMediaRepository extends JpaRepository<LessonMedia, Long> {
 
-    /** Bài và khóa cha đều phải PUBLISHED. */
+    /** Bài và mọi cấp cha (topic, level, course) đều phải PUBLISHED. */
     @Query("""
             select new com.pps.smartenglish.lms.dto.PlayableLesson(m.id, m.title, m.type, m.durationSec,
                    m.videoSource, m.videoRef, t.freeTrial, lv.id)
             from LessonMedia m, Topic t, CourseLevel lv, Course c
             where m.id = :id and m.status = 'PUBLISHED'
-              and t.id = m.topicId and lv.id = t.levelId and c.id = lv.courseId and c.status = 'PUBLISHED'
+              and t.id = m.topicId and t.status = 'PUBLISHED'
+              and lv.id = t.levelId and lv.status = 'PUBLISHED'
+              and c.id = lv.courseId and c.status = 'PUBLISHED'
             """)
     Optional<PlayableLesson> findPlayable(@Param("id") Long id);
 }

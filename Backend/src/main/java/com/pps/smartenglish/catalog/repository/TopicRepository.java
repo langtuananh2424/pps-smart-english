@@ -8,4 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface TopicRepository extends JpaRepository<Topic, Long> {
 
     List<Topic> findByLevelIdInOrderBySortOrderAscIdAsc(Collection<Long> levelIds);
+
+    /** Đường đọc của học viên: chỉ topic đã PUBLISHED. */
+    List<Topic> findByLevelIdInAndStatusOrderBySortOrderAscIdAsc(Collection<Long> levelIds, String status);
+
+    boolean existsByLevelId(Long levelId);
 }

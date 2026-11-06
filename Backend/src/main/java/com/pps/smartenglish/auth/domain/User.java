@@ -15,7 +15,8 @@ import java.time.Instant;
 @Table(name = "users")
 public class User extends Auditable {
 
-    public enum Role { STUDENT, ADMIN }
+    /** EDITOR (Q-12): soạn nội dung ở /api/admin/cms; không xem báo cáo, link kích hoạt hay gói bán. Gán bằng SQL, chưa có API. */
+    public enum Role { STUDENT, ADMIN, EDITOR }
 
     public enum Status { ACTIVE, LOCKED }
 

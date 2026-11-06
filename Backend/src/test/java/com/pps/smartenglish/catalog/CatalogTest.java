@@ -26,11 +26,11 @@ class CatalogTest extends ApiTestBase {
     }
 
     private long level(long courseId, String code, int order) {
-        return insert("course_levels", Map.of("course_id", courseId, "code", code, "title", "Level " + code, "sort_order", order));
+        return insert("course_levels", Map.of("course_id", courseId, "code", code, "title", "Level " + code, "sort_order", order, "status", "PUBLISHED"));
     }
 
     private long topic(long levelId, String title, int order, boolean free) {
-        return insert("topics", Map.of("level_id", levelId, "title", title, "sort_order", order, "is_free_trial", free));
+        return insert("topics", Map.of("level_id", levelId, "title", title, "sort_order", order, "is_free_trial", free, "status", "PUBLISHED"));
     }
 
     private void lesson(long topicId, String title, int order, String status) {

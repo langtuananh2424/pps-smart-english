@@ -12,7 +12,11 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long
     @Query("""
             select new com.pps.smartenglish.exercise.dto.BankInfo(b.id, b.title, b.lessonId, b.trial, t.freeTrial, lv.id)
             from QuestionBank b, Topic t, CourseLevel lv, Course c
-            where b.id = :id and t.id = b.topicId and lv.id = t.levelId and c.id = lv.courseId and c.status = 'PUBLISHED'
+            where b.id = :id and b.status = 'PUBLISHED'
+              and t.id = b.topicId and t.status = 'PUBLISHED'
+              and lv.id = t.levelId and lv.status = 'PUBLISHED'
+              and c.id = lv.courseId and c.status = 'PUBLISHED'
+              and (b.lessonId is null or exists (select 1 from Lesson l where l.id = b.lessonId and l.status = 'PUBLISHED'))
             """)
     Optional<BankInfo> findInfo(@Param("id") Long id);
 

@@ -49,9 +49,10 @@ public class CatalogService {
     public CourseDetail detail(String slug) {
         var course = courses.findBySlugAndStatus(slug, PUBLISHED)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "course_not_found", "Không tìm thấy khóa học"));
-        List<CourseLevel> lvls = levels.findByCourseIdOrderBySortOrderAscIdAsc(course.getId());
+        // chỉ hiện level, topic, bài PUBLISHED; cha DRAFT thì con không có trong cây dù con đã PUBLISHED
+        List<CourseLevel> lvls = levels.findByCourseIdAndStatusOrderBySortOrderAscIdAsc(course.getId(), PUBLISHED);
         List<Topic> tps = lvls.isEmpty() ? List.of()
-                : topics.findByLevelIdInOrderBySortOrderAscIdAsc(lvls.stream().map(CourseLevel::getId).toList());
+                : topics.findByLevelIdInAndStatusOrderBySortOrderAscIdAsc(lvls.stream().map(CourseLevel::getId).toList(), PUBLISHED);
         List<Lesson> lss = tps.isEmpty() ? List.of()
                 : lessons.findByTopicIdInAndStatusOrderBySortOrderAscIdAsc(tps.stream().map(Topic::getId).toList(), PUBLISHED);
 

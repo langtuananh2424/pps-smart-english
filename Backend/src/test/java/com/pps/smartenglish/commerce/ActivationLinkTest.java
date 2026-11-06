@@ -44,8 +44,8 @@ class ActivationLinkTest extends ApiTestBase {
 
     private Content paidContent() {
         long c = insert("courses", Map.of("slug", "act-" + UUID.randomUUID(), "title", "Khóa", "status", "PUBLISHED"));
-        long lv = insert("course_levels", Map.of("course_id", c, "code", "A", "title", "Level A"));
-        long t = insert("topics", Map.of("level_id", lv, "title", "Topic", "is_free_trial", false));
+        long lv = insert("course_levels", Map.of("course_id", c, "code", "A", "title", "Level A", "status", "PUBLISHED"));
+        long t = insert("topics", Map.of("level_id", lv, "title", "Topic", "is_free_trial", false, "status", "PUBLISHED"));
         var lesson = new HashMap<String, Object>(Map.of("topic_id", t, "type", "CONNECTIVE_VIDEO", "title", "Bài", "status", "PUBLISHED"));
         lesson.put("video_source", "YOUTUBE");
         lesson.put("video_ref", "abc");

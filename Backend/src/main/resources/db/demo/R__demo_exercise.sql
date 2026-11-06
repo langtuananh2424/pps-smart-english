@@ -17,10 +17,10 @@ BEGIN
     -- Bank ở Topic học thử: đủ các dạng chấm tự động và hai dạng chấm AI
     IF free_topic IS NOT NULL
        AND NOT EXISTS (SELECT 1 FROM question_banks WHERE topic_id = free_topic AND title = 'Bài tập demo: từ nối và cấu trúc') THEN
-        INSERT INTO question_banks (topic_id, lesson_id, title, is_trial)
+        INSERT INTO question_banks (topic_id, lesson_id, title, is_trial, status)
         VALUES (free_topic,
                 (SELECT id FROM lessons WHERE topic_id = free_topic AND sort_order = 1),
-                'Bài tập demo: từ nối và cấu trúc', FALSE)
+                'Bài tập demo: từ nối và cấu trúc', FALSE, 'PUBLISHED')
         RETURNING id INTO bid;
 
         -- 1. Trắc nghiệm: đáp án nằm ở question_choices
@@ -114,8 +114,8 @@ BEGIN
     -- Bank ở Topic không học thử: học viên chưa mua sẽ nhận 403 bank_locked
     IF locked_topic IS NOT NULL
        AND NOT EXISTS (SELECT 1 FROM question_banks WHERE topic_id = locked_topic AND title = 'Bài tập demo: cần mở khóa') THEN
-        INSERT INTO question_banks (topic_id, title, is_trial)
-        VALUES (locked_topic, 'Bài tập demo: cần mở khóa', FALSE)
+        INSERT INTO question_banks (topic_id, title, is_trial, status)
+        VALUES (locked_topic, 'Bài tập demo: cần mở khóa', FALSE, 'PUBLISHED')
         RETURNING id INTO bid;
 
         INSERT INTO questions (bank_id, type, prompt, explanation, sort_order)
