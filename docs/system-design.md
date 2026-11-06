@@ -368,10 +368,10 @@ sequenceDiagram
 
 ### 5.7 Streak, XP, thông báo (FR-RET-01..03)
 
-- Một ngày "có học" = hoàn thành ít nhất 1 bài học hoặc bài tập (SRS FR-RET-01), tính theo `user_profiles.timezone`, mặc định `Asia/Ho_Chi_Minh` `[Q-18]`.
+- Một ngày "có học" = hoàn thành ít nhất 1 bài học hoặc bài tập (SRS FR-RET-01), mọi người dùng tính theo `Asia/Ho_Chi_Minh` (`Q-18`).
 - Khi có hoạt động: chèn `activity_days`; nếu `last_active_date` = hôm qua ⇒ `streak_current + 1`, = hôm nay ⇒ giữ nguyên, khác ⇒ về 1.
-- XP: cộng qua `xp_events` (unique chống cộng trùng). Số XP mỗi loại và ngưỡng danh hiệu Tập sự / Tự tin / Chuyên gia là cấu hình `[Q-19]`.
-- Nhắc streak: job chạy theo giờ, chọn user chưa có `activity_days` hôm nay và streak > 0, gửi trước 21h `[Q-20]`. Thông báo chấm xong: gửi khi job AI DONE.
+- XP: cộng qua `xp_events` (unique chống cộng trùng). Số XP mỗi loại và ngưỡng danh hiệu Tập sự / Tự tin / Chuyên gia là cấu hình (`Q-19`).
+- Nhắc streak: job chạy theo giờ, chọn user chưa có `activity_days` hôm nay và streak > 0, gửi lúc 20:00 giờ Việt Nam (`Q-20`). Thông báo chấm xong: gửi khi job AI DONE.
 
 ### 5.8 CMS (FR-ADM-01..03)
 
@@ -659,9 +659,9 @@ Mỗi bước chạy được end-to-end trước khi sang bước sau.
 | Q-15 | (Đã trả lời: chỉ trừ khi chấm bài. Dạng viết lại câu trừ 1 lượt mỗi lần nộp bộ, chỉ khi còn câu cần AI; câu khớp đáp án mẫu hoặc thiếu từ bắt buộc chấm bằng luật, không trừ lượt; các câu cần AI gộp vào một lời gọi.) | FR-AI-01, 04 | Quota |
 | Q-16 | Giới hạn thời lượng / dung lượng file ghi âm? | FR-AI-03 | Upload |
 | Q-17 | Rubric speaking (trọng số phát âm, trôi chảy, phản xạ) và cách đo thời gian phản xạ? | FR-AI-03 | Chấm nói |
-| Q-18 | Ngày tính streak theo giờ Việt Nam cho mọi người dùng? | FR-RET-01 | Streak |
-| Q-19 | XP mỗi hoạt động và ngưỡng danh hiệu? | FR-RET-02 | XP |
-| Q-20 | Nhắc streak lúc mấy giờ ("trước 21h")? | FR-RET-03 | Thông báo |
+| Q-18 | (Đã trả lời: theo SRS, mọi người dùng tính ngày theo Asia/Ho_Chi_Minh. Ngày có học = xem xong 1 bài học hoặc nộp xong 1 bộ bài tập, không xét điểm. Lỡ 1 ngày thì chuỗi về 0, không có ân hạn.) | FR-RET-01 | Streak |
+| Q-19 | (Đã trả lời, số tạm trong cấu hình: xong bài học +10, nộp bộ bài tập +10, đạt từ 80% điểm thêm +10, mỗi bài chỉ cộng một lần. Tập sự từ 0, Tự tin từ 500, Chuyên gia từ 2000 XP.) | FR-RET-02 | XP |
+| Q-20 | (Đã trả lời: 20:00 giờ Việt Nam, mỗi ngày 1 lần, chỉ gửi người có chuỗi > 0 và hôm nay chưa học. MVP chỉ Web Push, 2 loại: nhắc streak và bài viết chấm xong; chưa làm FCM, nhắc hằng ngày, ưu đãi.) | FR-RET-03 | Thông báo |
 | Q-21 | Bảng màu, font và bo góc theo Figma lệch SRS 3.1 / PRD 8.2–8.3; SRS ghi PG16 / React 18. Có cập nhật SRS không? | SRS 2.1, 3.1 | Chỉ tài liệu |
 | Q-22 | Giữ file ghi âm bao lâu (ước ~650 GB/năm)? | Mục 1.2 | Chi phí R2, job dọn file |
 | Q-23 | Dùng công cụ giám sát nào (Uptime Kuma, Prometheus + Grafana, có sẵn của công ty)? | NFR-AVAIL-01 | Cảnh báo, on-call |
