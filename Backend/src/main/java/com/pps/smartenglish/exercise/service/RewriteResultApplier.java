@@ -7,7 +7,9 @@ import com.pps.smartenglish.exercise.domain.AnswerGrading;
 import com.pps.smartenglish.exercise.repository.AnswerGradingRepository;
 import com.pps.smartenglish.exercise.repository.StudentAnswerRepository;
 import com.pps.smartenglish.exercise.repository.StudentAttemptRepository;
+import com.pps.smartenglish.shared.event.ExerciseScored;
 import java.util.List;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,9 +22,11 @@ class RewriteResultApplier implements RewriteResultSink {
     private final AnswerGradingRepository gradings;
     private final StudentAttemptRepository attempts;
     private final ObjectMapper mapper;
+    private final ApplicationEventPublisher events;
 
     RewriteResultApplier(StudentAnswerRepository answers, AnswerGradingRepository gradings, StudentAttemptRepository attempts,
-                         ObjectMapper mapper) {
+                         ObjectMapper mapper, ApplicationEventPublisher events) {
+        this.events = events;
         this.answers = answers;
         this.gradings = gradings;
         this.attempts = attempts;
@@ -44,6 +48,9 @@ class RewriteResultApplier implements RewriteResultSink {
         }
         if (points > 0) {
             attempts.addScore(attemptId, points);
+            // báo điểm mới để retention xét thưởng điểm cao cho câu viết lại chấm muộn (không tính thêm ngày học)
+            attempts.findById(attemptId).ifPresent(a -> events.publishEvent(new ExerciseScored(a.getUserId(), a.getBankId(),
+                    attemptId, a.getScore(), a.getMaxScore(), false)));
         }
     }
 }

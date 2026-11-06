@@ -55,6 +55,35 @@ app:
     fake-secret: ${PAYMENT_FAKE_SECRET:}
   commerce:
     order-ttl-minutes: ${ORDER_TTL_MINUTES:30}
+  retention:
+    # múi giờ tính "ngày có học" cho mọi người dùng (Q-18)
+    zone: Asia/Ho_Chi_Minh
+    # false để tắt job nhắc streak (test)
+    jobs-enabled: true
+    xp:
+      lesson: 10
+      exercise: 10
+      high-score: 10
+      high-score-percent: 80
+    titles:
+      - name: Tập sự
+        min-xp: 0
+      - name: Tự tin
+        min-xp: 500
+      - name: Chuyên gia
+        min-xp: 2000
+    push:
+      # server POST vào endpoint của trình duyệt nên chỉ nhận các host này (chống SSRF); mục bắt đầu bằng "." là hậu tố
+      allowed-hosts:
+        - fcm.googleapis.com
+        - updates.push.services.mozilla.com
+        - .push.apple.com
+        - .notify.windows.com
+      concurrency: 10
+      # thiếu khóa VAPID thì không gửi push, thông báo trong ứng dụng vẫn hoạt động
+      vapid-public-key: ${VAPID_PUBLIC_KEY:}
+      vapid-private-key: ${VAPID_PRIVATE_KEY:}
+      vapid-subject: ${VAPID_SUBJECT:mailto:no-reply@localhost}
   ai:
     # anthropic (thiếu ANTHROPIC_API_KEY thì không khởi động) hoặc fake (kết quả cố định, cho local/test)
     provider: ${AI_PROVIDER:anthropic}

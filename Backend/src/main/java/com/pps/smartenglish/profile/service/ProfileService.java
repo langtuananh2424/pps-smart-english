@@ -7,7 +7,6 @@ import com.pps.smartenglish.profile.domain.UserProfile;
 import com.pps.smartenglish.profile.dto.GoalInput;
 import com.pps.smartenglish.profile.dto.GoalResponse;
 import com.pps.smartenglish.profile.dto.MeResponse;
-import com.pps.smartenglish.profile.dto.StatsResponse;
 import com.pps.smartenglish.profile.dto.UpdateMeRequest;
 import com.pps.smartenglish.profile.repository.UserGoalRepository;
 import com.pps.smartenglish.profile.repository.UserProfileRepository;
@@ -61,12 +60,6 @@ public class ProfileService {
             p.setSelfLevel(req.selfLevel());
         }
         return me(userId);
-    }
-
-    @Transactional(readOnly = true)
-    public StatsResponse stats(long userId) {
-        UserProfile p = profile(userId);
-        return new StatsResponse(p.getXp(), p.getStreakCurrent(), p.getStreakBest(), p.getLastActiveDate());
     }
 
     @Transactional(readOnly = true)

@@ -43,6 +43,7 @@ public class StudentAttempt {
     }
 
     public Long getId() { return id; }
+    public Long getUserId() { return userId; }
     public Long getBankId() { return bankId; }
     public Instant getStartedAt() { return startedAt; }
     public Instant getSubmittedAt() { return submittedAt; }

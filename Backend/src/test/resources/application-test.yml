@@ -13,6 +13,8 @@ app:
     provider: fake
     worker-enabled: false # test gọi AiJobRunner.runDueNow() để chạy job đúng lúc
     redis-notify: false
+  retention:
+    jobs-enabled: false # test gọi StreakReminderJob.run() trực tiếp
   payment:
     fake-enabled: true
     fake-secret: test-fake-payment-secret
