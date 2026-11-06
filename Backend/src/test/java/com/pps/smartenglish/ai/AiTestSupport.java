@@ -17,7 +17,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 /** Dữ liệu và thao tác chung cho test module ai: bank + câu hỏi, người dùng có lượt, chạy job đúng lúc. */
-abstract class AiTestSupport extends ApiTestBase {
+public abstract class AiTestSupport extends ApiTestBase {
 
     protected static final String PASSWORD = "Password123!";
 

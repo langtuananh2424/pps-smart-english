@@ -18,8 +18,10 @@ import com.pps.smartenglish.exercise.repository.AnswerGradingRepository;
 import com.pps.smartenglish.exercise.repository.StudentAnswerRepository;
 import com.pps.smartenglish.exercise.repository.StudentAttemptRepository;
 import com.pps.smartenglish.shared.error.ApiException;
+import com.pps.smartenglish.shared.event.ExerciseScored;
 import java.time.Clock;
 import java.time.Instant;
+import org.springframework.context.ApplicationEventPublisher;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -49,10 +51,13 @@ public class SubmissionService {
     private final AddonCatalog addons;
     private final ObjectMapper mapper;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
     SubmissionService(StudentAttemptRepository attempts, StudentAnswerRepository answers, AnswerGradingRepository gradings,
                       QuestionLoader loader, GraderRegistry graders, RewriteRules rewriteRules, ResultAssembler assembler,
-                      AiJobService aiJobs, AddonCatalog addons, ObjectMapper mapper, Clock clock) {
+                      AiJobService aiJobs, AddonCatalog addons, ObjectMapper mapper, Clock clock,
+                      ApplicationEventPublisher events) {
+        this.events = events;
         this.attempts = attempts;
         this.answers = answers;
         this.gradings = gradings;
@@ -116,6 +121,8 @@ public class SubmissionService {
         // 429/503 ném từ đây làm rollback cả lần nộp; chỉ hết lượt là không làm hỏng lần nộp
         List<Long> pending = new ArrayList<>();
         var quotaProducts = enqueueRewrite(userId, attemptId, needsAi, given, pending);
+        // retention nghe sau commit: mọi lần nộp tính là một ngày có học, điểm dùng để xét thưởng
+        events.publishEvent(new ExerciseScored(userId, attempt.getBankId(), attemptId, score, maxScore, true));
         return assembler.submitted(attempt, now, score, maxScore, set, rows, ruleRows, pending, quotaProducts);
     }
 

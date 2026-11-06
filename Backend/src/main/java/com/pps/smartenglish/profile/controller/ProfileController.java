@@ -3,7 +3,6 @@ package com.pps.smartenglish.profile.controller;
 import com.pps.smartenglish.profile.dto.GoalResponse;
 import com.pps.smartenglish.profile.dto.MeResponse;
 import com.pps.smartenglish.profile.dto.ReplaceGoalsRequest;
-import com.pps.smartenglish.profile.dto.StatsResponse;
 import com.pps.smartenglish.profile.dto.UpdateMeRequest;
 import com.pps.smartenglish.profile.service.ProfileService;
 import com.pps.smartenglish.shared.security.CurrentUser;
@@ -35,11 +34,6 @@ class ProfileController {
     @PatchMapping
     MeResponse update(Authentication auth, @Valid @RequestBody UpdateMeRequest req) {
         return service.update(CurrentUser.id(auth), req);
-    }
-
-    @GetMapping("/stats")
-    StatsResponse stats(Authentication auth) {
-        return service.stats(CurrentUser.id(auth));
     }
 
     @GetMapping("/goals")

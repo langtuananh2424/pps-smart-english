@@ -5,6 +5,7 @@ import com.pps.smartenglish.ai.config.AiProperties;
 import com.pps.smartenglish.ai.domain.AiJob;
 import com.pps.smartenglish.ai.domain.AiJobKind;
 import com.pps.smartenglish.ai.provider.AiCallException;
+import com.pps.smartenglish.shared.event.AiGradingFinished;
 import jakarta.annotation.PreDestroy;
 import java.util.EnumMap;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 /**
@@ -33,13 +35,15 @@ public class AiJobRunner {
     private final UsageRecorder usage;
     private final ResultNotifier notifier;
     private final ObjectMapper mapper;
+    private final ApplicationEventPublisher events;
     private final Map<AiJobKind, AiJobHandler> handlers = new EnumMap<>(AiJobKind.class);
     private final int concurrency;
     private final ExecutorService executor;
     private final AtomicInteger inFlight = new AtomicInteger();
 
     AiJobRunner(AiJobClaimer claimer, AiJobFinisher finisher, UsageRecorder usage, ResultNotifier notifier, ObjectMapper mapper,
-                List<AiJobHandler> all, AiProperties props) {
+                List<AiJobHandler> all, AiProperties props, ApplicationEventPublisher events) {
+        this.events = events;
         this.claimer = claimer;
         this.finisher = finisher;
         this.usage = usage;
@@ -83,6 +87,8 @@ public class AiJobRunner {
             usage.record(job, c.usage());
             if (finisher.complete(job, mapper.valueToTree(c.output()), c.effects())) {
                 notifier.publish(job.getId());
+                // retention nghe (không có transaction nên chạy ngay); lỗi ở đó không được làm hỏng job
+                events.publishEvent(new AiGradingFinished(job.getId(), job.getUserId(), job.getKind().name()));
             }
         } catch (AiCallException e) {
             usage.record(job, e.usage());
