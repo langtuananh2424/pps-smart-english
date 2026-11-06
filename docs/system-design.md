@@ -377,6 +377,9 @@ sequenceDiagram
 ### 5.8 CMS (FR-ADM-01..03)
 
 - CRUD Course/Level/Topic/Lesson; upload video và phụ đề bằng pre-signed PUT lên R2 (file lớn không đi qua backend).
+  - Đã chốt với chủ dự án: Course, Level, Topic, Lesson, bộ câu hỏi đều có DRAFT/PUBLISHED, xuất bản không cần duyệt. Học viên chỉ thấy khi nó và mọi cấp cha đều PUBLISHED.
+  - Video: hỗ trợ cả mã YouTube và tải lên MinIO. Phần MinIO chờ giới hạn dung lượng và kết quả đo tải (`Q-29` còn mở).
+  - Sửa đáp án câu đã có bài nộp: cho sửa và chấm lại bài cũ. Quy tắc XP, thưởng khi chấm lại chưa chốt, nên chưa code.
 - Import câu hỏi Excel/Word: dùng lại parser của `pps-education`; import là transaction, lỗi dòng nào báo dòng đó, không ghi một phần.
 - Báo cáo: user mới, tỷ lệ Free → Paid, doanh thu theo sản phẩm, chi phí AI từ `ai_grading_token_usage`. "Thời gian thực" = truy vấn trực tiếp, cache 1 phút.
   - Đã chốt với chủ dự án: `GET /api/admin/reports/dashboard?from&to`, chỉ ADMIN (Q-12 chưa trả lời, nên chưa cấp cho Biên tập viên). Mặc định 30 ngày, tối đa 366 ngày, ngày theo Asia/Ho_Chi_Minh. Chưa xuất file.
@@ -660,7 +663,7 @@ Mỗi bước chạy được end-to-end trước khi sang bước sau.
 | Q-09 | Mỗi gói cấp bao nhiêu lượt AI, giá Add-on? Lượt AI giờ chỉ có từ gói mua (xem Q-27). | PRD 7 #5 | `products.ai_quota` |
 | Q-10 | (Đã trả lời: bỏ SĐT khỏi MVP; email phải xác thực và có quên mật khẩu.) Còn lại: chính sách mật khẩu tối thiểu có đủ không (8 ký tự `[Q-28]`)? | FR-AUTH-01 | Auth |
 | Q-11 | (Đã trả lời: chưa có Apple Developer, Apple Sign-in để sau, bắt buộc trước khi phát hành app iOS có Google.) Cần tạo Google Cloud OAuth Client ID cho web | FR-AUTH-01 | Auth |
-| Q-12 | Admin và Biên tập viên có cần tách quyền (ví dụ biên tập viên không xem doanh thu)? | SRS 2.2 | Phân quyền CMS |
+| Q-12 | (Đã trả lời: có vai trò EDITOR. EDITOR soạn và xuất bản khóa học, câu hỏi tại `/api/admin/cms/**`; không xem doanh thu, không sửa gói bán, không tạo link kích hoạt.) | SRS 2.2 | Phân quyền CMS |
 | Q-13 | Mobile lưu refresh token trong secure storage thay cookie — chấp nhận? | FR-AUTH-02 | Mobile (giai đoạn 2) |
 | Q-14 | (Đã trả lời: media lưu trên server qua MinIO riêng của dự án, thay Cloudflare R2, gồm cả file ghi âm; lệch SRS. Các mục còn ghi R2 sẽ sửa khi làm `ObjectStorage`. Video dùng MP4 faststart, H.264 + AAC.) Xem Q-29. | NFR-PERF-02 | Pipeline video |
 | Q-15 | (Đã trả lời: chỉ trừ khi chấm bài. Dạng viết lại câu trừ 1 lượt mỗi lần nộp bộ, chỉ khi còn câu cần AI; câu khớp đáp án mẫu hoặc thiếu từ bắt buộc chấm bằng luật, không trừ lượt; các câu cần AI gộp vào một lời gọi.) | FR-AI-01, 04 | Quota |
