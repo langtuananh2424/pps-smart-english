@@ -81,6 +81,9 @@ services:
       APP_BASE_URL: ${APP_BASE_URL:?set APP_BASE_URL}
       PAYMENT_FAKE_ENABLED: ${PAYMENT_FAKE_ENABLED:-false} # cổng giả chỉ bật để thử trên staging, production luôn false
       PAYMENT_FAKE_SECRET: ${PAYMENT_FAKE_SECRET:-}
+      AI_PROVIDER: ${AI_PROVIDER:-anthropic} # anthropic bắt buộc có ANTHROPIC_API_KEY, thiếu thì backend không khởi động
+      AI_MODEL: ${AI_MODEL:-claude-haiku-5-5}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       MINIO_ENDPOINT: http://minio:9000
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:?set MINIO_PUBLIC_URL}
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}

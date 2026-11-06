@@ -80,7 +80,8 @@ class ExerciseTest extends ApiTestBase {
                 "{\"position\":3,\"corrections\":[\"written\"]}", "EXPL-SECRET-5");
         q[5] = question(b, "GRAMMAR_BUILD", 6, "{\"blocks\":[{\"id\":\"b2\",\"text\":\"m\"},{\"id\":\"b1\",\"text\":\"n\"},{\"id\":\"b3\",\"text\":\"o\"}]}",
                 "{\"order\":[\"b1\",\"b2\",\"b3\"]}", "EXPL-SECRET-6");
-        q[6] = question(b, "CONNECTIVE_REWRITE", 7, "{\"sentence\":\"s\"}", "{}", null);
+        // câu viết (WRITING) không có grader theo answer_key: lưu câu trả lời, không tính điểm
+        q[6] = question(b, "WRITING", 7, "{\"task\":\"s\"}", "{}", null);
         return new Bank(b, q, right, wrong);
     }
 
@@ -140,7 +141,7 @@ class ExerciseTest extends ApiTestBase {
                 .andExpect(jsonPath("$.questions[0].choices", hasSize(2)))
                 .andExpect(jsonPath("$.questions[0].choices[0].label").value("A")) // sắp theo nhãn, không lộ đáp án qua thứ tự id
                 .andExpect(jsonPath("$.questions[1].payload.left", hasSize(2)))
-                .andExpect(jsonPath("$.questions[6].type").value("CONNECTIVE_REWRITE"));
+                .andExpect(jsonPath("$.questions[6].type").value("WRITING"));
         for (String leaked : List.of("answerKey", "answer_key", "isCorrect", "is_correct", "correct", "explanation",
                 "EXPL-SECRET", "CHOICE-EXPL", "pairs", "corrections", "\"order\"", "\"spans\"", "since", "written")) {
             res.andExpect(content().string(not(containsString(leaked))));

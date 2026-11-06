@@ -7,12 +7,11 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+/** is_correct chỉ đổi từ null sang true/false bằng UPDATE có điều kiện (kết quả AI), không sửa entity. */
 @Entity
-@Immutable
 @Table(name = "student_answers")
 public class StudentAnswer {
 
@@ -20,16 +19,17 @@ public class StudentAnswer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "attempt_id", nullable = false)
+    @Column(name = "attempt_id", nullable = false, updatable = false)
     private Long attemptId;
 
-    @Column(name = "question_id", nullable = false)
+    @Column(name = "question_id", nullable = false, updatable = false)
     private Long questionId;
 
     @JdbcTypeCode(SqlTypes.JSON)
+    @Column(updatable = false)
     private JsonNode answer;
 
-    /** null = dạng chấm AI, chưa có kết quả. */
+    /** null = chưa có kết quả (dạng chấm AI đang chờ hoặc chưa có lượt). */
     @Column(name = "is_correct")
     private Boolean correct;
 
@@ -42,6 +42,7 @@ public class StudentAnswer {
         this.correct = correct;
     }
 
+    public Long getId() { return id; }
     public Long getQuestionId() { return questionId; }
     public Boolean getCorrect() { return correct; }
 }

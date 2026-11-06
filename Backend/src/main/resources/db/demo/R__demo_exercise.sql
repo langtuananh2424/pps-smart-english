@@ -49,11 +49,12 @@ BEGIN
                 '{"blanks":{"b1":["because","since"],"b2":["however","nevertheless"]}}',
                 'Chỗ 1 nêu lý do (because/since); chỗ 2 nêu ý đối lập (however/nevertheless).', 3);
 
-        -- 4. Viết lại câu dùng từ nối: chấm AI
-        -- shortcut: chưa có answer_key, chờ module ai chấm; hiện chỉ lưu câu trả lời
-        INSERT INTO questions (bank_id, type, prompt, payload, sort_order)
+        -- 4. Viết lại câu dùng từ nối: chấm luật trước (từ bắt buộc, câu mẫu chấp nhận), phần còn lại AI chấm
+        INSERT INTO questions (bank_id, type, prompt, payload, answer_key, sort_order)
         VALUES (bid, 'CONNECTIVE_REWRITE', 'Viết lại hai câu thành một câu, dùng từ nối "although".',
-                '{"sentence":"The test was difficult. Most students passed it.","requiredWord":"although"}', 4);
+                '{"sentence":"The test was difficult. Most students passed it.","requiredWord":"although"}',
+                '{"acceptedAnswers":["Although the test was difficult, most students passed it.","Most students passed the test although it was difficult."]}',
+                4);
 
         -- 5. Nhận diện cấu trúc (end là chỉ số token cuối, tính cả)
         INSERT INTO questions (bank_id, type, prompt, payload, answer_key, explanation, sort_order)
@@ -85,11 +86,29 @@ BEGIN
         INSERT INTO question_grammar_tags (question_id, grammar_element_id)
         SELECT qid, id FROM grammar_elements WHERE code = 'PASSIVE';
 
-        -- 8. Viết lại câu bằng cấu trúc yêu cầu: chấm AI
-        -- shortcut: chưa có answer_key, chờ module ai chấm; hiện chỉ lưu câu trả lời
-        INSERT INTO questions (bank_id, type, prompt, payload, sort_order)
+        -- 8. Viết lại câu bằng cấu trúc yêu cầu: chấm luật trước, phần còn lại AI chấm
+        INSERT INTO questions (bank_id, type, prompt, payload, answer_key, sort_order)
         VALUES (bid, 'GRAMMAR_REWRITE', 'Viết lại câu bằng câu bị động.',
-                '{"sentence":"People say that regular exercise improves memory.","requiredElement":"PASSIVE"}', 8);
+                '{"sentence":"People say that regular exercise improves memory.","requiredElement":"PASSIVE"}',
+                '{"acceptedAnswers":["Regular exercise is said to improve memory.","It is said that regular exercise improves memory."]}',
+                8);
+    END IF;
+
+    -- Bank demo đã có từ trước: bổ sung câu mẫu cho câu viết lại và thêm câu WRITING nếu thiếu
+    SELECT id INTO bid FROM question_banks WHERE topic_id = free_topic AND title = 'Bài tập demo: từ nối và cấu trúc';
+    IF bid IS NOT NULL THEN
+        UPDATE questions SET answer_key = '{"acceptedAnswers":["Although the test was difficult, most students passed it.","Most students passed the test although it was difficult."]}'
+        WHERE bank_id = bid AND type = 'CONNECTIVE_REWRITE' AND answer_key IS NULL;
+        UPDATE questions SET answer_key = '{"acceptedAnswers":["Regular exercise is said to improve memory.","It is said that regular exercise improves memory."]}'
+        WHERE bank_id = bid AND type = 'GRAMMAR_REWRITE' AND answer_key IS NULL;
+
+        -- 9. Viết phát triển ý (chấm AI qua phiên viết): payload có đề và số từ yêu cầu
+        IF NOT EXISTS (SELECT 1 FROM questions WHERE bank_id = bid AND type = 'WRITING') THEN
+            INSERT INTO questions (bank_id, type, prompt, payload, sort_order)
+            VALUES (bid, 'WRITING', 'Bạn nghĩ học trực tuyến có tốt hơn học ở lớp không? Hãy nêu ý kiến của bạn.',
+                    '{"task":"Some people think online learning is better than learning in a classroom. Do you agree or disagree?","requiredWords":120}',
+                    9);
+        END IF;
     END IF;
 
     -- Bank ở Topic không học thử: học viên chưa mua sẽ nhận 403 bank_locked

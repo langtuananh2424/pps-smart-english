@@ -8,14 +8,14 @@ public class ApiException extends RuntimeException {
 
     private final HttpStatus status;
     private final String code;
-    private final Map<String, String> details;
+    private final Map<String, ?> details;
     private final Long retryAfterSeconds;
 
     public ApiException(HttpStatus status, String code, String message) {
         this(status, code, message, Map.of(), null);
     }
 
-    public ApiException(HttpStatus status, String code, String message, Map<String, String> details, Long retryAfterSeconds) {
+    public ApiException(HttpStatus status, String code, String message, Map<String, ?> details, Long retryAfterSeconds) {
         super(message);
         this.status = status;
         this.code = code;
@@ -44,7 +44,7 @@ public class ApiException extends RuntimeException {
         return code;
     }
 
-    public Map<String, String> getDetails() {
+    public Map<String, ?> getDetails() {
         return details;
     }
 
