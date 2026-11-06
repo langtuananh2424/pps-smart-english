@@ -2,12 +2,16 @@ package com.pps.smartenglish.exercise.repository;
 
 import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.dto.BankInfo;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long> {
+
+    /** CMS: mọi trạng thái. */
+    List<QuestionBank> findByTopicIdOrderByIdAsc(Long topicId);
 
     @Query("""
             select new com.pps.smartenglish.exercise.dto.BankInfo(b.id, b.title, b.lessonId, b.trial, t.freeTrial, lv.id)
