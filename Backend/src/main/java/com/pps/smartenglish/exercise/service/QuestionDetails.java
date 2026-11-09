@@ -12,6 +12,7 @@ import com.pps.smartenglish.exercise.repository.QuestionTagRepository;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
@@ -23,10 +24,14 @@ class QuestionDetails {
     private final QuestionTagRepository tags;
     private final GrammarElementRepository grammar;
 
-    QuestionDetails(QuestionChoiceRepository choices, QuestionTagRepository tags, GrammarElementRepository grammar) {
+    private final RegradeRequirement regrade;
+
+    QuestionDetails(QuestionChoiceRepository choices, QuestionTagRepository tags, GrammarElementRepository grammar,
+                    RegradeRequirement regrade) {
         this.choices = choices;
         this.tags = tags;
         this.grammar = grammar;
+        this.regrade = regrade;
     }
 
     List<QuestionDetail> of(List<Question> questions) {
@@ -42,10 +47,12 @@ class QuestionDetails {
                         l -> l.stream().map(t -> elements.get(t.getGrammarElementId()))
                                 .sorted(Comparator.comparingInt(GrammarElement::getSortOrder).thenComparing(GrammarElement::getId))
                                 .map(GrammarElement::getCode).toList())));
+        Set<Long> required = regrade.among(questions);
         return questions.stream().map(q -> new QuestionDetail(q.getId(), q.getBankId(), q.getType().name(), q.getPrompt(),
                 q.getPayload(), q.getAnswerKey(),
                 choiceMap.getOrDefault(q.getId(), List.of()).stream()
                         .map(c -> new ChoiceView(c.getId(), c.getLabel(), c.getContent(), c.isCorrect(), c.getExplanation())).toList(),
-                q.getExplanation(), q.getSortOrder(), codeMap.getOrDefault(q.getId(), List.of()))).toList();
+                q.getExplanation(), q.getSortOrder(), codeMap.getOrDefault(q.getId(), List.of()), q.getAnswerVersion(),
+                required.contains(q.getId()))).toList();
     }
 }

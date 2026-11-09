@@ -11,4 +11,10 @@ public interface RewriteResultSink {
 
     /** items[].id là questionId của câu trả lời trong lượt làm bài attemptId. */
     void apply(long attemptId, List<RewriteGrades.Item> items);
+
+    /**
+     * Kết quả của job chấm lại bài cũ (regrade_items.id). Đường riêng: ghi đè kết quả cũ, không phát sự kiện nào với học
+     * viên ngoài việc xét thưởng điểm cao. Item đã bị hủy hoặc đã xong thì bỏ qua, không đổi điểm.
+     */
+    void applyRegrade(long regradeItemId, List<RewriteGrades.Item> items);
 }

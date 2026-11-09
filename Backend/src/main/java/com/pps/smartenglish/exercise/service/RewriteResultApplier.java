@@ -23,14 +23,25 @@ class RewriteResultApplier implements RewriteResultSink {
     private final StudentAttemptRepository attempts;
     private final ObjectMapper mapper;
     private final ApplicationEventPublisher events;
+    private final RegradeApplier regrade;
 
     RewriteResultApplier(StudentAnswerRepository answers, AnswerGradingRepository gradings, StudentAttemptRepository attempts,
-                         ObjectMapper mapper, ApplicationEventPublisher events) {
+                         ObjectMapper mapper, ApplicationEventPublisher events, RegradeApplier regrade) {
         this.events = events;
+        this.regrade = regrade;
         this.answers = answers;
         this.gradings = gradings;
         this.attempts = attempts;
         this.mapper = mapper;
+    }
+
+    /** Job chấm lại bài cũ: đi đường riêng của RegradeApplier, không đụng đường ghi lần đầu bên dưới. */
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void applyRegrade(long regradeItemId, List<RewriteGrades.Item> items) {
+        if (items.size() == 1) {
+            regrade.applyAi(regradeItemId, items.get(0));
+        }
     }
 
     @Override

@@ -35,7 +35,7 @@ public class AiGuard {
 
     /** Hàng đợi quá dài thì 503 kèm Retry-After, trước khi trừ lượt nên người dùng không mất gì. */
     public void requireCapacity() {
-        if (jobs.countByStatus(AiJob.PENDING) > props.maxPending()) {
+        if (jobs.countByStatusAndRegradeItemIdIsNull(AiJob.PENDING) > props.maxPending()) {
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "overloaded", "Hệ thống chấm bài đang quá tải, vui lòng thử lại sau",
                     Map.of(), RETRY_AFTER_SECONDS);
         }

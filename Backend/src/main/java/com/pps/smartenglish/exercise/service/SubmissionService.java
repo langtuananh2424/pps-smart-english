@@ -2,7 +2,6 @@ package com.pps.smartenglish.exercise.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.pps.smartenglish.ai.domain.AiJobKind;
 import com.pps.smartenglish.ai.service.AddonCatalog;
 import com.pps.smartenglish.ai.service.AiJobService;
@@ -46,6 +45,7 @@ public class SubmissionService {
     private final QuestionLoader loader;
     private final GraderRegistry graders;
     private final RewriteRules rewriteRules;
+    private final RewriteJobInput rewriteInput;
     private final ResultAssembler assembler;
     private final AiJobService aiJobs;
     private final AddonCatalog addons;
@@ -54,10 +54,11 @@ public class SubmissionService {
     private final ApplicationEventPublisher events;
 
     SubmissionService(StudentAttemptRepository attempts, StudentAnswerRepository answers, AnswerGradingRepository gradings,
-                      QuestionLoader loader, GraderRegistry graders, RewriteRules rewriteRules, ResultAssembler assembler,
-                      AiJobService aiJobs, AddonCatalog addons, ObjectMapper mapper, Clock clock,
+                      QuestionLoader loader, GraderRegistry graders, RewriteRules rewriteRules, RewriteJobInput rewriteInput,
+                      ResultAssembler assembler, AiJobService aiJobs, AddonCatalog addons, ObjectMapper mapper, Clock clock,
                       ApplicationEventPublisher events) {
         this.events = events;
+        this.rewriteInput = rewriteInput;
         this.attempts = attempts;
         this.answers = answers;
         this.gradings = gradings;
@@ -144,18 +145,7 @@ public class SubmissionService {
         if (needsAi.isEmpty()) {
             return null;
         }
-        ArrayNode items = mapper.createArrayNode();
-        needsAi.forEach((id, q) -> {
-            var payload = q.getPayload();
-            items.add(mapper.createObjectNode()
-                    .put("id", id)
-                    .put("instruction", q.getPrompt())
-                    .put("original", payload == null ? "" : payload.path("sentence").asText(""))
-                    .put("required", payload == null ? "" : payload.path("requiredWord").asText(payload.path("requiredElement").asText("")))
-                    .put("answer", given.get(id).path("text").asText()));
-        });
-        var input = mapper.createObjectNode().put("attemptId", attemptId);
-        input.set("items", items);
+        var input = rewriteInput.build(attemptId, needsAi, given);
         var job = aiJobs.enqueueCharged(userId, AiJobKind.REWRITE_GRADE, input, null, attemptId);
         job.ifPresent(pending::add);
         return job.isPresent() ? null : addons.addons();

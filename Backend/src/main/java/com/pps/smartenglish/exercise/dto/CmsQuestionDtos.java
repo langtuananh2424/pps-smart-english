@@ -54,8 +54,10 @@ public final class CmsQuestionDtos {
 
     public record ChoiceView(Long id, String label, String content, boolean isCorrect, String explanation) {}
 
+    /** answerVersion tăng mỗi lần đáp án thật sự đổi; regradeRequired: có bài nộp, dạng chấm lại được, chưa có run ở phiên bản này. */
     public record QuestionDetail(Long id, Long bankId, String type, String prompt, JsonNode payload, JsonNode answerKey,
-                                 List<ChoiceView> choices, String explanation, int sortOrder, List<String> grammarElementCodes) {}
+                                 List<ChoiceView> choices, String explanation, int sortOrder, List<String> grammarElementCodes,
+                                 int answerVersion, boolean regradeRequired) {}
 
     public record BankDetail(BankView bank, List<QuestionDetail> questions) {}
 

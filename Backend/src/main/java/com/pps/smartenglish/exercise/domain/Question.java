@@ -42,6 +42,10 @@ public class Question extends Auditable {
     @Column(name = "sort_order")
     private int sortOrder;
 
+    /** Tăng khi payload, answerKey hoặc lựa chọn thật sự đổi (trừ WRITING); chấm lại bài cũ bám theo số này. */
+    @Column(name = "answer_version")
+    private int answerVersion = 1;
+
     protected Question() {}
 
     public Question(Long bankId, QuestionType type, String prompt, JsonNode payload, JsonNode answerKey, String explanation,
@@ -63,6 +67,7 @@ public class Question extends Auditable {
     public JsonNode getAnswerKey() { return answerKey; }
     public String getExplanation() { return explanation; }
     public int getSortOrder() { return sortOrder; }
+    public int getAnswerVersion() { return answerVersion; }
 
     public void setType(QuestionType type) { this.type = type.name(); }
     public void setPrompt(String prompt) { this.prompt = prompt; }
@@ -70,4 +75,5 @@ public class Question extends Auditable {
     public void setAnswerKey(JsonNode answerKey) { this.answerKey = answerKey; }
     public void setExplanation(String explanation) { this.explanation = explanation; }
     public void setSortOrder(int sortOrder) { this.sortOrder = sortOrder; }
+    public void bumpAnswerVersion() { this.answerVersion++; }
 }

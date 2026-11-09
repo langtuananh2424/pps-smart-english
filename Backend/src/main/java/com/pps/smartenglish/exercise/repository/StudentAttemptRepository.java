@@ -29,4 +29,12 @@ public interface StudentAttemptRepository extends JpaRepository<StudentAttempt, 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update StudentAttempt a set a.score = a.score + :points where a.id = :id and a.submittedAt is not null")
     int addScore(@Param("id") Long id, @Param("points") int points);
+
+    /** Chấm lại: cộng delta (âm được) nguyên tử, điểm null tính 0. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update StudentAttempt a set a.score = coalesce(a.score, 0) + :delta where a.id = :id and a.submittedAt is not null")
+    int adjustScore(@Param("id") Long id, @Param("delta") int delta);
+
+    @Query("select coalesce(a.score, 0) from StudentAttempt a where a.id = :id")
+    int scoreOf(@Param("id") Long id);
 }

@@ -7,13 +7,14 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-/** Kết quả chấm một câu trả lời bởi luật (RULE) hoặc AI; mỗi (câu trả lời, grader) một dòng. */
+/**
+ * Kết quả chấm một câu trả lời bởi luật (RULE) hoặc AI; mỗi (câu trả lời, grader) một dòng.
+ * Không còn @Immutable: chấm lại bài cũ phải thay dòng này (xóa bằng câu lệnh riêng rồi ghi dòng mới).
+ */
 @Entity
-@Immutable
 @Table(name = "student_answer_grading")
 public class AnswerGrading {
 
@@ -47,5 +48,7 @@ public class AnswerGrading {
     }
 
     public Long getAnswerId() { return answerId; }
+    public String getGrader() { return grader; }
+    public int getScore() { return score; }
     public JsonNode getResult() { return result; }
 }

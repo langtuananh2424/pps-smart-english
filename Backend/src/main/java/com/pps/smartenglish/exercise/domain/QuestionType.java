@@ -11,5 +11,10 @@ public enum QuestionType {
     GRAMMAR_BUILD,
     GRAMMAR_REWRITE,
     WRITING,
-    SPEAKING
+    SPEAKING;
+
+    /** Chấm lại bài cũ chỉ cho dạng có đáp án: WRITING chấm theo phiên riêng, SPEAKING chưa có. */
+    public boolean regradable() {
+        return this != WRITING && this != SPEAKING;
+    }
 }

@@ -43,4 +43,11 @@ public class QuestionChoice {
     public String getContent() { return content; }
     public boolean isCorrect() { return correct; }
     public String getExplanation() { return explanation; }
+
+    /** Sửa tại chỗ để id lựa chọn không đổi: student_answers lưu choiceId. */
+    public void update(String content, boolean correct, String explanation) {
+        this.content = content;
+        this.correct = correct;
+        this.explanation = explanation;
+    }
 }
