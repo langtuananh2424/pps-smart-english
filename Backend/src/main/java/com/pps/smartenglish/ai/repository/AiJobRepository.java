@@ -15,11 +15,21 @@ public interface AiJobRepository extends JpaRepository<AiJob, Long> {
 
     Optional<AiJob> findByIdAndUserId(Long id, Long userId);
 
-    long countByStatus(String status);
+    /** Hàng đợi của học viên: không tính job chấm lại bài cũ (Admin yêu cầu), để học viên không bị 503 vì việc của Admin. */
+    long countByStatusAndRegradeItemIdIsNull(String status);
 
-    /** Job chưa xong của một lượt làm bài (cho pendingJobs). */
-    @Query("select j.id from AiJob j where j.attemptId = :attemptId and j.status in ('PENDING', 'RUNNING') order by j.id")
+    /** Job chấm lại đang chạy hoặc chờ: giới hạn app.regrade.max-ai-pending dựa trên số này. */
+    @Query("select count(j) from AiJob j where j.regradeItemId is not null and j.status in ('PENDING', 'RUNNING')")
+    long countRegradeInFlight();
+
+    /** Job chấm lần đầu chưa xong của một lượt làm bài (cho pendingJobs); không gồm job chấm lại. */
+    @Query("select j.id from AiJob j where j.attemptId = :attemptId and j.regradeItemId is null "
+            + "and j.status in ('PENDING', 'RUNNING') order by j.id")
     List<Long> findPendingIdsByAttempt(@Param("attemptId") Long attemptId);
+
+    /** [id, status] của các job, để hòa giải item chấm lại đang chờ AI. */
+    @Query("select j.id, j.status from AiJob j where j.id in :ids")
+    List<Object[]> findStatuses(@Param("ids") java.util.Collection<Long> ids);
 
     /** Session đang chờ AI: không cho gửi thêm bước nào cho tới khi job xong. */
     @Query("select count(j) > 0 from AiJob j where j.sessionId = :sessionId and j.status in ('PENDING', 'RUNNING') "

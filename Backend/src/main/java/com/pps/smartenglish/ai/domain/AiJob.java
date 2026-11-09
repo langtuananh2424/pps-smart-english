@@ -62,6 +62,10 @@ public class AiJob extends Auditable {
     @Column(nullable = false, updatable = false)
     private boolean charged;
 
+    /** Khác null: job chấm lại bài cũ do Admin yêu cầu; không trừ lượt và không tính vào hàng đợi của học viên. */
+    @Column(name = "regrade_item_id", updatable = false)
+    private Long regradeItemId;
+
     protected AiJob() {}
 
     public AiJob(Long userId, AiJobKind kind, JsonNode input, Long sessionId, Long attemptId, boolean charged, Instant now) {
@@ -72,6 +76,13 @@ public class AiJob extends Auditable {
         this.attemptId = attemptId;
         this.charged = charged;
         this.runAfter = now;
+    }
+
+    /** Job chấm lại: Admin yêu cầu làm chủ job (học viên không thấy), không tính lượt AI, gắn với một regrade_items. */
+    public static AiJob regrade(Long adminId, JsonNode input, Long attemptId, Long regradeItemId, Instant now) {
+        var job = new AiJob(adminId, AiJobKind.REWRITE_GRADE, input, null, attemptId, false, now);
+        job.regradeItemId = regradeItemId;
+        return job;
     }
 
     public Long getId() { return id; }
@@ -85,6 +96,7 @@ public class AiJob extends Auditable {
     public Long getSessionId() { return sessionId; }
     public Long getAttemptId() { return attemptId; }
     public boolean isCharged() { return charged; }
+    public Long getRegradeItemId() { return regradeItemId; }
 
     public boolean isTerminal() { return DONE.equals(status) || FAILED.equals(status); }
 }

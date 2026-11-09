@@ -54,6 +54,10 @@ class RewriteGradeHandler implements AiJobHandler {
         if (graded == null || graded.size() != expected.size() || !got.equals(expected)) {
             throw new AiCallException(true, "Kết quả chấm thiếu hoặc sai id so với đầu vào", result.usage(), null);
         }
+        Long regradeItemId = job.getRegradeItemId();
+        if (regradeItemId != null) {
+            return new Completion(result.data(), result.usage(), j -> sink.applyRegrade(regradeItemId, graded));
+        }
         long attemptId = job.getAttemptId();
         return new Completion(result.data(), result.usage(), j -> sink.apply(attemptId, graded));
     }

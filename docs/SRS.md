@@ -127,6 +127,7 @@ Hệ thống vận hành theo kiến trúc Client-Server hiện đại, phi tậ
 | **FR-AI-02** | Chấm bài tự luận AI chuyên sâu | Kế thừa rubric PPS: Bôi đỏ lỗi sai trên bài gốc (`markedAnswer`), đưa ra bản sửa chuẩn (`correctedAnswer`) bảo toàn ý tưởng gốc, phân tích tần suất/độ chính xác của từ kết nối, đánh giá các yếu tố trong 8 Yếu tố ngữ pháp đã dùng đúng hoặc sai kèm gợi ý nâng cấp câu, cảnh báo lạc đề (`gateNote`). |
 | **FR-AI-03** | Chấm phát âm & Phản xạ nói | Thu âm câu trả lời qua mic; sử dụng Whisper STT chuyển thành văn bản; chấm điểm độ chính xác phát âm, độ trôi chảy và thời gian phản xạ theo rubric. |
 | **FR-AI-04** | Kiểm soát Quota & Token AI | Kiểm tra số dư token trước khi gọi AI; ghi nhận chi tiết số lượng token tiêu hao vào bảng `ai_grading_token_usage` để kiểm soát chi phí API. |
+| **FR-AI-05** | Chấm phát âm từng từ | Học viên đọc một từ trong popup giải nghĩa (FR-LMS-02). Mô hình nhận dạng âm vị chạy ngay trên thiết bị, không gửi âm thanh lên máy chủ; tính điểm GOP theo từng âm so với chuỗi âm chuẩn của từ, trả điểm cả từ, điểm từng âm và âm bị đọc nhầm. |
 
 ## **PHÂN HỆ 6: THƯƠNG MẠI & QUẢN LÝ GÓI HỌC (MODULE 6: E-COMMERCE & PAYMENTS)**
 

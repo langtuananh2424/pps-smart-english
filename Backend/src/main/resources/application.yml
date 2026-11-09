@@ -106,6 +106,14 @@ app:
       cache-read: 0.01
       cache-write: 0.125
 
+  regrade:
+    # chấm lại bài cũ khi Admin sửa đáp án; false để tắt worker (test gọi RegradeRunner.tick() trực tiếp)
+    enabled: ${REGRADE_ENABLED:true}
+    poll-ms: 2000
+    batch-size: 200
+    # trần job AI chấm lại đang chạy cùng lúc, để việc của Admin không nuốt hàng đợi của học viên
+    max-ai-pending: 20
+
 logging:
   structured:
     format:

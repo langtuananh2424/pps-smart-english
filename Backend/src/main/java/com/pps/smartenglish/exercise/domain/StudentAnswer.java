@@ -10,7 +10,10 @@ import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-/** is_correct chỉ đổi từ null sang true/false bằng UPDATE có điều kiện (kết quả AI), không sửa entity. */
+/**
+ * is_correct chỉ đổi bằng UPDATE trong repository, không sửa entity: null sang true/false khi AI chấm lần đầu
+ * (applyAiVerdict), hoặc đổi tự do khi Admin yêu cầu chấm lại (setVerdict).
+ */
 @Entity
 @Table(name = "student_answers")
 public class StudentAnswer {
@@ -43,6 +46,8 @@ public class StudentAnswer {
     }
 
     public Long getId() { return id; }
+    public Long getAttemptId() { return attemptId; }
     public Long getQuestionId() { return questionId; }
+    public JsonNode getAnswer() { return answer; }
     public Boolean getCorrect() { return correct; }
 }

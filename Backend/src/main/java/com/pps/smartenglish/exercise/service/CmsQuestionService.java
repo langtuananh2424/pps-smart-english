@@ -33,9 +33,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * CMS cho câu hỏi (FR-ADM-02). Mọi thay đổi nội dung đi qua validator của đúng dạng.
- * shortcut: câu đã có bài nộp bị khóa type, payload, answerKey và choices (409 has_submissions) vì chưa có chức năng
- * chấm lại bài đã nộp; mở khóa khi có chấm lại ở PR sau.
+ * CMS cho câu hỏi (FR-ADM-02). Mọi thay đổi nội dung đi qua validator của đúng dạng. Đáp án đổi thật sự thì answer_version
+ * tăng; bài cũ được chấm lại khi Admin xác nhận (RegradeService), không tự động.
  */
 @Service
 public class CmsQuestionService {
@@ -83,7 +82,10 @@ public class CmsQuestionService {
         return one(question);
     }
 
-    /** Chỉ kiểm tra lại nội dung khi nội dung thật sự đổi; gửi lại đúng dữ liệu cũ không tính là đổi (dữ liệu cũ không bị ép theo luật mới). */
+    /**
+     * Chỉ kiểm tra lại nội dung khi nội dung thật sự đổi; gửi lại đúng dữ liệu cũ không tính là đổi (dữ liệu cũ không bị ép
+     * theo luật mới). Câu đã có bài nộp vẫn sửa được đáp án (rồi Admin chấm lại), nhưng không đổi dạng và không bỏ lựa chọn.
+     */
     @Transactional
     public QuestionDetail patch(long id, PatchQuestion req) {
         Question q = find(id);
@@ -95,21 +97,17 @@ public class CmsQuestionService {
             JsonNode key = QuestionValidators.normalize(req.answerKey() != null ? req.answerKey() : q.getAnswerKey());
             List<ChoiceDraft> newChoices = req.choices() != null ? drafts(req.choices()) : draftsOf(oldChoices);
 
-            boolean changed = type != q.getType() || !Objects.equals(payload, QuestionValidators.normalize(q.getPayload()))
+            boolean contentChanged = !Objects.equals(payload, QuestionValidators.normalize(q.getPayload()))
                     || !Objects.equals(key, QuestionValidators.normalize(q.getAnswerKey())) || !sameChoices(newChoices, oldChoices);
-            if (changed) {
-                if (answers.existsByQuestionId(id)) {
-                    throw new ApiException(HttpStatus.CONFLICT, "has_submissions",
-                            "Câu hỏi đã có bài nộp: không đổi được type, payload, answerKey, choices");
-                }
+            if (type != q.getType() || contentChanged) {
+                requireUnlocked(id, q, type, newChoices, oldChoices);
                 validators.validate(type, new QuestionDraft(payload, key, newChoices), elements().keySet());
                 q.setType(type);
                 q.setPayload(payload);
                 q.setAnswerKey(key);
-                if (!sameChoices(newChoices, oldChoices)) {
-                    choices.deleteByQuestionId(id);
-                    choices.flush();
-                    saveChoices(id, newChoices);
+                syncChoices(id, newChoices, oldChoices);
+                if (contentChanged && type != QuestionType.WRITING) {
+                    q.bumpAnswerVersion(); // WRITING sửa đề tự do: không chấm lại nên không cần phiên bản
                 }
             }
         }
@@ -184,6 +182,39 @@ public class CmsQuestionService {
 
     private void saveTags(long questionId, Set<Long> ids) {
         tags.saveAll(ids.stream().map(g -> new QuestionTag(questionId, g)).toList());
+    }
+
+    /** Đã có bài nộp: không đổi dạng; câu trắc nghiệm không được bỏ nhãn đang có (student_answers lưu choiceId). */
+    private void requireUnlocked(long id, Question q, QuestionType newType, List<ChoiceDraft> wanted, List<QuestionChoice> old) {
+        if (!answers.existsByQuestionId(id)) {
+            return;
+        }
+        if (newType != q.getType()) {
+            throw new ApiException(HttpStatus.CONFLICT, "has_submissions", "Câu hỏi đã có bài nộp: không đổi được dạng câu hỏi");
+        }
+        Set<String> kept = wanted.stream().map(c -> c.label().strip()).collect(Collectors.toSet());
+        if (old.stream().anyMatch(c -> !kept.contains(c.getLabel()))) {
+            throw new ApiException(HttpStatus.CONFLICT, "has_submissions", "Câu hỏi đã có bài nộp: không được bỏ lựa chọn đang có");
+        }
+    }
+
+    /** Cập nhật tại chỗ theo nhãn để id lựa chọn không đổi; nhãn mới thì thêm, nhãn vắng mặt thì xóa. */
+    private void syncChoices(long questionId, List<ChoiceDraft> wanted, List<QuestionChoice> old) {
+        Map<String, QuestionChoice> byLabel = old.stream().collect(Collectors.toMap(QuestionChoice::getLabel, c -> c, (a, b) -> a));
+        Set<String> kept = new HashSet<>();
+        List<QuestionChoice> added = new java.util.ArrayList<>();
+        for (ChoiceDraft d : wanted) {
+            String label = d.label().strip();
+            kept.add(label);
+            QuestionChoice existing = byLabel.get(label);
+            if (existing == null) {
+                added.add(new QuestionChoice(questionId, label, d.content(), d.correct(), d.explanation()));
+            } else {
+                existing.update(d.content(), d.correct(), d.explanation());
+            }
+        }
+        choices.deleteAll(old.stream().filter(c -> !kept.contains(c.getLabel())).toList());
+        choices.saveAll(added);
     }
 
     private void saveChoices(long questionId, List<ChoiceDraft> drafts) {

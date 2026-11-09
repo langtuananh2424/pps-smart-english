@@ -93,7 +93,7 @@ Interface tách nhà cung cấp (đổi nhà cung cấp không sửa nghiệp v�
 
 - `AiGradingProvider` — Haiku 5.5 (Anthropic). SRS 2.1 cho phép OpenAI/Claude/Gemini; chủ dự án chọn Haiku.
 - `SpeechToTextProvider` — Groq Whisper.
-- `PronunciationScorer` — pps-speaking-engine (GOPT + wav2vec2).
+- `PronunciationScorer` — pps-speaking-engine (GOPT + wav2vec2). Chỉ cho bài nói dài (mục 5.5). Chấm từng từ khi học từ mới chạy **trên máy người dùng**, không qua interface này (mục 5.9).
 - `PaymentGateway` — PayOS; MVP dùng bản giả lập (chưa kết nối, theo quyết định chủ dự án).
 - `ObjectStorage` — R2 qua AWS S3 SDK (SRS 3.2).
 - `PushSender` — Web Push VAPID và FCM.
@@ -379,7 +379,9 @@ sequenceDiagram
 - CRUD Course/Level/Topic/Lesson; upload video và phụ đề bằng pre-signed PUT lên R2 (file lớn không đi qua backend).
   - Đã chốt với chủ dự án: Course, Level, Topic, Lesson, bộ câu hỏi đều có DRAFT/PUBLISHED, xuất bản không cần duyệt. Học viên chỉ thấy khi nó và mọi cấp cha đều PUBLISHED.
   - Video: hỗ trợ cả mã YouTube và tải lên MinIO. Phần MinIO chờ giới hạn dung lượng và kết quả đo tải (`Q-29` còn mở).
-  - Sửa đáp án câu đã có bài nộp: cho sửa và chấm lại bài cũ, kể cả bài do AI chấm. Không trừ XP, không thu hồi thưởng điểm cao. Giữ điểm cũ để đối chiếu. Chấm lại bài AI không trừ lượt của học viên, công ty chịu chi phí. Admin xem số bài bị ảnh hưởng rồi bấm xác nhận mới chạy, không tự chấm lại khi sửa. Trước khi có chức năng chấm lại, API tạm trả 409 cho thay đổi này.
+  - Sửa đáp án câu đã có bài nộp: cho sửa và chấm lại bài cũ, kể cả bài do AI chấm. Không trừ XP, không thu hồi thưởng điểm cao. Giữ điểm cũ để đối chiếu. Chấm lại bài AI không trừ lượt của học viên, công ty chịu chi phí. Admin xem số bài bị ảnh hưởng rồi bấm xác nhận mới chạy, không tự chấm lại khi sửa.
+  - Chấm lại: EDITOR sửa được đáp án, chỉ ADMIN xem trước, xác nhận và xem lịch sử vì việc này tốn chi phí AI. Điểm cũ chỉ Admin xem, học viên chỉ thấy điểm mới, chưa gửi thông báo. Bài lần đầu đạt ngưỡng điểm cao sau chấm lại được cộng XP thưởng, không đổi streak. Sửa đề `WRITING` không chấm lại, bài cũ giữ kết quả theo đề cũ.
+  - Cách chạy: mỗi lần sửa đáp án tăng `questions.answer_version`. `regrade_runs` lưu đợt chấm, `regrade_items` vừa là hàng đợi vừa là lịch sử điểm cũ. Worker chạy theo lô; job AI dùng kind `REWRITE_GRADE`, `charged=false`, có `regrade_item_id`, giới hạn số job đồng thời và không tính vào `app.ai.max-pending` để học viên không bị 503. Chi phí AI của chấm lại nằm chung `REWRITE_GRADE` trong báo cáo.
   - Chuẩn dữ liệu câu hỏi: giữ `requiredWord` cho `CONNECTIVE_REWRITE`, `requiredElement` cho `GRAMMAR_REWRITE`, `requiredWords` (số từ) cho `WRITING`.
 - Import câu hỏi Excel/Word: dùng lại parser của `pps-education`; import là transaction, lỗi dòng nào báo dòng đó, không ghi một phần.
 - Báo cáo: user mới, tỷ lệ Free → Paid, doanh thu theo sản phẩm, chi phí AI từ `ai_grading_token_usage`. "Thời gian thực" = truy vấn trực tiếp, cache 1 phút.
@@ -389,6 +391,35 @@ sequenceDiagram
   - Doanh thu: doanh thu gộp, cộng giá lúc mua của đơn PAID theo `paid_at`, tách theo sản phẩm, gồm cả gói thêm lượt AI. Không trừ phí cổng, VAT; chưa có hoàn tiền.
   - Chi phí AI: USD và token theo loại job, quy đổi VND bằng tỷ giá cố định `REPORT_USD_VND_RATE`; chưa khai báo thì các trường VND là null. Chưa có chi phí chấm nói.
   - Module `admin` khai báo port (`UserReportSource`, `SalesReportSource`, `AiCostReportSource`), module sở hữu dữ liệu cài đặt. Ngoại lệ có chủ đích: truy vấn chuyển đổi của `commerce` JOIN bảng `users`, chỉ đọc.
+
+### 5.9 Chấm phát âm từng từ trên máy người dùng (FR-AI-05)
+
+**Trạng thái:** thiết kế, chờ Q-32..Q-36. Chưa code. Yêu cầu là FR-AI-05 trong PRD 5.5 và SRS phân hệ 5, thêm với sự cho phép của chủ dự án (Q-31). Điểm vào là popup giải nghĩa từ vựng của FR-LMS-02, suy từ "học từ mới" của chủ dự án vì tài liệu chưa có màn riêng cho việc học từ mới.
+
+**Quyết định của chủ dự án:**
+- Chạy trên máy người dùng để phản hồi nhanh nhất; **tự viết GOP**, không dùng dịch vụ ngoài (Azure Pronunciation Assessment, SpeechAce, ELSA đã xem xét và không chọn). Đổi lại phải tự hiệu chỉnh ngưỡng và có dữ liệu kiểm chứng.
+- Chạy mô hình bằng **onnxruntime trực tiếp** (onnxruntime-web trên web, bản native trên mobile). sherpa-onnx **chỉ dùng cho VAD** nếu cần: kết quả của nó là chữ, token và mốc thời gian, không có xác suất theo khung mà GOP cần, và chưa thấy hỗ trợ wav2vec2 âm vị trong danh sách mô hình. Kết luận này từ tài liệu, chưa thử chạy.
+- Chuỗi âm vị đích của mỗi từ lấy từ **từ điển phát âm dựng sẵn một lần, rà soát trước khi dùng**, không sinh lúc chạy. Bộ ký hiệu âm phải trùng danh sách token của mô hình, nên chọn mô hình trước (Q-32, Q-33).
+
+**Thuật toán** (GOP dựa trên CTC, đầu vào là từ đã biết trước):
+
+1. Ghi âm 16 kHz một kênh, VAD cắt lặng đầu cuối, giới hạn độ dài (một từ chỉ vài giây).
+2. Mô hình âm vị cho logits `T × V` (`T` khung, `V` token, có token blank); lấy log-softmax thành `lp[t][v]`.
+3. **Căn chỉnh ép buộc** chuỗi âm đích `q1..qN` bằng Viterbi CTC trên `blank q1 blank q2 … qN blank`. Mỗi âm `qi` nhận tập khung `Si` mà đường tốt nhất phát ra âm đó. Chỉ lấy khung phát âm, không lấy khung blank: CTC thường phát một âm ở 1–2 khung, còn lại là blank.
+4. **Điểm từng âm:** `GOP_i = trung bình trên t∈Si của ( lp[t][qi] − max v≠blank lp[t][v] )`. Giá trị ≤ 0; gần 0 nghĩa là mô hình chắc đó là âm đích. Âm bị đọc nhầm: âm không-blank có `lp` trung bình cao nhất trên `Si` khi khác `qi` (ví dụ "đọc thành /s/"). Âm bị bỏ thể hiện qua `GOP_i` rất thấp, vì căn chỉnh ép buộc luôn gán ít nhất một khung (cần `T ≥ N`).
+5. **Điểm cả từ:** gộp các `GOP_i` (trung bình, có thể trọng số theo loại âm), kèm độ lệch giữa điểm đường đích và điểm đường tự do tốt nhất chia cho `T`, để bắt trường hợp đọc ra hẳn từ khác.
+6. **Quy về thang người học thấy:** hàm hiệu chỉnh từ điểm thô sang 0–100 và nhãn (tốt / cần sửa), học từ điểm giáo viên chấm (hồi quy logistic hoặc isotonic, ngưỡng theo nhóm âm). Đây là phần tốn dữ liệu nhất.
+
+**Triển khai:**
+
+- Module `gop` là **hàm thuần, không I/O**: vào `logits, T, V, blankId, vocab, target[]`; ra `{ wordScore, phones: [{ phone, gop, heardAs }] }`. Viết bằng TypeScript cho web; bản Dart cho Flutter khi làm mobile.
+- Đáp án tham chiếu viết bằng Python (căn chỉnh CTC của torchaudio). Sinh bộ vector kiểm thử JSON (logits, đích, kết quả mong đợi) dùng chung cho TS và Dart; hai bản phải ra điểm gần như nhau trên cùng bộ vector, để không lệch giữa các nền tảng.
+- Giảm độ trễ: tải và khởi tạo mô hình ngay khi vào bài học từ mới rồi cache (Cache API / IndexedDB), chạy một lần suy luận giả để làm nóng; mô hình lượng tử hóa int8 nếu điểm vẫn khớp; chạy trong Web Worker; chỉ một lượt suy luận rồi căn chỉnh (không giải mã, không mô hình ngôn ngữ vì từ đã biết); hiện điểm tổng trước, chi tiết từng âm sau; tải trước dữ liệu từ kế tiếp. Chưa có số đo, mục tiêu độ trễ chỉ đặt sau khi đo trên điện thoại tầm trung và laptop yếu.
+- Hệ quả: không gọi AI nên không trừ lượt AI. Chờ Q-35 (có lưu điểm hay không).
+
+**Kiểm chứng (bắt buộc trước khi phát hành):** thu lượt đọc từ của người Việt, giáo viên chấm, so điểm GOP với điểm giáo viên (xem Q-34). Chưa có dữ liệu nào, nên chưa biết độ khớp.
+
+**Rủi ro đã biết:** chuỗi âm sai trong từ điển làm điểm sai mà không ai hay; xuất wav2vec2 sang ONNX có thể lỗi tùy biến thể mô hình; nếu dùng onnxruntime-web đa luồng cần header cách ly cross-origin (COOP/COEP), có thể làm hỏng video YouTube nhúng (chưa thử); điểm tính trên máy khách có thể bị giả mạo nếu dùng cho XP hay streak (Q-35).
 
 ## 6. API
 
@@ -565,6 +596,7 @@ Server công ty, Docker Compose, Cloudflare Tunnel + nginx (domain đã có).
 | Kết quả AI qua SSE + Redis Pub/Sub | Người dùng thấy chữ chạy dần, cảm giác nhanh hơn (NFR-PERF-03) | Pub/sub không lưu: lỡ tin nhắn thì client phải gọi lại `GET /ai/jobs/{id}` | Cần phát lại cho nhiều client hoặc lưu lịch sử ⇒ đổi sang stream có lưu |
 | Video đi thẳng R2/YouTube bằng pre-signed URL | ~450 Mbps không đi qua server công ty; đúng NFR-SEC-02 | URL lộ thì xem được tới khi hết hạn (≤ 120 phút) | Có dấu hiệu chia sẻ link trái phép ⇒ HLS mã hóa / signed cookie |
 | Một PostgreSQL, chưa replica | Đơn giản; tải ~300 query/s rất nhỏ | Là điểm chết duy nhất; khôi phục từ backup mất tới 24 h dữ liệu | Uptime thực đo < 99,5 %, hoặc CPU PG > 60 % liên tục ⇒ thêm replica |
+| Chấm phát âm từng từ: tự viết GOP, chạy trên máy người dùng (mục 5.9) | Phản hồi nhanh nhất, âm thanh không phải gửi đi, không tốn lượt AI hay phí dịch vụ ngoài | Tự hiệu chỉnh ngưỡng và cần dữ liệu giọng người Việt có giáo viên chấm; hai bản TS/Dart có thể lệch; người dùng phải tải mô hình về máy | Điểm lệch giáo viên quá ngưỡng đã chốt, hoặc máy yếu chạy quá mục tiêu độ trễ ⇒ dùng dịch vụ ngoài hoặc chấm bằng GOPT trên server |
 | Chấm nói qua pps-speaking-engine trên cùng server | Dùng lại thứ đã chạy; 40 luồng CPU còn dư | Hai hệ thống tranh một hàng đợi engine: giờ cao điểm của `pps-education` làm chậm chấm nói ở đây (và ngược lại); ăn CPU/RAM chung máy | Job chấm nói chờ > 60 s thường xuyên, hoặc RAM trống < 4 GB ⇒ chạy bản engine riêng cho dự án này |
 | API REST/JSON, phân trang theo con trỏ, khóa chống lặp bắt buộc cho thao tác tốn lượt/tiền | Gửi lại không trừ lượt hay tạo đơn hai lần; trang sâu vẫn nhanh | Client phải sinh và giữ khóa; bảng khóa phải dọn; không nhảy tới trang N | Cần "đến trang N" cố định trên tập nhỏ ⇒ thêm offset cho riêng danh sách đó |
 | SSE qua `fetch` thay vì WebSocket | Chỉ cần server → client; đi qua nginx/Cloudflare dễ | Không phát lại; phải tự nối lại; mỗi luồng giữ một kết nối | Cần client gửi liên tục trong cùng kết nối (ví dụ nói trực tiếp) ⇒ WebSocket |
@@ -683,6 +715,12 @@ Mỗi bước chạy được end-to-end trước khi sang bước sau.
 | Q-28 | Mật khẩu tối thiểu 8 ký tự, có cần chữ hoa/số/ký tự đặc biệt không? | NFR-SEC-01 | Kiểm tra đầu vào |
 | Q-29 | Video từ MinIO đi qua server và Cloudflare Tunnel, trong khi mục 1.2 ước ~450 Mbps giờ cao điểm và yêu cầu không đi qua server. Đường truyền có chịu được không, hay video chính dùng YouTube Private? Dung lượng SSD có đủ không? | Mục 1.2, Q-14 | Hạ tầng media |
 | Q-30 | (Đã trả lời: 8 yếu tố là phương pháp áp dụng cấu trúc vào bài viết IELTS, không phải luyện từ loại. Dạng bài đổi theo cấu trúc, bỏ hai dạng từ loại và Biến đổi dạng từ, thêm viết lại câu. AI chấm viết đánh giá yếu tố đã dùng và gợi ý nâng cấp câu. `GRAMMAR_REWRITE` chấm AI và trừ lượt như Q-06.) | PRD, SRS FR-EX-02 | `grammar_elements`, dạng `GRAMMAR_*` |
+| Q-31 | (Đã trả lời: chủ dự án cho phép sửa PRD/SRS; đã thêm FR-AI-05 chấm phát âm từng từ vào PRD 5.5 và SRS phân hệ 5, chưa commit.) Còn lại: xác nhận điểm vào là popup giải nghĩa từ vựng của FR-LMS-02, hay cần màn "học từ mới" riêng (khi có Figma)? | Mục 5.9, FR-AI-05 | Giao diện, điểm vào |
+| Q-32 | Dùng mô hình âm vị nào (tên, kích thước, giấy phép, bộ ký hiệu, xuất ONNX được không, int8 còn khớp không)? Chốt bằng thử nghiệm trên thiết bị thật. | Mục 5.9 | Từ điển phát âm, module `gop` |
+| Q-33 | Giọng chuẩn Anh-Mỹ hay Anh-Anh? Nguồn từ điển phát âm (CMUdict, espeak-ng, khác), giấy phép từng nguồn, và ai rà soát chuỗi âm của từng từ? | Mục 5.9 | Dữ liệu từ vựng, CMS |
+| Q-34 | Dữ liệu kiểm chứng: bao nhiêu người Việt đọc, bao nhiêu từ, giáo viên nào chấm theo thang nào, ngưỡng nào là "đủ khớp" để phát hành? | Mục 5.9 | Hiệu chỉnh điểm, quyết định phát hành |
+| Q-35 | Điểm có gửi về server để lưu tiến độ, tính XP/streak không? Nếu có, chống giả mạo điểm từ máy khách thế nào? | Mục 5.9, FR-RET-01, 02 | Bảng lưu, API |
+| Q-36 | Làm trên web trước hay mobile trước? Web: có bật header cách ly cross-origin để chạy mô hình đa luồng không, trong khi bài học nhúng YouTube? | Mục 5.9, CLAUDE.md (Mobile chưa phát triển) | Cách chạy mô hình, header nginx |
 
 ## 14. Kiểm tra thiết kế
 

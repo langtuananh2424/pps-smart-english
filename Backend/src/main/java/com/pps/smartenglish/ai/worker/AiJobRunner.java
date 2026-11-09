@@ -88,7 +88,10 @@ public class AiJobRunner {
             if (finisher.complete(job, mapper.valueToTree(c.output()), c.effects())) {
                 notifier.publish(job.getId());
                 // retention nghe (không có transaction nên chạy ngay); lỗi ở đó không được làm hỏng job
-                events.publishEvent(new AiGradingFinished(job.getId(), job.getUserId(), job.getKind().name()));
+                // job chấm lại là việc của Admin: không có sự kiện nào cho người dùng
+                if (job.getRegradeItemId() == null) {
+                    events.publishEvent(new AiGradingFinished(job.getId(), job.getUserId(), job.getKind().name()));
+                }
             }
         } catch (AiCallException e) {
             usage.record(job, e.usage());

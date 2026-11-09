@@ -52,6 +52,31 @@ public class AiJobService {
         return Optional.of(job.getId());
     }
 
+    /**
+     * Job chấm lại bài cũ (Admin xác nhận): không rate limit, không requireCapacity, không trừ hay hoàn lượt của học viên.
+     * Giới hạn số job đang chạy do nơi gọi giữ (app.regrade.max-ai-pending). adminId làm chủ job nên học viên không thấy.
+     */
+    @Transactional
+    public long enqueueRegrade(long adminId, JsonNode input, long attemptId, long regradeItemId) {
+        return jobs.save(AiJob.regrade(adminId, input, attemptId, regradeItemId, Instant.now(clock))).getId();
+    }
+
+    @Transactional(readOnly = true)
+    public long regradeInFlight() {
+        return jobs.countRegradeInFlight();
+    }
+
+    /** Trạng thái các job (id -> status); id không còn thì vắng mặt. */
+    @Transactional(readOnly = true)
+    public java.util.Map<Long, String> statuses(java.util.Collection<Long> ids) {
+        var out = new java.util.HashMap<Long, String>();
+        if (!ids.isEmpty()) {
+            jobs.findStatuses(ids).forEach(r -> out.put(((Number) r[0]).longValue(), (String) r[1]));
+        }
+        return out;
+    }
+
+    /** Job chấm lần đầu của lượt làm bài (không tính job chấm lại). */
     @Transactional(readOnly = true)
     public List<Long> pendingIds(Long attemptId) {
         return jobs.findPendingIdsByAttempt(attemptId);

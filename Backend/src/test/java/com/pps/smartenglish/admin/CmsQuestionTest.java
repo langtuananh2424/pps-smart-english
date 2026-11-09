@@ -334,7 +334,7 @@ class CmsQuestionTest extends ApiTestBase {
     // ---- khóa khi đã có bài nộp ----
 
     @Test
-    void contentIsLockedOnceSubmittedButPromptTagsAndOrderStayEditable() throws Exception {
+    void onceSubmittedAnswersAreEditableButTypeAndExistingChoicesStayLocked() throws Exception {
         var admin = withRole("ADMIN");
         var student = register(newEmail(), PASSWORD);
         long bank = bank(admin, place().topic);
@@ -344,28 +344,28 @@ class CmsQuestionTest extends ApiTestBase {
         long attempt = idOf(call(post("/api/banks/" + bank + "/attempts"), student, null).andExpect(status().isCreated()));
         call(post("/api/attempts/" + attempt + "/submit"), student, Map.of("answers", List.of())).andExpect(status().isOk());
 
-        // đổi nội dung chấm: 409 has_submissions
-        call(patch(CMS + "/questions/" + buildId), admin, Map.of("answerKey", Map.of("order", List.of("b3", "b2", "b1")))).andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error.code").value("has_submissions"));
-        call(patch(CMS + "/questions/" + buildId), admin, Map.of("payload", Map.of("blocks", List.of(Map.of("id", "b1", "text", "a"),
-                Map.of("id", "b2", "text", "b"), Map.of("id", "b3", "text", "c"))))).andExpect(status().isConflict());
+        // ĐÃ SỬA theo chấm lại bài cũ: sửa đáp án khi có bài nộp là 200 và tăng answerVersion (trước đây là 409 has_submissions);
+        // chỉ đổi dạng câu hỏi và bỏ lựa chọn đang có mới còn bị 409
+        call(patch(CMS + "/questions/" + buildId), admin, Map.of("answerKey", Map.of("order", List.of("b3", "b2", "b1")))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.answerVersion").value(2)).andExpect(jsonPath("$.regradeRequired").value(true));
         call(patch(CMS + "/questions/" + buildId), admin, Map.of("type", "WRITING", "payload", Map.of("task", "t", "requiredWords", 5), "answerKey", json.nullNode()))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.error.code").value("has_submissions"));
         call(patch(CMS + "/questions/" + mcqId), admin, Map.of("choices", List.of(Map.of("label", "A", "content", "Therefore", "isCorrect", true),
-                Map.of("label", "B", "content", "Nevertheless", "isCorrect", false)))).andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error.code").value("has_submissions"));
+                Map.of("label", "C", "content", "Besides", "isCorrect", false)))).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("has_submissions")); // bỏ nhãn B
 
-        // gửi lại đúng dữ liệu cũ: không tính là đổi
-        call(patch(CMS + "/questions/" + buildId), admin, Map.of("answerKey", Map.of("order", List.of("b1", "b2", "b3")), "payload", build().get("payload")))
-                .andExpect(status().isOk());
+        // gửi lại đúng dữ liệu cũ: không tính là đổi, không tăng phiên bản
+        call(patch(CMS + "/questions/" + buildId), admin, Map.of("answerKey", Map.of("order", List.of("b3", "b2", "b1")), "payload", build().get("payload")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.answerVersion").value(2));
         call(patch(CMS + "/questions/" + mcqId), admin, Map.of("choices", List.of(Map.of("label", "B", "content", "Nevertheless", "isCorrect", true,
-                "explanation", "Đối lập"), Map.of("label", "A", "content", "Therefore", "isCorrect", false)))).andExpect(status().isOk());
+                "explanation", "Đối lập"), Map.of("label", "A", "content", "Therefore", "isCorrect", false)))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.answerVersion").value(1));
 
         // prompt, giải thích, thứ tự, thẻ vẫn sửa được
         call(patch(CMS + "/questions/" + buildId), admin, Map.of("prompt", "Đề mới", "explanation", "Giải thích mới", "sortOrder", 9,
                 "grammarElementCodes", List.of("PASSIVE"))).andExpect(status().isOk()).andExpect(jsonPath("$.prompt").value("Đề mới"))
                 .andExpect(jsonPath("$.sortOrder").value(9)).andExpect(jsonPath("$.grammarElementCodes[0]").value("PASSIVE"))
-                .andExpect(jsonPath("$.answerKey.order[0]").value("b1"));
+                .andExpect(jsonPath("$.answerKey.order[0]").value("b3")).andExpect(jsonPath("$.answerVersion").value(2));
         call(patch(CMS + "/questions/" + buildId), admin, Map.of("grammarElementCodes", List.of())).andExpect(jsonPath("$.grammarElementCodes", hasSize(0)));
         assertEquals("Đề mới", jdbc.queryForObject("select prompt from questions where id = ?", String.class, buildId));
     }
