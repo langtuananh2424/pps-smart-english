@@ -104,7 +104,11 @@ Kế thừa các dạng bài từ core engine của pps-education và mở rộn
   * Đánh giá độ phát âm chính xác, độ trôi chảy và mức độ phản xạ theo tiêu chuẩn rubric.  
 * **FR-AI-04 (Kiểm soát hạn mức AI Token/Quota):**  
   * Mỗi tài khoản được cấp hạn mức lượt chấm bài viết/phát âm theo gói đã mua.  
-  * Hệ thống ghi nhận lịch sử tiêu thụ token (ai\_grading\_token\_usage) để tối ưu chi phí vận hành.
+  * Hệ thống ghi nhận lịch sử tiêu thụ token (ai\_grading\_token\_usage) để tối ưu chi phí vận hành.  
+* **FR-AI-05 (Chấm phát âm từng từ \- Word Pronunciation):**  
+  * Tại popup giải nghĩa từ vựng (FR-LMS-02), học viên đọc to từ đang học vào mic.  
+  * Hệ thống chấm ngay trên thiết bị của học viên, không gửi âm thanh lên máy chủ: cho điểm cả từ và từng âm, chỉ ra âm đọc sai và đọc thành âm nào.  
+  * Chấm bằng mô hình nhận dạng âm vị và thuật toán GOP (Goodness of Pronunciation) do dự án tự xây dựng, đối chiếu với chuỗi âm chuẩn của từ.
 
 ## **5.6. Phân hệ 6: Thương mại & Quản lý gói học (E-Commerce & Commerce)**
 
