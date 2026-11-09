@@ -187,8 +187,15 @@ class RegradeTest extends AiTestSupport {
         return jdbc.queryForObject("select status from regrade_items where attempt_id = ? order by id desc limit 1", String.class, attempt);
     }
 
-    private int regradeJobs() {
-        return count("select count(*) from ai_jobs where regrade_item_id is not null");
+    /**
+     * Điều kiện chọn job chấm lại của CHÍNH câu hỏi q. ai_jobs dùng chung giữa các test nên không đếm toàn bảng: job chấm lại
+     * của test khác (đã FAILED/DONE) vẫn nằm lại đó.
+     */
+    private static final String JOBS_OF_QUESTION = "regrade_item_id in (select i.id from regrade_items i "
+            + "join regrade_runs r on r.id = i.run_id where r.question_id = ?)";
+
+    private int regradeJobs(long q) {
+        return count("select count(*) from ai_jobs where " + JOBS_OF_QUESTION, q);
     }
 
     // ---- quyền ----
@@ -239,7 +246,7 @@ class RegradeTest extends AiTestSupport {
         editQuestion(admin, q, mcqChoices("B")).andExpect(jsonPath("$.answerVersion").value(2)); // gửi lại cùng dữ liệu
         editQuestion(admin, q, Map.of("prompt", "Đề mới")).andExpect(jsonPath("$.answerVersion").value(2));
 
-        var three = Map.of("choices", List.of(choice("A", false), choice("B", true), choice("C", false)));
+        Map<String, Object> three = Map.of("choices", List.of(choice("A", false), choice("B", true), choice("C", false)));
         editQuestion(admin, q, three).andExpect(status().isOk()).andExpect(jsonPath("$.answerVersion").value(3));
         assertEquals(a, choiceId(q, "A"));
         assertEquals(b, choiceId(q, "B"));
@@ -455,8 +462,8 @@ class RegradeTest extends AiTestSupport {
         assertEquals(1, score(a3));
         assertEquals("DONE", itemStatus(a1));
         assertEquals("AI_WAITING", itemStatus(a2));
-        assertEquals(1, regradeJobs());
-        var job = jdbc.queryForMap("select charged, user_id, kind, attempt_id from ai_jobs where regrade_item_id is not null");
+        assertEquals(1, regradeJobs(q));
+        var job = jdbc.queryForMap("select charged, user_id, kind, attempt_id from ai_jobs where " + JOBS_OF_QUESTION, q);
         assertEquals(false, job.get("CHARGED"));
         assertEquals("REWRITE_GRADE", job.get("KIND"));
         assertEquals(admin.id(), ((Number) job.get("USER_ID")).longValue());
@@ -484,7 +491,7 @@ class RegradeTest extends AiTestSupport {
         assertEquals(b2, balance(s2));
         assertEquals(b3, balance(s3));
         assertEquals(ledger, count("select count(*) from ai_quota_ledger"));
-        long jobId = jdbc.queryForObject("select id from ai_jobs where regrade_item_id is not null", Long.class);
+        long jobId = jdbc.queryForObject("select id from ai_jobs where " + JOBS_OF_QUESTION, Long.class, q);
         assertEquals(1, count("select count(*) from ai_grading_token_usage where job_id = ?", jobId));
         // job chấm lại không phát AiGradingFinished; điểm a3 tăng nên có đúng một ExerciseScored initial=false
         assertTrue(Events.SEEN.stream().noneMatch(e -> e instanceof AiGradingFinished));
@@ -523,7 +530,7 @@ class RegradeTest extends AiTestSupport {
         long attempt = idOf(postJson("/api/banks/" + bank2 + "/attempts", stu, Map.of()).andExpect(status().isCreated()), "id");
         postJson("/api/attempts/" + attempt + "/submit", stu, Map.of("answers", List.of(text(q2, "Although tough, we won."))))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.pendingJobs", hasSize(1))); // học viên vẫn nộp được, không 503
-        jdbc.update("update ai_jobs set status = 'FAILED' where regrade_item_id is not null");
+        jdbc.update("update ai_jobs set status = 'FAILED' where " + JOBS_OF_QUESTION, q);
     }
 
     @Test
@@ -543,12 +550,12 @@ class RegradeTest extends AiTestSupport {
         }
         jdbc.batchUpdate("insert into ai_jobs (user_id, kind, status, regrade_item_id, charged) values (?, 'REWRITE_GRADE', 'PENDING', ?, false)", rows);
         regrader.tick();
-        assertEquals(20, regradeJobs()); // không tạo thêm job
+        assertEquals(20, regradeJobs(q)); // không tạo thêm job
         assertEquals("PENDING", itemStatus(a));
-        jdbc.update("update ai_jobs set status = 'FAILED' where regrade_item_id is not null");
+        jdbc.update("update ai_jobs set status = 'FAILED' where " + JOBS_OF_QUESTION, q);
         regrader.tick();
         assertEquals("AI_WAITING", itemStatus(a));
-        assertEquals(21, regradeJobs());
+        assertEquals(21, regradeJobs(q));
         jdbc.update("update regrade_items set status = 'CANCELLED' where id = ?", item); // dọn: không để job rác chạy ở test khác
     }
 
@@ -618,7 +625,7 @@ class RegradeTest extends AiTestSupport {
         assertEquals(1, score(a));
         assertEquals(Boolean.TRUE, correct(a, q));
         assertEquals("CANCELLED", itemStatus(a));
-        long jobId = jdbc.queryForObject("select id from ai_jobs where regrade_item_id is not null", Long.class);
+        long jobId = jdbc.queryForObject("select id from ai_jobs where " + JOBS_OF_QUESTION, Long.class, q);
         assertEquals(1, count("select count(*) from ai_grading_token_usage where job_id = ?", jobId));
         call(get(ADMIN + "/questions/" + q + "/regrade-preview"), admin, null).andExpect(jsonPath("$.regradeRequired").value(true)); // chưa chấm v3
 
@@ -637,7 +644,7 @@ class RegradeTest extends AiTestSupport {
         regrade(admin, q, 2).andExpect(status().isAccepted());
         regrader.tick();
         assertEquals("PENDING", itemStatus(a)); // hoãn: hai bên không cùng ghi
-        assertEquals(0, regradeJobs());
+        assertEquals(0, regradeJobs(q));
         assertEquals("RUNNING", run(admin, q).get("status").asText());
 
         runner.runDueNow(); // chấm lần đầu xong
@@ -645,7 +652,7 @@ class RegradeTest extends AiTestSupport {
         regrader.tick();
         assertEquals("DONE", itemStatus(a)); // câu mẫu mới khớp: luật quyết, không cần AI
         assertEquals(1, score(a));
-        assertEquals(0, regradeJobs());
+        assertEquals(0, regradeJobs(q));
         assertEquals("DONE", run(admin, q).get("status").asText());
     }
 
