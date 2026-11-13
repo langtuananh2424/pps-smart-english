@@ -278,7 +278,7 @@ Luồng lỗi: email trùng ⇒ 409; sai mật khẩu hoặc email không tồn 
 
 Web giữ access token trong bộ nhớ. Mobile không có cookie trình duyệt nên lưu refresh token trong `flutter_secure_storage` và gửi qua header `[Q-13]`.
 
-**Lệch SRS (do chủ dự án chọn):** FR-AUTH-01 ghi "Google OAuth2, Apple Sign-in hoặc Email/Số điện thoại"; MVP chỉ làm email + Google, chưa làm số điện thoại (không cần nhà cung cấp SMS) và Apple (chưa có tài khoản Apple Developer). SRS chưa được cập nhật. Bắt buộc làm Apple Sign-in trước khi phát hành app iOS có Google Sign-in.
+**Theo SRS v1.1 FR-AUTH-01:** MVP chỉ làm email + Google, chưa làm số điện thoại (không cần nhà cung cấp SMS) và Apple (chưa có tài khoản Apple Developer). Bắt buộc làm Apple Sign-in trước khi phát hành app iOS có Google Sign-in.
 
 ### 5.2 Onboarding và đề xuất khóa (FR-GOAL-01..03, PRD 4.1)
 

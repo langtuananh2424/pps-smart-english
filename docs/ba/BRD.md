@@ -94,7 +94,7 @@ Xem decisions.md mục 3. Tóm tắt: mỗi khóa có ví tuần reset thứ Hai
 - Thiết kế cho 1.000 user, sau đó load test (D-17, BQ-05).
 - Đề thi, nội dung do Phòng Đào tạo tự soạn; không dùng nội dung có bản quyền bên thứ ba.
 - Chấm nói dùng chung engine với `pps-education` (Q-25); kết quả nói chờ 10–30 s.
-- Tài liệu nguồn PRD/SRS chỉ sửa khi chủ dự án cho phép (BQ-14).
+- Tài liệu nguồn PRD/SRS chỉ sửa khi chủ dự án cho phép; lần cập nhật theo bộ quyết định này đã được cho phép ngày 2026-11-13 (PRD v0.2, SRS v1.1).
 
 ## 8. Kịch bản quy mô năm đầu (đề xuất)
 

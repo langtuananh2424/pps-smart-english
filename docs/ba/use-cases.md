@@ -1,8 +1,8 @@
 # Use case và yêu cầu chức năng bổ sung (SRS bổ sung)
 
-Phiên bản 0.1 · 2026-11-13 · Trạng thái: **Nháp chờ chủ dự án duyệt**
+Phiên bản 0.2 · 2026-11-13 · Trạng thái: **Đã duyệt, FR đã chép vào SRS v1.1**
 
-- Mã FR có nhãn **(mới)** hoặc **(sửa)** là đề xuất của BA, chưa có trong SRS. Khi chủ dự án duyệt thì chép vào `docs/SRS.md`.
+- Mã FR có nhãn **(mới)** hoặc **(sửa)** đã được chép vào `docs/SRS.md` v1.1. SRS giữ quy tắc; file này giữ luồng chính, luồng lỗi chi tiết. Lệch nhau thì SRS đúng.
 - Các FR đã có trong SRS và đã làm ở backend (Auth, Catalog, LMS, bài tập 7 dạng, AI viết, đơn hàng, streak/XP) không viết lại; xem SRS mục 4 và `docs/system-design.md` mục 5.
 - Quyết định `D-xx` và câu hỏi `BQ-xx`: [decisions.md](decisions.md).
 

@@ -7,6 +7,7 @@ Nền tảng B2C bán khóa học và luyện tập tiếng Anh. `Web/` React, `
 - `docs/PRD.md` và `docs/SRS.md` là nguồn yêu cầu duy nhất.
 - **Không sửa, xóa hay bổ sung hai file này khi chưa có sự cho phép của chủ dự án.**
 - Code mâu thuẫn hoặc thiếu so với tài liệu: dừng, báo lại, chờ quyết định. Không tự diễn giải.
+- `docs/ba/` là bộ tài liệu BA phái sinh: `decisions.md` (quyết định D-xx đã đưa vào PRD v0.2 / SRS v1.1, câu hỏi BQ-xx còn mở), `use-cases.md` (luồng chi tiết), `user-stories.md`, `roadmap.md`. Phần chạm BQ-xx chưa trả lời thì chưa code.
 - `docs/system-design.md` là thiết kế phái sinh (kiến trúc, dữ liệu, luồng, câu hỏi mở `[Q-xx]`). Lệch PRD/SRS thì PRD/SRS đúng. Phần chạm câu hỏi mở chưa trả lời thì chưa code.
 
 ## Khi thêm hoặc sửa tính năng
@@ -29,14 +30,14 @@ Nền tảng B2C bán khóa học và luyện tập tiếng Anh. `Web/` React, `
 Tài liệu (SRS 2.1) là nguồn; mục nào lệch tài liệu ghi rõ ở "Chờ quyết định".
 
 - **Backend:** Java 21, Spring Boot 3, Controller → Service → Repository, Flyway, PostgreSQL **17**, Redis (Pub/Sub kết quả AI, rate limit, cache; hàng đợi AI dùng bảng PostgreSQL, xem `docs/system-design.md` mục 9), Spring Security + JWT, MinIO (lưu media trên server, truy cập qua S3 API).
-- **Web (giai đoạn 1):** React **19**, Vite, TypeScript, Tailwind **3.4** (làm thư viện FE chính), React Router 7, TanStack Query 5, React Hook Form + Zod, Vitest + Testing Library, Playwright. Responsive mobile-first, giao diện theo thiết kế Figma; phông Nunito (gói `@fontsource-variable/nunito`, có tiếng Việt); màu, bo góc, đổ bóng lấy từ token Figma (đã cấu hình trong `tailwind.config.js`, lệch SRS 3.1 và 8.3 do chủ dự án chọn). Thêm thư viện khi có tính năng đầu tiên cần dùng.
-- **Mobile:** chỉ giữ khung `Mobile/`, chưa phát triển. Khi bắt đầu: Flutter, Riverpod, go_router, dio, flutter_secure_storage, Firebase Messaging, `record`. Dùng lại giao diện của web.
+- **Web (giai đoạn 1):** React **19**, Vite, TypeScript, Tailwind **3.4** (làm thư viện FE chính), React Router 7, TanStack Query 5, React Hook Form + Zod, Vitest + Testing Library, Playwright. Responsive mobile-first, giao diện theo thiết kế Figma; phông Nunito (gói `@fontsource-variable/nunito`, có tiếng Việt); màu, bo góc, đổ bóng lấy từ token Figma (đã cấu hình trong `tailwind.config.js`, SRS 3.1). Thêm thư viện khi có tính năng đầu tiên cần dùng.
+- **Mobile:** phát triển song song với web (SRS 1.2, NFR-MOB-01), đủ tính năng học viên, không có màn quản trị: Flutter, Riverpod, go_router, dio, flutter_secure_storage, Firebase Messaging, `record`. Dùng lại giao diện của web.
 - **AI:** Haiku 5.5 qua Anthropic API cho phần lớn tác vụ. Speaking: GOPT + wav2vec2 + Whisper (Groq) như `pps-education` và `pps-speaking-engine`. Gọi qua interface `AiGradingProvider`.
 - **Thanh toán:** interface `PaymentGateway`, theo cách `pps-education` làm; chưa kết nối cổng thật.
 - **Thông báo:** Web Push (VAPID) cho web, FCM cho mobile.
 - **Hạ tầng:** server riêng của công ty, Cloudflare Tunnel + nginx, đã có domain. Thêm Redis (chưa có). Docker Compose.
 
-Lệch SRS 2.1 đã được chủ dự án chọn: PostgreSQL 17 (SRS: 16), React 19 (SRS: 18). Lệch SRS FR-AUTH-01: MVP chưa làm đăng ký bằng số điện thoại và Apple Sign-in. Lệch SRS 2.2, FR-AUTH-01 và PRD FR-AUTH-02, 4.1: tài khoản mới không được tặng 3 lượt AI; lượt AI chỉ cấp khi mua khóa. Lệch SRS 2.1, 3.2, FR-LMS-02, FR-ADM-01, NFR-SEC-02: media lưu trên MinIO riêng của dự án, không dùng Cloudflare R2. SRS chưa được cập nhật; chỉ sửa khi chủ dự án cho phép.
+Các lệch trước đây (PostgreSQL 17, React 19, MinIO, chưa làm đăng ký SĐT/Apple, không tặng lượt AI khi đăng ký, màu và phông theo Figma) đã đưa vào PRD v0.2 / SRS v1.1 ngày 2026-11-13. Hiện không còn mục lệch tài liệu.
 
 ## Nhánh
 
