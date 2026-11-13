@@ -1,6 +1,6 @@
 # Quyết định và câu hỏi mở (BA)
 
-Nguồn: trao đổi BA với chủ dự án ngày 2026-11-13. File này ghi các quyết định **chưa có trong PRD/SRS**. PRD/SRS chỉ được sửa khi chủ dự án cho phép; tới lúc đó, mục nào ở đây lệch PRD/SRS thì ghi rõ ở cột "Lệch".
+Nguồn: trao đổi BA với chủ dự án ngày 2026-11-13. Ngày 2026-11-13 chủ dự án cho phép (BQ-14) và các quyết định D-01..D-20 đã được đưa vào PRD v0.2 / SRS v1.1; cột "Lệch PRD/SRS" và mục 5 giữ lại để truy vết lý do thay đổi. Câu hỏi BQ-xx còn mở vẫn chặn phần liên quan.
 
 Mã: `D-xx` quyết định đã chốt, `BQ-xx` câu hỏi BA còn mở (khác `Q-xx` trong `docs/system-design.md`).
 
@@ -14,7 +14,7 @@ Mã: `D-xx` quyết định đã chốt, `BQ-xx` câu hỏi BA còn mở (khác 
 | D-04 | Không hoàn tiền. | Chưa có trong tài liệu | Không |
 | D-05 | **Lượt AI theo tuần, theo từng khóa** (mục 3). | FR-AI-04, PRD FR-AUTH-02 | `AiQuotaService`, `UserAiQuota` đang là ví chung một tài khoản → phải sửa |
 | D-06 | **Gói mua thêm lượt** là pool riêng, các mức 10, 20, 50, 100, 200, 500 lượt. | FR-COM-01 (Add-on) chi tiết hơn | Sản phẩm `AI_ADDON` |
-| D-07 | Ra mắt **một lượt** khi web xong đủ tính năng; **app Flutter làm song song**; chấp nhận web ra muộn hơn. Sau ra mắt là pilot rồi bảo trì. | SRS 1.2 (mobile giai đoạn 2) | `CLAUDE.md` ghi "Mobile chỉ giữ khung" → cần chủ dự án cho sửa |
+| D-07 | Ra mắt **một lượt** khi web xong đủ tính năng; **app Flutter làm song song**; chấp nhận web ra muộn hơn. Sau ra mắt là pilot rồi bảo trì. | SRS 1.2 (mobile giai đoạn 2) | `CLAUDE.md` đã sửa: mobile làm song song |
 | D-08 | **Kiểm tra đầu vào có trong MVP**, miễn phí, dùng để xác định level. | Đảo PRD FR-TEST-01 (hoãn) | Module mới |
 | D-09 | **Q&A tư vấn tách khỏi kiểm tra đầu vào.** Q&A xác định nhu cầu; kiểm tra đầu vào xác định level. Bộ Q&A bản tạm (Q-04) dùng cho MVP. | FR-GOAL-01..03 | Quy tắc đề xuất khóa = nhu cầu + level |
 | D-10 | **Mỗi khóa có bài thi riêng**, phải mua khóa mới được thi. Đề do Phòng Đào tạo soạn (không dùng đề sách có bản quyền). | Chưa có trong tài liệu | Module mới |
@@ -69,7 +69,7 @@ Bảng giá tham khảo, có thể điều chỉnh. Giá gói 12 tháng: BQ-01.
 | BQ-11 | Khóa hết hạn: học viên còn xem được lịch sử bài làm, kết quả không? | Quyền truy cập |
 | BQ-12 | Có xuất hóa đơn VAT / hóa đơn điện tử không? Kế toán cần báo cáo gì? | Thương mại, báo cáo |
 | BQ-13 | Khi nguồn lực web và mobile giành nhau, ưu tiên bên nào? | Kế hoạch |
-| BQ-14 | Cho phép sửa `CLAUDE.md` (mobile làm song song, kiểm tra đầu vào trong MVP) và cập nhật PRD/SRS theo các quyết định trên? | Tài liệu nguồn |
+| ~~BQ-14~~ | ~~Cho phép sửa `CLAUDE.md` và cập nhật PRD/SRS theo các quyết định trên?~~ **Đã trả lời 2026-11-13: cho phép.** PRD v0.2, SRS v1.1, `CLAUDE.md` đã cập nhật. | — |
 
 Câu hỏi mở từ `docs/system-design.md` vẫn còn hiệu lực: Q-07 (giấy phép từ điển), Q-09/Q-27 (gộp vào BQ-04), Q-13 (mobile lưu token, nay cần vì D-07), Q-16, Q-17, Q-22, Q-25 (chấm nói), Q-23 (giám sát), Q-29 (đường truyền video), Q-32..Q-36 (phát âm từng từ).
 
