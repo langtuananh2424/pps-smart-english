@@ -2,13 +2,14 @@ import { Link } from 'react-router'
 import aiBadge from '../../assets/icons/ai-badge.svg'
 import arrow from '../../assets/icons/arrow-right-sm.svg'
 import { Icon } from '../../components/Icon'
+import { currentCourse } from './format'
 import { useMyCourses, useQuota, useRoadmap, useToday } from './api'
 import { BlockError } from './BlockState'
 
 // Gợi ý luyện viết và lượt chấm AI của khóa đang học.
 export function AiSuggestCard() {
   const courses = useMyCourses()
-  const courseId = courses.data?.[0]?.courseId
+  const courseId = currentCourse(courses.data)?.courseId
   const roadmap = useRoadmap(courseId)
   const today = useToday(courseId)
   const quota = useQuota()

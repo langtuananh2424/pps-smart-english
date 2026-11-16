@@ -4,7 +4,7 @@ import aiBadge from '../../assets/icons/ai-badge.svg'
 import { Icon } from '../../components/Icon'
 import { useMyCourses, useToday } from './api'
 import { BlockError, Skeleton } from './BlockState'
-import { formatMmSs } from './format'
+import { currentCourse, formatMmSs } from './format'
 import type { TodayTask } from './types'
 
 const KIND = {
@@ -52,7 +52,7 @@ function TaskCard({ task, first }: { task: TodayTask; first: boolean }) {
 
 export function TodayTasks() {
   const courses = useMyCourses()
-  const courseId = courses.data?.[0]?.courseId
+  const courseId = currentCourse(courses.data)?.courseId
   const today = useToday(courseId)
   if (courseId == null || (!today.isError && today.data?.tasks.length === 0)) return null
 

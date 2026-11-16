@@ -150,3 +150,19 @@ test('khách bấm học thử: sang đăng nhập kèm next là bài học th�
   await waitFor(() => expect(router.state.location.pathname).toBe('/dang-nhap'))
   expect(router.state.location.search).toBe(`?next=${encodeURIComponent('/bai-giang/99')}`)
 })
+
+test('khóa học thử trong "khóa của tôi": nhãn Học thử, không phải Đang học, bị loại khỏi lọc Đang học', async () => {
+  mockApi({
+    ...member,
+    '/api/me/courses': () => json(200, [mineCourse('ae1', 2, 'TRIAL')]),
+    '/api/me/courses/2/progress': () => json(200, { completedLessons: 1, totalLessons: 10, percent: 10 }),
+    '/api/me/courses/2/roadmap': () => json(200, { levels: [], resume: { lessonId: 77 } }),
+  })
+  renderAt('/khoa-hoc')
+  const card = (await screen.findByRole('heading', { name: 'Academic English 1' })).closest('article')!
+  expect(within(card).getAllByText('Học thử').length).toBeGreaterThan(0)
+  expect(within(card).queryByText(/Đang học/)).toBeNull()
+  expect(await within(card).findByRole('link', { name: 'Học thử' })).toHaveAttribute('href', '/bai-giang/77')
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Đang học' }))
+  expect(screen.queryByRole('heading', { name: 'Academic English 1' })).not.toBeInTheDocument()
+})

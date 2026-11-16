@@ -1,6 +1,9 @@
 import type { RouteObject } from 'react-router'
 import { PublicOnly, RequireAuth } from '../auth/guards'
 import { CoursesPage } from '../features/courses/CoursesPage'
+import { CoursePage } from '../features/lectures/CoursePage'
+import { LessonPage } from '../features/lectures/LessonPage'
+import { PickerPage } from '../features/lectures/PickerPage'
 import { QaPage } from '../features/qa/QaPage'
 import { AdaptiveShell } from '../layout/AdaptiveShell'
 import { AppShell } from '../layout/AppShell'
@@ -37,6 +40,8 @@ export const routes: RouteObject[] = [
           { path: '/goi-y-khoa', element: <QaPage /> },
           // Trang chi tiết khóa chưa có thiết kế.
           { path: '/khoa-hoc/:slug', element: todo('Chi tiết khóa học') },
+          // Công khai để khách xem bài học thử (server quyết định 401/403).
+          { path: '/bai-giang/:lessonId', element: <LessonPage /> },
         ],
       },
       {
@@ -46,11 +51,11 @@ export const routes: RouteObject[] = [
             element: <AppShell />,
             children: [
               { path: '/', element: <HomePage /> },
-              { path: '/bai-giang', element: todo('Bài giảng') },
+              { path: '/bai-giang', element: <PickerPage /> },
+              { path: '/bai-giang/khoa/:courseId', element: <CoursePage /> },
               { path: '/bai-tap', element: todo('Bài tập') },
               { path: '/ho-so', element: <ProfilePage /> },
               // Màn đích của trang chủ, chưa dựng.
-              { path: '/bai-giang/:lessonId', element: todo('Bài giảng') },
               { path: '/bai-tap/:bankId', element: todo('Bài tập') },
               { path: '/viet/:questionId', element: todo('Viết phát triển ý') },
               { path: '/thong-bao', element: todo('Thông báo') },

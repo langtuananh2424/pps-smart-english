@@ -16,22 +16,48 @@ export interface MyCourse {
   slug: string
   title: string
   targetType: string
-  status: 'ACTIVE' | 'EXPIRED'
+  status: 'ACTIVE' | 'EXPIRED' | 'TRIAL'
   expiresAt: string | null
   lastActivityAt: string | null
+  completedLessons: number
+  totalLessons: number
 }
 
 export type TopicStatus = 'DONE' | 'IN_PROGRESS' | 'NOT_STARTED' | 'LOCKED'
 
+export type Skill = 'LISTENING' | 'READING' | 'WRITING' | 'SPEAKING' | 'GRAMMAR_VOCAB'
+
+export interface RoadmapLesson {
+  id: number
+  title: string
+  type: string
+  durationSec: number | null
+  order: number
+  completed: boolean
+  watchedSec: number
+  maxPositionSec: number | null
+  lastWatchedAt: string | null
+}
+
+export interface RoadmapBank {
+  id: number
+  title: string
+  lessonId: number
+  questionCount: number
+}
+
 export interface RoadmapTopic {
   id: number
   title: string
+  skill: Skill | null
   isFreeTrial: boolean
   locked: boolean
   completedLessons: number
   totalLessons: number
   xpEarned: number
   status: TopicStatus
+  lessons: RoadmapLesson[]
+  banks: RoadmapBank[]
 }
 
 export interface RoadmapLevel {
@@ -52,6 +78,8 @@ export interface Resume {
   levelTitle: string
   completedInTopic: number
   totalInTopic: number
+  positionSec: number
+  durationSec: number | null
 }
 
 export interface Roadmap {

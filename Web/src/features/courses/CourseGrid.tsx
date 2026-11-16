@@ -32,7 +32,9 @@ function EnrolledCard({ course, mine }: { course: CourseSummary; mine: MyCourse 
   const detail = `/khoa-hoc/${course.slug}`
   let view: CardView
   const resume = roadmap.data?.resume
-  if (percent === 100) view = { badge: { text: 'Đã hoàn thành', tone: 'success' }, action: { label: 'Ôn lại', to: detail } }
+  // D-61: khóa học thử không phải khóa đang học; mua mới có "Học tiếp" đầy đủ.
+  if (mine.status === 'TRIAL') view = { badge: { text: 'Học thử', tone: 'reward' }, action: { label: 'Học thử', to: resume ? `/bai-giang/${resume.lessonId}` : detail } }
+  else if (percent === 100) view = { badge: { text: 'Đã hoàn thành', tone: 'success' }, action: { label: 'Ôn lại', to: detail } }
   else if (mine.status === 'ACTIVE') {
     view = {
       badge: { text: percent == null ? 'Đang học' : `Đang học · ${percent}%`, tone: 'brand' },

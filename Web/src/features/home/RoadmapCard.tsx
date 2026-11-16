@@ -6,7 +6,7 @@ import lock from '../../assets/icons/lock.svg'
 import { Icon } from '../../components/Icon'
 import { useMyCourses, useRoadmap } from './api'
 import { BlockError, Skeleton } from './BlockState'
-import { pickLevel } from './format'
+import { currentCourse, pickLevel } from './format'
 import type { RoadmapTopic, TopicStatus } from './types'
 
 const SKIN: Record<TopicStatus, { card: string; badge: string; chip?: string }> = {
@@ -48,7 +48,7 @@ function TopicItem({ topic, index }: { topic: RoadmapTopic; index: number }) {
 
 export function RoadmapCard() {
   const courses = useMyCourses()
-  const course = courses.data?.[0]
+  const course = currentCourse(courses.data)
   const roadmap = useRoadmap(course?.courseId)
   if (!courses.isError && !courses.isPending && !course) return null
 

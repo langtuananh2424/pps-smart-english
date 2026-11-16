@@ -1,4 +1,8 @@
-import type { Roadmap, RoadmapLevel } from './types'
+import type { MyCourse, Roadmap, RoadmapLevel } from './types'
+
+// Khóa đang học mặc định: ưu tiên ACTIVE, rồi học thử, cuối cùng hết hạn (D-61).
+export const currentCourse = (courses?: MyCourse[]) =>
+  courses?.find((c) => c.status === 'ACTIVE') ?? courses?.find((c) => c.status === 'TRIAL') ?? courses?.[0]
 
 const VN_TZ = 'Asia/Ho_Chi_Minh'
 export const formatXp = (xp: number) => `${xp.toLocaleString('vi-VN')} XP`

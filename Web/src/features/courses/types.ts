@@ -1,3 +1,5 @@
+import type { Skill } from '../home/types'
+
 // Kiểu dữ liệu khớp JSON backend của catalog và gợi ý khóa.
 export interface CourseSummary {
   slug: string
@@ -20,6 +22,7 @@ export interface CourseDetail extends CourseSummary {
     topics: {
       id: number
       title: string
+      skill: Skill | null
       isFreeTrial: boolean
       lessons: { id: number; title: string; type: string; durationSec: number | null }[]
     }[]

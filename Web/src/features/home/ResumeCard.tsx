@@ -3,6 +3,7 @@ import cam from '../../assets/home/cam-he-dau.png'
 import illustration from '../../assets/home/minh-hoa.webp'
 import play from '../../assets/icons/play.svg'
 import { Icon } from '../../components/Icon'
+import { currentCourse } from './format'
 import { useMyCourses, useRoadmap } from './api'
 import { BlockError, Skeleton } from './BlockState'
 
@@ -13,7 +14,7 @@ const secondaryBtn = 'inline-flex min-h-[52px] items-center justify-center gap-[
 // Thẻ lớn đầu trang: học tiếp, đã xong khóa, hoặc mời bắt đầu.
 export function ResumeCard() {
   const courses = useMyCourses()
-  const course = courses.data?.[0]
+  const course = currentCourse(courses.data)
   const roadmap = useRoadmap(course?.courseId)
   const resume = roadmap.data?.resume
 

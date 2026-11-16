@@ -2,8 +2,8 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { setAccessToken } from '../../lib/api'
 import { apiError, auth, json, mockApi, renderAt } from '../../testUtils'
-import { pickLevel, vnToday, weekDates } from './format'
-import type { Roadmap } from './types'
+import { currentCourse, pickLevel, vnToday, weekDates } from './format'
+import type { MyCourse, Roadmap } from './types'
 
 const topic = (id: number, status: string, extra = {}) => ({
   id, title: `Chủ đề ${id}`, isFreeTrial: false, locked: status === 'LOCKED', completedLessons: 0, totalLessons: 5, xpEarned: 0, status, lessons: [], banks: [], ...extra,
@@ -166,4 +166,22 @@ test('helper ngày giờ Việt Nam và chọn level', () => {
   expect(weekDates('2026-11-22').map((d) => d.date)).toEqual(['2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21', '2026-11-22'])
   const r = { resume: null, levels: [{ id: 1, topics: [{ completedLessons: 2 }] }, { id: 2, topics: [{ completedLessons: 0, status: 'NOT_STARTED' }] }] } as unknown as Roadmap
   expect(pickLevel(r)?.id).toBe(1)
+})
+
+test('khóa học thử không là khóa hiện tại khi còn khóa ACTIVE (D-61)', () => {
+  const c = (courseId: number, status: 'ACTIVE' | 'TRIAL' | 'EXPIRED') => ({ courseId, status }) as MyCourse
+  expect(currentCourse([c(1, 'TRIAL'), c(2, 'ACTIVE')])?.courseId).toBe(2)
+  expect(currentCourse([c(1, 'EXPIRED'), c(2, 'TRIAL')])?.courseId).toBe(2)
+  expect(currentCourse([c(1, 'EXPIRED')])?.courseId).toBe(1)
+  expect(currentCourse([])).toBeUndefined()
+})
+
+test('trang chủ lấy lộ trình của khóa ACTIVE dù khóa học thử đứng trước', async () => {
+  const trial = { courseId: 9, slug: 'thu', title: 'Thử', targetType: 'IELTS', status: 'TRIAL', expiresAt: null, lastActivityAt: null, completedLessons: 1, totalLessons: 9 }
+  const active = { courseId: 7, slug: 'ielts-7', title: 'IELTS', targetType: 'IELTS', status: 'ACTIVE', expiresAt: null, lastActivityAt: null, completedLessons: 3, totalLessons: 9 }
+  const calls = mockApi({ ...full, '/api/me/courses': () => json(200, [trial, active]) })
+  renderAt('/')
+  expect(await screen.findByText(/Triển khai luận điểm/)).toBeInTheDocument()
+  expect(calls).toContain('/api/me/courses/7/roadmap')
+  expect(calls).not.toContain('/api/me/courses/9/roadmap')
 })
