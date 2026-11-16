@@ -11,6 +11,7 @@ import com.pps.smartenglish.exercise.domain.StudentAttempt;
 import com.pps.smartenglish.exercise.dto.AttemptResponse;
 import com.pps.smartenglish.exercise.dto.AttemptResponse.QuestionResult;
 import com.pps.smartenglish.exercise.grading.GraderRegistry;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,7 @@ class ResultAssembler {
     }
 
     /** quotaProducts khác null khi có câu cần AI mà hết lượt. */
-    AttemptResponse submitted(StudentAttempt attempt, Instant submittedAt, int score, int maxScore, QuestionSet set,
+    AttemptResponse submitted(StudentAttempt attempt, Instant submittedAt, BigDecimal score, int maxScore, QuestionSet set,
                               List<StudentAnswer> answers, List<AnswerGrading> gradings, List<Long> pendingJobs,
                               List<ProductView> quotaProducts) {
         Map<Long, StudentAnswer> byQuestion = answers.stream()

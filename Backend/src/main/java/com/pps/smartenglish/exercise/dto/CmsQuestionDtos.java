@@ -16,15 +16,23 @@ import java.util.List;
 public final class CmsQuestionDtos {
 
     private static final String NOT_BLANK = ".*\\S.*";
+    private static final String SKILL = "LISTENING|READING|GRAMMAR";
 
     private CmsQuestionDtos() {}
 
     // ---- yêu cầu ----
 
-    public record CreateBank(@NotBlank @Size(max = 200) String title, Long lessonId, Boolean isTrial) {}
+    public record CreateBank(@NotBlank @Size(max = 200) String title, Long lessonId, Boolean isTrial,
+                             @Min(value = 1, message = "Phải từ 1 giây trở lên") Integer timeLimitSec,
+                             @Pattern(regexp = "PRACTICE|EXAM", message = "Chế độ phải là PRACTICE hoặc EXAM") String mode) {}
 
     public record PatchBank(@Size(max = 200) @Pattern(regexp = NOT_BLANK, message = "Không được để trống") String title,
-                            Long lessonId, Boolean isTrial) {}
+                            Long lessonId, Boolean isTrial,
+                            @Min(value = 1, message = "Phải từ 1 giây trở lên") Integer timeLimitSec,
+                            @Pattern(regexp = "PRACTICE|EXAM", message = "Chế độ phải là PRACTICE hoặc EXAM") String mode) {}
+
+    public record CreatePlacementBank(@NotBlank @Size(max = 200) String title,
+                                      @NotNull @Min(value = 1, message = "Phải từ 1 giây trở lên") Integer timeLimitSec) {}
 
     public record ChoiceInput(@NotBlank @Size(max = 10) String label, @NotBlank String content, Boolean isCorrect, String explanation) {}
 
@@ -36,7 +44,8 @@ public final class CmsQuestionDtos {
             @Size(max = 10) List<@NotNull @Valid ChoiceInput> choices,
             @Size(max = 5000) String explanation,
             @Min(0) Integer sortOrder,
-            @Size(max = 8) List<String> grammarElementCodes) {}
+            @Size(max = 8) List<String> grammarElementCodes,
+            @Pattern(regexp = SKILL, message = "Chỉ nhận LISTENING, READING hoặc GRAMMAR") String skill) {}
 
     public record PatchQuestion(
             String type,
@@ -46,18 +55,20 @@ public final class CmsQuestionDtos {
             @Size(max = 10) List<@NotNull @Valid ChoiceInput> choices,
             @Size(max = 5000) String explanation,
             @Min(0) Integer sortOrder,
-            @Size(max = 8) List<String> grammarElementCodes) {}
+            @Size(max = 8) List<String> grammarElementCodes,
+            @Pattern(regexp = SKILL, message = "Chỉ nhận LISTENING, READING hoặc GRAMMAR") String skill) {}
 
     // ---- phản hồi ----
 
-    public record BankView(Long id, Long topicId, Long lessonId, String title, boolean isTrial, String status, long questionCount) {}
+    public record BankView(Long id, Long topicId, Long lessonId, String title, boolean isTrial, String status, long questionCount,
+                           Integer timeLimitSec, String mode, String purpose) {}
 
     public record ChoiceView(Long id, String label, String content, boolean isCorrect, String explanation) {}
 
     /** answerVersion tăng mỗi lần đáp án thật sự đổi; regradeRequired: có bài nộp, dạng chấm lại được, chưa có run ở phiên bản này. */
     public record QuestionDetail(Long id, Long bankId, String type, String prompt, JsonNode payload, JsonNode answerKey,
                                  List<ChoiceView> choices, String explanation, int sortOrder, List<String> grammarElementCodes,
-                                 int answerVersion, boolean regradeRequired) {}
+                                 int answerVersion, boolean regradeRequired, String skill) {}
 
     public record BankDetail(BankView bank, List<QuestionDetail> questions) {}
 

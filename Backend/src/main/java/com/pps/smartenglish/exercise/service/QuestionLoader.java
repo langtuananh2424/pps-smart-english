@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 @Component
-class QuestionLoader {
+public class QuestionLoader {
 
     private final QuestionRepository questions;
     private final QuestionChoiceRepository choices;
@@ -19,7 +19,7 @@ class QuestionLoader {
         this.choices = choices;
     }
 
-    QuestionSet load(Long bankId) {
+    public QuestionSet load(Long bankId) {
         List<Question> qs = questions.findByBankIdOrderBySortOrderAscIdAsc(bankId);
         var byQuestion = qs.isEmpty() ? java.util.Map.<Long, List<QuestionChoice>>of()
                 : choices.findByQuestionIdInOrderByLabelAscIdAsc(qs.stream().map(Question::getId).toList()).stream()

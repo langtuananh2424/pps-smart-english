@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.Instant;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -51,10 +52,10 @@ public class RegradeItem {
     private Boolean newCorrect;
 
     @Column(name = "old_attempt_score")
-    private Integer oldAttemptScore;
+    private BigDecimal oldAttemptScore;
 
     @Column(name = "new_attempt_score")
-    private Integer newAttemptScore;
+    private BigDecimal newAttemptScore;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "old_result")
@@ -77,7 +78,7 @@ public class RegradeItem {
     public Long getJobId() { return jobId; }
 
     /** Ghi điểm cũ/mới sau khi đã giành được quyền xử lý (status chuyển DONE bằng câu UPDATE riêng). */
-    public void record(Boolean oldCorrect, boolean newCorrect, int oldScore, int newScore, JsonNode oldResult, JsonNode newResult,
+    public void record(Boolean oldCorrect, boolean newCorrect, BigDecimal oldScore, BigDecimal newScore, JsonNode oldResult, JsonNode newResult,
                        Instant now) {
         this.oldCorrect = oldCorrect;
         this.newCorrect = newCorrect;

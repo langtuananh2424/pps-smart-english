@@ -1,5 +1,6 @@
 package com.pps.smartenglish.shared.security;
 
+import com.pps.smartenglish.auth.service.PermissionGuard;
 import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,8 +12,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -30,13 +29,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http, JwtDecoder decoder, SecurityErrorHandlers errors) throws Exception {
-        var authorities = new JwtGrantedAuthoritiesConverter();
-        authorities.setAuthoritiesClaimName("role");
-        authorities.setAuthorityPrefix("ROLE_");
-        var converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(authorities);
-
+    SecurityFilterChain filterChain(HttpSecurity http, JwtDecoder decoder, SecurityErrorHandlers errors, PermissionGuard guard)
+            throws Exception {
         // CSRF tắt: xác thực bằng Bearer; cookie refresh là SameSite=Strict và chỉ gửi tới /api/auth.
         return http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -47,17 +41,28 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, PUBLIC_POST).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/catalog/courses", "/api/catalog/courses/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/lessons/*").permitAll() // FR-LMS-02: bài học thử cho khách
+                        // FR-TEST-01: khách làm kiểm tra đầu vào; quyền theo token của lượt được kiểm trong PlacementAccess
+                        .requestMatchers(HttpMethod.POST, "/api/placement/attempts", "/api/placement/attempts/*/submit").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/placement/attempts/*/draft").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/activation-links/*").permitAll() // xem trước gói trước khi đăng nhập
-                        // luật cụ thể phải đứng trước /api/admin/**: soạn nội dung mở cho EDITOR, phần còn lại chỉ ADMIN
-                        .requestMatchers("/api/admin/cms/**").hasAnyRole("ADMIN", "EDITOR")
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // FR-ADM-04: quyền theo role và override, đọc từ DB mỗi lần gọi. Route không khai báo thì từ chối.
+                        .requestMatchers("/api/admin/cms/**").access(guard.require("cms.content"))
+                        .requestMatchers("/api/admin/reports/**").access(guard.require("report.view"))
+                        .requestMatchers("/api/admin/activation-links/**").access(guard.require("activation.manage"))
+                        .requestMatchers("/api/admin/regrades/**", "/api/admin/questions/**").access(guard.require("regrade.manage"))
+                        .requestMatchers("/api/admin/audit-logs/**").access(guard.require("audit.view"))
+                        .requestMatchers("/api/admin/orders/**").access(guard.require("order.view"))
+                        .requestMatchers("/api/admin/ai-weights").access(guard.require("product.manage"))
+                        .requestMatchers("/api/admin/roles/**", "/api/admin/permissions", "/api/admin/users/**")
+                        .access(guard.require("rbac.manage"))
+                        .requestMatchers("/api/admin/**").denyAll()
                         // webhook xác thực bằng chữ ký của cổng thanh toán, không bằng token
                         .requestMatchers(HttpMethod.POST, "/api/payments/webhook/*").permitAll()
                         .requestMatchers("/actuator/health/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o -> o
-                        .jwt(j -> j.decoder(decoder).jwtAuthenticationConverter(converter))
+                        .jwt(j -> j.decoder(decoder))
                         .authenticationEntryPoint(errors)
                         .accessDeniedHandler(errors))
                 .exceptionHandling(e -> e.authenticationEntryPoint(errors).accessDeniedHandler(errors))

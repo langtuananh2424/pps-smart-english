@@ -51,8 +51,8 @@ class DashboardTest extends ApiTestBase {
 
     private Account admin() throws Exception {
         var u = register(newEmail(), PASSWORD);
-        jdbc.update("update users set role = 'ADMIN' where id = ?", u.id());
-        return login(u.email(), PASSWORD); // role nằm trong JWT nên phải đăng nhập lại
+        jdbc.update("insert into user_roles (user_id, role_id) select ?, id from roles where code = 'ADMIN'", u.id());
+        return login(u.email(), PASSWORD);
     }
 
     private ResultActions dash(Account a, String query) throws Exception {
@@ -61,10 +61,12 @@ class DashboardTest extends ApiTestBase {
     }
 
     private long user(String role, String status, String createdAt, boolean verified) {
-        var cols = new HashMap<String, Object>(Map.of("email", "rep-" + UUID.randomUUID() + "@example.com", "role", role,
+        var cols = new HashMap<String, Object>(Map.of("email", "rep-" + UUID.randomUUID() + "@example.com",
                 "status", status, "created_at", at(createdAt)));
         cols.put("email_verified_at", verified ? at(createdAt) : null);
-        return insert("users", cols);
+        long id = insert("users", cols);
+        jdbc.update("insert into user_roles (user_id, role_id) select ?, id from roles where code = ?", id, role);
+        return id;
     }
 
     private long student(String createdAt, boolean verified) {
@@ -168,8 +170,7 @@ class DashboardTest extends ApiTestBase {
     @Test
     void conversionSeparatesPaidFromLinkOnlyAndHandlesEmptyCohort() throws Exception {
         var admin = admin();
-        long level = insert("course_levels", Map.of("course_id",
-                insert("courses", Map.of("slug", "rep-" + UUID.randomUUID(), "title", "Khóa", "status", "PUBLISHED")), "code", "A", "title", "L"));
+        long course = insert("courses", Map.of("slug", "rep-" + UUID.randomUUID(), "title", "Khóa", "status", "PUBLISHED"));
         String created = "2004-06-05T03:00:00Z";
         long paid = student(created, true);
         long linkOnly = student(created, true);
@@ -180,7 +181,7 @@ class DashboardTest extends ApiTestBase {
         order(pending, "PENDING", null, 1000);
         order(both, "PAID", Instant.now().toString(), 1000); // thanh toán sau kỳ vẫn tính cho cohort
         for (long u : new long[] {linkOnly, both}) {
-            insert("user_course_enrollments", Map.of("user_id", u, "level_id", level, "starts_at", at(created)));
+            insert("user_course_enrollments", Map.of("user_id", u, "course_id", course, "starts_at", at(created)));
         }
 
         dash(admin, "?from=2004-06-01&to=2004-06-30").andExpect(jsonPath("$.conversion.cohortSize").value(5))

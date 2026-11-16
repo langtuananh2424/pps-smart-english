@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pps.smartenglish.ai.dto.RewriteGrades;
 import com.pps.smartenglish.ai.dto.ScaffoldDraft;
 import com.pps.smartenglish.ai.dto.ScaffoldFollowup;
+import com.pps.smartenglish.ai.dto.SpeakingGrade;
 import com.pps.smartenglish.ai.dto.WritingGrade;
 import java.util.ArrayList;
 import java.util.List;
@@ -95,6 +96,9 @@ public class FakeAiGradingProvider implements AiGradingProvider {
         if (type == WritingGrade.class) {
             return new WritingGrade(83, 77, 71, 64, List.of(), delimited,
                     new WritingGrade.Connectives(0, 0, 0, List.of(), "Chưa có từ nối."), List.of(), null, "Fake feedback.");
+        }
+        if (type == SpeakingGrade.class) {
+            return new SpeakingGrade(6.5, 6.0, "Fake feedback.", List.of(new SpeakingGrade.Suggestion("very good", "excellent", "Từ chính xác hơn.")));
         }
         throw new IllegalArgumentException("Fake chưa hỗ trợ " + type);
     }

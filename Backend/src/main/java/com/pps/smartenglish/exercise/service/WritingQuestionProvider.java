@@ -1,5 +1,6 @@
 package com.pps.smartenglish.exercise.service;
 
+import com.pps.smartenglish.ai.domain.AiTask;
 import com.pps.smartenglish.ai.service.WritingQuestionSource;
 import com.pps.smartenglish.exercise.domain.QuestionType;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
@@ -37,7 +38,8 @@ class WritingQuestionProvider implements WritingQuestionSource {
                 ? payload.path("task").asText() : q.getPrompt();
         Integer required = payload != null && payload.path("requiredWords").isIntegralNumber()
                 ? payload.path("requiredWords").asInt() : null;
+        var aiTask = payload != null && "TASK1".equals(payload.path("ieltsTask").asText()) ? AiTask.WRITING_TASK1 : AiTask.WRITING_TASK2;
         return new WritingQuestion(q.getId(), q.getPrompt(), task, required,
-                banks.findCourseTitle(q.getBankId()).orElse(""), payload);
+                banks.findCourseTitle(q.getBankId()).orElse(""), payload, banks.findCourseId(q.getBankId()).orElse(null), aiTask);
     }
 }

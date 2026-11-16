@@ -76,7 +76,7 @@ class RegradeTest extends AiTestSupport {
 
     private Account withRole(String role) throws Exception {
         var u = register(newEmail(), PASSWORD);
-        jdbc.update("update users set role = ? where id = ?", role, u.id());
+        jdbc.update("insert into user_roles (user_id, role_id) select ?, id from roles where code = ?", u.id(), role);
         return login(u.email(), PASSWORD);
     }
 
@@ -203,7 +203,7 @@ class RegradeTest extends AiTestSupport {
     @Test
     void onlyAdminMayPreviewRegradeAndReadRuns() throws Exception {
         var admin = withRole("ADMIN");
-        var editor = withRole("EDITOR");
+        var editor = withRole("SUPPORT"); // EDITOR có regrade.manage từ D-37
         var stu = student(0);
         long bank = bank(true);
         long q = createQuestion(admin, bank, mcqBody("A"));
@@ -371,7 +371,7 @@ class RegradeTest extends AiTestSupport {
         var scored = regradeScores();
         assertEquals(1, scored.size());
         assertEquals(a2, scored.get(0).attemptId());
-        assertEquals(2, scored.get(0).score());
+        assertEquals(0, new java.math.BigDecimal(2).compareTo(scored.get(0).score()));
         assertEquals(0, count("select count(*) from notifications where user_id in (?, ?)", s1.id(), s2.id())); // không thông báo
     }
 

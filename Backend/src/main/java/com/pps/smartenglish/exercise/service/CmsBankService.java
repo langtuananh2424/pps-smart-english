@@ -5,11 +5,13 @@ import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.BankDetail;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.BankView;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.CreateBank;
+import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.CreatePlacementBank;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.GrammarElementView;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.PatchBank;
 import com.pps.smartenglish.exercise.repository.GrammarElementRepository;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
 import com.pps.smartenglish.exercise.repository.QuestionRepository;
+import com.pps.smartenglish.shared.audit.AuditRecorder;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.persistence.CmsWrites;
 import java.util.List;
@@ -31,9 +33,11 @@ public class CmsBankService {
     private final CatalogReferences catalog;
     private final QuestionDetails details;
     private final CmsWrites writes;
+    private final AuditRecorder audit;
 
     CmsBankService(QuestionBankRepository banks, QuestionRepository questions, GrammarElementRepository grammar,
-                   CatalogReferences catalog, QuestionDetails details, CmsWrites writes) {
+                   CatalogReferences catalog, QuestionDetails details, CmsWrites writes, AuditRecorder audit) {
+        this.audit = audit;
         this.banks = banks;
         this.questions = questions;
         this.grammar = grammar;
@@ -49,12 +53,32 @@ public class CmsBankService {
         return views(rows);
     }
 
+    /** FR-TEST-01: đề kiểm tra đầu vào, mọi trạng thái; các thao tác còn lại dùng chung /banks/{id}. */
+    @Transactional(readOnly = true)
+    public List<BankView> listPlacement() {
+        return views(banks.findByPurposeOrderByIdAsc(QuestionBank.PLACEMENT));
+    }
+
+    @Transactional
+    public BankView createPlacement(CreatePlacementBank req) {
+        var after = view(writes.save(banks, QuestionBank.placement(req.title().strip(), req.timeLimitSec()), CONFLICT,
+                "Không lưu được bộ câu hỏi"), 0);
+        audit.record("CREATE", "BANK", after.id(), null, after);
+        return after;
+    }
+
     @Transactional
     public BankView create(long topicId, CreateBank req) {
         requireTopic(topicId);
         requireLessonInTopic(req.lessonId(), topicId);
         var bank = new QuestionBank(topicId, req.lessonId(), req.title().strip(), Boolean.TRUE.equals(req.isTrial()));
-        return view(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), 0);
+        bank.setTimeLimitSec(req.timeLimitSec());
+        if (req.mode() != null) {
+            bank.setMode(req.mode());
+        }
+        var after = view(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), 0);
+        audit.record("CREATE", "BANK", after.id(), null, after);
+        return after;
     }
 
     /** Bộ kèm câu hỏi đầy đủ gồm answerKey, isCorrect và thẻ, theo sortOrder. */
@@ -68,8 +92,12 @@ public class CmsBankService {
     @Transactional
     public BankView patch(long id, PatchBank req) {
         QuestionBank bank = find(id);
+        var before = view(bank, questions.countByBankId(id));
         if (req.title() != null) {
             bank.setTitle(req.title().strip());
+        }
+        if (bank.isPlacement() && (req.lessonId() != null || req.mode() != null)) {
+            throw ApiException.validation("mode", "Đề kiểm tra đầu vào không gắn bài học và luôn ở chế độ EXAM");
         }
         if (req.lessonId() != null) {
             requireLessonInTopic(req.lessonId(), bank.getTopicId());
@@ -78,7 +106,15 @@ public class CmsBankService {
         if (req.isTrial() != null) {
             bank.setTrial(req.isTrial());
         }
-        return view(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), questions.countByBankId(id));
+        if (req.timeLimitSec() != null) {
+            bank.setTimeLimitSec(req.timeLimitSec());
+        }
+        if (req.mode() != null) {
+            bank.setMode(req.mode());
+        }
+        var after = view(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), questions.countByBankId(id));
+        audit.record("UPDATE", "BANK", id, before, after);
+        return after;
     }
 
     /** Còn câu hỏi, lượt làm bài... tham chiếu thì in_use; không xóa cascade. */
@@ -88,6 +124,7 @@ public class CmsBankService {
         if (questions.existsByBankId(id)) {
             throw CmsWrites.inUse();
         }
+        audit.record("DELETE", "BANK", id, view(bank, 0), null);
         writes.delete(banks, bank);
     }
 
@@ -96,11 +133,17 @@ public class CmsBankService {
     public BankView setPublished(long id, boolean published) {
         QuestionBank bank = find(id);
         long count = questions.countByBankId(id);
+        if (published && bank.isPlacement()) {
+            throw ApiException.validation("status", "Đề kiểm tra đầu vào xuất bản qua /placement/banks/{id}/publish");
+        }
         if (published && count == 0) {
             throw ApiException.validation("questions", "Cần ít nhất 1 câu hỏi trước khi xuất bản");
         }
+        var before = view(bank, count);
         bank.setStatus(published ? QuestionBank.PUBLISHED : QuestionBank.DRAFT);
-        return view(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), count);
+        var after = view(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), count);
+        audit.record(published ? "PUBLISH" : "UNPUBLISH", "BANK", id, before, after);
+        return after;
     }
 
     @Transactional(readOnly = true)
@@ -136,7 +179,8 @@ public class CmsBankService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "bank_not_found", "Không tìm thấy bộ câu hỏi"));
     }
 
-    private static BankView view(QuestionBank b, long questionCount) {
-        return new BankView(b.getId(), b.getTopicId(), b.getLessonId(), b.getTitle(), b.isTrial(), b.getStatus(), questionCount);
+    public static BankView view(QuestionBank b, long questionCount) {
+        return new BankView(b.getId(), b.getTopicId(), b.getLessonId(), b.getTitle(), b.isTrial(), b.getStatus(), questionCount,
+                b.getTimeLimitSec(), b.getMode(), b.getPurpose());
     }
 }

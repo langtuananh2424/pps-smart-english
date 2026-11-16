@@ -106,6 +106,37 @@ app:
       cache-read: 0.01
       cache-write: 0.125
 
+  speaking:
+    # http (engine thật) hoặc fake (local/test). URL và token chỉ lấy từ cấu hình, không bao giờ từ request.
+    engine: ${SPEAKING_ENGINE:http}
+    engine-url: ${ENGINE_URL:}
+    engine-token: ${ENGINE_TOKEN:}
+    # engine dùng chung nên giới hạn số request đồng thời từ backend
+    max-concurrent: ${SPEAKING_MAX_CONCURRENT:2}
+    connect-timeout: 5s
+    read-timeout: 180s
+    upload-ttl: 10m
+    # upload chưa xác nhận quá hạn + khoảng này thì xóa; audio đã chấm giữ audio-retention-days ngày (D-43)
+    expire-after: 1h
+    audio-retention-days: 30
+    cleanup-enabled: true
+    # bản ghi không rõ (D-48): chạm một ngưỡng thì không chấm, hoàn lượt
+    unclear:
+      min-seconds: 3
+      min-words: 5
+      min-avg-probability: 0.5
+      min-words-per-second: 0.5
+    # NGƯỠNG KHỞI ĐIỂM, chưa hiệu chỉnh với giáo viên. Bảng "ngưỡng=band": *-min lấy dòng đầu có số đo >= ngưỡng,
+    # pauses-per-min-max lấy dòng đầu có số đo <= ngưỡng. pron-score-max: thang điểm từ của engine (giả định 0..1).
+    bands:
+      pron-score-max: 1.0
+      pron-wrong-below: 0.6
+      pause-seconds: 1.0
+      pron-min: "0.95=9,0.9=8,0.85=7,0.78=6,0.7=5,0.6=4,0.5=3,0.4=2"
+      wpm-min: "140=8,120=7,100=6,80=5,60=4,40=3,20=2"
+      pauses-per-min-max: "1=8,2=7,4=6,6=5,8=4,12=3,16=2"
+      speech-ratio-min: "0.85=8,0.75=7,0.65=6,0.55=5,0.45=4,0.35=3,0.25=2"
+
   regrade:
     # chấm lại bài cũ khi Admin sửa đáp án; false để tắt worker (test gọi RegradeRunner.tick() trực tiếp)
     enabled: ${REGRADE_ENABLED:true}

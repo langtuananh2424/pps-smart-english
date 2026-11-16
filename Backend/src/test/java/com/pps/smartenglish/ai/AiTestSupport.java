@@ -8,6 +8,7 @@ import com.pps.smartenglish.support.ApiTestBase;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -30,6 +31,19 @@ public abstract class AiTestSupport extends ApiTestBase {
     void cleanQueue() {
         fake.reset();
         jdbc.update("update ai_jobs set status = 'FAILED', locked_until = null where status in ('PENDING', 'RUNNING')");
+    }
+
+    /** Test luồng cũ tính 1 lượt mỗi tác vụ; trọng số thật được kiểm ở AiPeriodQuotaTest (gọi defaultWeights()). */
+    @BeforeEach
+    void unitWeights() {
+        jdbc.update("update ai_task_weights set weight = 1");
+    }
+
+    @AfterEach
+    void defaultWeights() {
+        jdbc.update("update ai_task_weights set weight = 1 where code = 'REWRITE_SET'");
+        jdbc.update("update ai_task_weights set weight = 2 where code in ('WRITING_TASK1', 'SPEAKING_PART')");
+        jdbc.update("update ai_task_weights set weight = 3 where code = 'WRITING_TASK2'");
     }
 
     protected long insert(String table, Map<String, Object> cols) {

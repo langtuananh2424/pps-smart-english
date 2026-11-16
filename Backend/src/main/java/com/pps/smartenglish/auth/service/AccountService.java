@@ -11,14 +11,17 @@ import org.springframework.stereotype.Service;
 public class AccountService {
 
     private final UserRepository users;
+    private final PermissionService permissions;
 
-    AccountService(UserRepository users) {
+    AccountService(UserRepository users, PermissionService permissions) {
         this.users = users;
+        this.permissions = permissions;
     }
 
     public AccountInfo get(long userId) {
         return users.findById(userId)
-                .map(u -> new AccountInfo(u.getId(), u.getEmail(), u.getEmailVerifiedAt() != null, u.getRole().name()))
+                .map(u -> new AccountInfo(u.getId(), u.getEmail(), u.getEmailVerifiedAt() != null,
+                        permissions.primaryRole(u.getId())))
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "not_found", "Không tìm thấy tài khoản"));
     }
 }

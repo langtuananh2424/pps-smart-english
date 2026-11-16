@@ -9,13 +9,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /** Câu hỏi của một bank (đã theo sort_order) cùng các lựa chọn, nạp bằng hai truy vấn cố định. */
-record QuestionSet(List<Question> questions, Map<Long, List<QuestionChoice>> choices) {
+public record QuestionSet(List<Question> questions, Map<Long, List<QuestionChoice>> choices) {
 
-    List<QuestionChoice> choicesOf(Question q) {
+    public List<QuestionChoice> choicesOf(Question q) {
         return choices.getOrDefault(q.getId(), List.of());
     }
 
-    GradingInput inputOf(Question q) {
+    public GradingInput inputOf(Question q) {
         Set<Long> correct = choicesOf(q).stream().filter(QuestionChoice::isCorrect).map(QuestionChoice::getId)
                 .collect(Collectors.toSet());
         return new GradingInput(q.getAnswerKey(), correct);

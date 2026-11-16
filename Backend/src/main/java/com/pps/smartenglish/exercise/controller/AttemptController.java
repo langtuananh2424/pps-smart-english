@@ -1,9 +1,11 @@
 package com.pps.smartenglish.exercise.controller;
 
+import com.pps.smartenglish.exercise.dto.AttemptProgress;
 import com.pps.smartenglish.exercise.dto.AttemptResponse;
 import com.pps.smartenglish.exercise.dto.AttemptSummary;
 import com.pps.smartenglish.exercise.dto.SubmitRequest;
 import com.pps.smartenglish.exercise.service.AttemptService;
+import com.pps.smartenglish.exercise.service.AttemptTimerService;
 import com.pps.smartenglish.exercise.service.SubmissionService;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.security.CurrentUser;
@@ -14,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,10 +26,12 @@ class AttemptController {
 
     private final AttemptService attempts;
     private final SubmissionService submissions;
+    private final AttemptTimerService timer;
 
-    AttemptController(AttemptService attempts, SubmissionService submissions) {
+    AttemptController(AttemptService attempts, SubmissionService submissions, AttemptTimerService timer) {
         this.attempts = attempts;
         this.submissions = submissions;
+        this.timer = timer;
     }
 
     @PostMapping("/api/attempts/{id}/submit")
@@ -37,6 +42,26 @@ class AttemptController {
     @GetMapping("/api/attempts/{id}")
     AttemptResponse get(@PathVariable String id, Authentication auth) {
         return attempts.get(CurrentUser.id(auth), attemptId(id));
+    }
+
+    @GetMapping("/api/attempts/{id}/progress")
+    AttemptProgress progress(@PathVariable String id, Authentication auth) {
+        return timer.progress(CurrentUser.id(auth), attemptId(id));
+    }
+
+    @PostMapping("/api/attempts/{id}/pause")
+    AttemptProgress pause(@PathVariable String id, Authentication auth) {
+        return timer.pause(CurrentUser.id(auth), attemptId(id));
+    }
+
+    @PostMapping("/api/attempts/{id}/resume")
+    AttemptProgress resume(@PathVariable String id, Authentication auth) {
+        return timer.resume(CurrentUser.id(auth), attemptId(id));
+    }
+
+    @PutMapping("/api/attempts/{id}/draft")
+    AttemptProgress saveDraft(@PathVariable String id, Authentication auth, @Valid @RequestBody SubmitRequest req) {
+        return timer.saveDraft(CurrentUser.id(auth), attemptId(id), req);
     }
 
     @GetMapping("/api/me/attempts")

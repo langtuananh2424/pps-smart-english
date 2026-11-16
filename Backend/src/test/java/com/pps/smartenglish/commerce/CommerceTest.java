@@ -38,7 +38,7 @@ class CommerceTest extends ApiTestBase {
     @Autowired OrderExpiryJob expiryJob;
 
     /** Nội dung trả phí: Level, một bài và một bộ câu hỏi nằm trong topic KHÔNG học thử. */
-    private record Content(long levelId, long lessonId, long bankId) {}
+    private record Content(long levelId, long lessonId, long bankId, long courseId) {}
 
     private long insert(String table, Map<String, Object> cols) {
         return new SimpleJdbcInsert(jdbc).withTableName(table).usingGeneratedKeyColumns("id")
@@ -54,7 +54,7 @@ class CommerceTest extends ApiTestBase {
         lesson.put("video_ref", "abc");
         lesson.put("duration_sec", 60);
         long bank = insert("question_banks", Map.of("topic_id", t, "title", "Bộ", "is_trial", false, "status", "PUBLISHED"));
-        return new Content(lv, insert("lessons", lesson), bank);
+        return new Content(lv, insert("lessons", lesson), bank, c);
     }
 
     private long product(String type, long price, Integer days, Integer ai, String status, long... levelIds) {
@@ -100,6 +100,11 @@ class CommerceTest extends ApiTestBase {
 
     private ResultActions pay(String code, long amount) throws Exception {
         return pay(code, amount, "REF-" + UUID.randomUUID());
+    }
+
+    /** Gói nạp 20 lượt đi kèm đơn: chỉ AI_ADDON cộng pool, sản phẩm khóa không cộng (D-47). Giá 500. */
+    private long addon20() {
+        return product("AI_ADDON", 500, null, 20, "ACTIVE");
     }
 
     private int balance(Account u) {
@@ -291,16 +296,16 @@ class CommerceTest extends ApiTestBase {
         var c = content();
         long a = product("LEVEL", 490000, 180, 20, "ACTIVE", c.levelId);
         var u = buyer();
-        String code = orderCode(u, a);
+        String code = orderCode(u, a, addon20());
         long orderId = jdbc.queryForObject("select id from orders where code = ?", Long.class, code);
 
-        pay(code, 490000).andExpect(status().isOk()).andExpect(jsonPath("$.result").value("APPLIED"));
+        pay(code, 490500).andExpect(status().isOk()).andExpect(jsonPath("$.result").value("APPLIED"));
 
         assertEquals("PAID", orderStatus(code));
         assertEquals(20, balance(u));
         assertEquals(1, count("select count(*) from ai_quota_ledger where user_id = ? and reason = 'PURCHASE' and delta = 20 and ref_id = ?", u.id(), orderId));
-        OffsetDateTime exp = jdbc.queryForObject("select expires_at from user_course_enrollments where user_id = ? and level_id = ?",
-                OffsetDateTime.class, u.id(), c.levelId);
+        OffsetDateTime exp = jdbc.queryForObject("select expires_at from user_course_enrollments where user_id = ? and course_id = ?",
+                OffsetDateTime.class, u.id(), c.courseId);
         long days = Duration.between(Instant.now(), exp.toInstant()).toDays();
         assertTrue(days == 179 || days == 180, "hạn ~180 ngày, nhận " + days);
         assertEquals(1, count("select count(*) from payment_transactions where order_id = ? and status = 'APPLIED'", orderId));
@@ -329,17 +334,33 @@ class CommerceTest extends ApiTestBase {
     }
 
     @Test
+    void courseProductDoesNotCreditPoolOnlyAiAddonDoes() throws Exception {
+        var c = content();
+        long course = product("LEVEL", 1000, 30, 20, "ACTIVE", c.levelId); // ai_quota trên sản phẩm khóa bị bỏ qua (D-47)
+        var u = buyer();
+        pay(orderCode(u, course), 1000).andExpect(jsonPath("$.result").value("APPLIED"));
+        assertEquals(1, count("select count(*) from user_course_enrollments where user_id = ?", u.id()));
+        assertEquals(0, balance(u));
+        assertEquals(0, count("select count(*) from ai_quota_ledger where user_id = ?", u.id()));
+
+        long addon = product("AI_ADDON", 2000, null, 10, "ACTIVE");
+        pay(orderCode(u, addon), 2000).andExpect(jsonPath("$.result").value("APPLIED"));
+        assertEquals(10, balance(u));
+        assertEquals(1, count("select count(*) from ai_quota_ledger where user_id = ? and reason = 'PURCHASE' and source = 'POOL' and delta = 10", u.id()));
+    }
+
+    @Test
     void duplicateWebhookGrantsOnlyOnce() throws Exception {
         var c = content();
         long a = product("LEVEL", 1000, 30, 20, "ACTIVE", c.levelId);
         var u = buyer();
-        String code = orderCode(u, a);
-        pay(code, 1000, "REF-DUP-1").andExpect(jsonPath("$.result").value("APPLIED"));
-        pay(code, 1000, "REF-DUP-1").andExpect(status().isOk()).andExpect(jsonPath("$.result").value("DUPLICATE"));
+        String code = orderCode(u, a, addon20());
+        pay(code, 1500, "REF-DUP-1").andExpect(jsonPath("$.result").value("APPLIED"));
+        pay(code, 1500, "REF-DUP-1").andExpect(status().isOk()).andExpect(jsonPath("$.result").value("DUPLICATE"));
         assertEquals(20, balance(u));
         assertEquals(1, count("select count(*) from ai_quota_ledger where user_id = ?", u.id()));
         // cùng đơn nhưng mã giao dịch khác = khách trả thừa: ghi lại, không cấp lần hai
-        pay(code, 1000, "REF-DUP-2").andExpect(status().isOk()).andExpect(jsonPath("$.result").value("ORDER_ALREADY_PAID"));
+        pay(code, 1500, "REF-DUP-2").andExpect(status().isOk()).andExpect(jsonPath("$.result").value("ORDER_ALREADY_PAID"));
         assertEquals(20, balance(u));
         assertEquals(1, count("select count(*) from payment_transactions where provider_ref = 'REF-DUP-2' and status = 'ORDER_ALREADY_PAID'"));
     }
@@ -349,8 +370,8 @@ class CommerceTest extends ApiTestBase {
         var c = content();
         long a = product("LEVEL", 1000, 30, 20, "ACTIVE", c.levelId);
         var u = buyer();
-        String code = orderCode(u, a);
-        var payload = fake.signedPaid(code, 1000, "REF-CONC-" + UUID.randomUUID());
+        String code = orderCode(u, a, addon20());
+        var payload = fake.signedPaid(code, 1500, "REF-CONC-" + UUID.randomUUID());
         int n = 6;
         var pool = Executors.newFixedThreadPool(n);
         try {
@@ -403,9 +424,9 @@ class CommerceTest extends ApiTestBase {
         var c = content();
         long a = product("LEVEL", 1000, 30, 20, "ACTIVE", c.levelId);
         var u = buyer();
-        String code = orderCode(u, a);
+        String code = orderCode(u, a, addon20());
         jdbc.update("update orders set status = 'EXPIRED' where code = ?", code);
-        pay(code, 1000).andExpect(jsonPath("$.result").value("APPLIED"));
+        pay(code, 1500).andExpect(jsonPath("$.result").value("APPLIED"));
         assertEquals("PAID", orderStatus(code));
         assertEquals(20, balance(u));
         assertEquals(1, count("select count(*) from user_course_enrollments where user_id = ?", u.id()));
@@ -416,9 +437,9 @@ class CommerceTest extends ApiTestBase {
         var c = content();
         long a = product("LEVEL", 1000, 180, 20, "ACTIVE", c.levelId);
         var u = buyer();
-        pay(orderCode(u, a), 1000);
+        pay(orderCode(u, a, addon20()), 1500);
         OffsetDateTime first = jdbc.queryForObject("select expires_at from user_course_enrollments where user_id = ?", OffsetDateTime.class, u.id());
-        pay(orderCode(u, a), 1000);
+        pay(orderCode(u, a, addon20()), 1500);
         OffsetDateTime second = jdbc.queryForObject("select expires_at from user_course_enrollments where user_id = ?", OffsetDateTime.class, u.id());
         assertEquals(Duration.ofDays(180), Duration.between(first, second));
         assertEquals(1, count("select count(*) from user_course_enrollments where user_id = ?", u.id()));
@@ -459,17 +480,29 @@ class CommerceTest extends ApiTestBase {
         lesson(c, u).andExpect(status().isForbidden());
     }
 
+    /** D-25: quyền theo khóa, nên hai level cùng khóa chỉ có một dòng ghi danh nhưng mở được cả hai. */
+    @Test
+    void levelsOfOneCourseShareOneEnrollment() throws Exception {
+        var c = content();
+        long level2 = insert("course_levels", Map.of("course_id", c.courseId, "code", "B", "title", "Level B", "status", "PUBLISHED"));
+        long a = product("LEVEL", 1000, 30, 0, "ACTIVE", c.levelId, level2);
+        var u = buyer();
+        pay(orderCode(u, a), 1000).andExpect(status().isOk());
+        assertEquals(1, count("select count(*) from user_course_enrollments where user_id = ? and course_id = ?", u.id(), c.courseId));
+        lesson(c, u).andExpect(status().isOk());
+    }
+
     @Test
     void comboOpensEveryLevel() throws Exception {
         var c1 = content();
         var c2 = content();
         long combo = product("COMBO", 890000, 365, 50, "ACTIVE", c1.levelId, c2.levelId);
         var u = buyer();
-        pay(orderCode(u, combo), 890000);
+        pay(orderCode(u, combo, addon20()), 890500);
         assertEquals(2, count("select count(*) from user_course_enrollments where user_id = ?", u.id()));
         lesson(c1, u).andExpect(status().isOk());
         lesson(c2, u).andExpect(status().isOk());
-        assertEquals(50, balance(u));
+        assertEquals(20, balance(u)); // chỉ gói nạp đi kèm; ai_quota 50 của combo bị bỏ qua
     }
 
     @Test
@@ -494,7 +527,7 @@ class CommerceTest extends ApiTestBase {
         long a = product("LEVEL", 1000, 30, 20, "ACTIVE", c.levelId);
         var owner = buyer();
         var other = buyer();
-        String code = orderCode(owner, a);
+        String code = orderCode(owner, a, addon20());
         mvc.perform(MockMvcRequestBuilders.post("/api/dev/payments/" + code + "/pay")).andExpect(status().isUnauthorized());
         send(MockMvcRequestBuilders.post("/api/dev/payments/" + code + "/pay"), other.accessToken()).andExpect(status().isNotFound());
         assertEquals("PENDING", orderStatus(code));

@@ -1,6 +1,7 @@
 package com.pps.smartenglish.ai.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.pps.smartenglish.ai.domain.AiTask;
 
 /**
  * ai cần câu hỏi viết của exercise nhưng không phụ thuộc ngược vào exercise: exercise cài đặt interface này,
@@ -14,6 +15,8 @@ public interface WritingQuestionSource {
     /**
      * prompt: câu hỏi gốc do Admin soạn. task: đề bài chấm (payload.task, mặc định là prompt).
      * requiredWords: số từ yêu cầu (payload.requiredWords), null nếu đề không ghi.
+     * courseId và aiTask (WRITING_TASK1 khi payload.ieltsTask = TASK1, còn lại TASK2) để tính lượt AI (D-32, D-47).
      */
-    record WritingQuestion(long id, String prompt, String task, Integer requiredWords, String courseTitle, JsonNode payload) {}
+    record WritingQuestion(long id, String prompt, String task, Integer requiredWords, String courseTitle, JsonNode payload,
+                           Long courseId, AiTask aiTask) {}
 }

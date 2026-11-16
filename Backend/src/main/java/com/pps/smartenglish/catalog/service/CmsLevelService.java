@@ -8,6 +8,7 @@ import com.pps.smartenglish.catalog.dto.CmsDtos.PatchLevel;
 import com.pps.smartenglish.catalog.repository.CourseLevelRepository;
 import com.pps.smartenglish.catalog.repository.CourseRepository;
 import com.pps.smartenglish.catalog.repository.TopicRepository;
+import com.pps.smartenglish.shared.audit.AuditRecorder;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.persistence.CmsWrites;
 import org.springframework.http.HttpStatus;
@@ -24,8 +25,11 @@ public class CmsLevelService {
     private final CourseRepository courses;
     private final TopicRepository topics;
     private final CmsWrites writes;
+    private final AuditRecorder audit;
 
-    CmsLevelService(CourseLevelRepository levels, CourseRepository courses, TopicRepository topics, CmsWrites writes) {
+    CmsLevelService(CourseLevelRepository levels, CourseRepository courses, TopicRepository topics, CmsWrites writes,
+                    AuditRecorder audit) {
+        this.audit = audit;
         this.levels = levels;
         this.courses = courses;
         this.topics = topics;
@@ -41,13 +45,16 @@ public class CmsLevelService {
         if (levels.existsByCourseIdAndCode(courseId, code)) {
             throw taken();
         }
-        return view(writes.save(levels, new CourseLevel(courseId, code, req.title().strip(),
+        var after = view(writes.save(levels, new CourseLevel(courseId, code, req.title().strip(),
                 req.sortOrder() == null ? 0 : req.sortOrder()), CODE_TAKEN, "Mã level đã được dùng trong khóa này"));
+        audit.record("CREATE", "LEVEL", after.id(), null, after);
+        return after;
     }
 
     @Transactional
     public LevelView patch(long id, PatchLevel req) {
         CourseLevel level = find(id);
+        var before = view(level);
         if (req.code() != null) {
             String code = req.code().strip();
             if (levels.existsByCourseIdAndCodeAndIdNot(level.getCourseId(), code, id)) {
@@ -61,7 +68,9 @@ public class CmsLevelService {
         if (req.sortOrder() != null) {
             level.setSortOrder(req.sortOrder());
         }
-        return view(writes.save(levels, level, CODE_TAKEN, "Mã level đã được dùng trong khóa này"));
+        var after = view(writes.save(levels, level, CODE_TAKEN, "Mã level đã được dùng trong khóa này"));
+        audit.record("UPDATE", "LEVEL", id, before, after);
+        return after;
     }
 
     /** Còn topic, gói bán, enrollment... tham chiếu thì in_use. */
@@ -71,6 +80,7 @@ public class CmsLevelService {
         if (topics.existsByLevelId(id)) {
             throw CmsWrites.inUse();
         }
+        audit.record("DELETE", "LEVEL", id, view(level), null);
         writes.delete(levels, level);
     }
 
@@ -78,8 +88,11 @@ public class CmsLevelService {
     @Transactional
     public LevelView setPublished(long id, boolean published) {
         CourseLevel level = find(id);
+        var before = view(level);
         level.setStatus(published ? ContentStatus.PUBLISHED : ContentStatus.DRAFT);
-        return view(writes.save(levels, level, CODE_TAKEN, "Mã level đã được dùng trong khóa này"));
+        var after = view(writes.save(levels, level, CODE_TAKEN, "Mã level đã được dùng trong khóa này"));
+        audit.record(published ? "PUBLISH" : "UNPUBLISH", "LEVEL", id, before, after);
+        return after;
     }
 
     private CourseLevel find(long id) {

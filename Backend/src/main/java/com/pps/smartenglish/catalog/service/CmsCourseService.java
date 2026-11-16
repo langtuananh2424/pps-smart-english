@@ -15,10 +15,14 @@ import com.pps.smartenglish.catalog.repository.CourseLevelRepository;
 import com.pps.smartenglish.catalog.repository.CourseRepository;
 import com.pps.smartenglish.catalog.repository.LessonRepository;
 import com.pps.smartenglish.catalog.repository.TopicRepository;
+import com.pps.smartenglish.exercise.domain.QuestionBank;
+import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
+import com.pps.smartenglish.shared.audit.AuditRecorder;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.persistence.CmsWrites;
 import com.pps.smartenglish.shared.web.CursorPage;
 import com.pps.smartenglish.shared.web.Cursors;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,15 +43,19 @@ public class CmsCourseService {
     private final CourseLevelRepository levels;
     private final TopicRepository topics;
     private final LessonRepository lessons;
+    private final QuestionBankRepository banks;
     private final CmsWrites writes;
+    private final AuditRecorder audit;
 
     CmsCourseService(CourseRepository courses, CourseLevelRepository levels, TopicRepository topics, LessonRepository lessons,
-                     CmsWrites writes) {
+                     QuestionBankRepository banks, CmsWrites writes, AuditRecorder audit) {
         this.courses = courses;
         this.levels = levels;
         this.topics = topics;
         this.lessons = lessons;
+        this.banks = banks;
         this.writes = writes;
+        this.audit = audit;
     }
 
     @Transactional(readOnly = true)
@@ -67,7 +75,9 @@ public class CmsCourseService {
         }
         var course = writes.save(courses, new Course(req.slug(), req.title().strip(), req.description(), req.targetType()),
                 SLUG_TAKEN, "Slug đã được dùng");
-        return view(course);
+        var after = view(course);
+        audit.record("CREATE", "COURSE", course.getId(), null, after);
+        return after;
     }
 
     /** Cây đầy đủ kể cả DRAFT, dựng bằng 4 truy vấn cố định. */
@@ -93,6 +103,7 @@ public class CmsCourseService {
     @Transactional
     public CourseView patch(long id, PatchCourse req) {
         Course course = find(id);
+        var before = view(course);
         if (req.slug() != null) {
             if (courses.existsBySlugAndIdNot(req.slug(), id)) {
                 throw taken();
@@ -108,7 +119,32 @@ public class CmsCourseService {
         if (req.targetType() != null) {
             course.setTargetType(req.targetType());
         }
-        return view(writes.save(courses, course, SLUG_TAKEN, "Slug đã được dùng"));
+        if (req.aiPeriod() != null) {
+            course.setAiPeriod(req.aiPeriod());
+        }
+        if (req.aiPeriodQuota() != null) {
+            course.setAiPeriodQuota(req.aiPeriodQuota());
+        }
+        if (Boolean.TRUE.equals(req.clearExamBank())) {
+            if (req.examBankId() != null) {
+                throw ApiException.validation("clearExamBank", "Không dùng cùng examBankId");
+            }
+            course.setExamBankId(null);
+        }
+        if (req.examBankId() != null) {
+            requireExamBankOf(id, req.examBankId());
+            course.setExamBankId(req.examBankId());
+        }
+        if (req.examUnlockPercent() != null) {
+            course.setExamUnlockPercent(req.examUnlockPercent());
+        }
+        if (req.examRetakes() != null) {
+            course.setExamRetakes(req.examRetakes());
+        }
+        applyBand(course, req);
+        var after = view(writes.save(courses, course, SLUG_TAKEN, "Slug đã được dùng"));
+        audit.record("UPDATE", "COURSE", id, before, after);
+        return after;
     }
 
     /** Còn level thì in_use ngay; các tham chiếu khác (nếu có) do khóa ngoại chặn. */
@@ -118,15 +154,20 @@ public class CmsCourseService {
         if (levels.existsByCourseId(id)) {
             throw CmsWrites.inUse();
         }
+        var before = view(course);
         writes.delete(courses, course);
+        audit.record("DELETE", "COURSE", id, before, null);
     }
 
     /** Idempotent. Xuất bản khóa không tự xuất bản level con. */
     @Transactional
     public CourseView setPublished(long id, boolean published) {
         Course course = find(id);
+        var before = view(course);
         course.setStatus(published ? ContentStatus.PUBLISHED : ContentStatus.DRAFT);
-        return view(writes.save(courses, course, SLUG_TAKEN, "Slug đã được dùng"));
+        var after = view(writes.save(courses, course, SLUG_TAKEN, "Slug đã được dùng"));
+        audit.record(published ? "PUBLISH" : "UNPUBLISH", "COURSE", id, before, after);
+        return after;
     }
 
     private Course find(long id) {
@@ -134,11 +175,49 @@ public class CmsCourseService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "course_not_found", "Không tìm thấy khóa học"));
     }
 
+    /** Bài thi phải là bộ câu hỏi chế độ EXAM nằm trong chính khóa này. */
+    private void requireExamBankOf(long courseId, long bankId) {
+        boolean ok = banks.findById(bankId).filter(b -> QuestionBank.EXAM.equals(b.getMode())).isPresent()
+                && banks.findCourseId(bankId).filter(c -> c == courseId).isPresent();
+        if (!ok) {
+            throw ApiException.validation("examBankId", "Phải là bộ câu hỏi chế độ EXAM thuộc khóa này");
+        }
+    }
+
+    /** Hai đầu cùng có hoặc cùng không, bước 0.5, from < to (FR-GOAL-03). clearBand xóa dải; không dùng cùng bandFrom/bandTo. */
+    private static void applyBand(Course course, PatchCourse req) {
+        if (Boolean.TRUE.equals(req.clearBand())) {
+            if (req.bandFrom() != null || req.bandTo() != null) {
+                throw ApiException.validation("clearBand", "Không dùng cùng bandFrom/bandTo");
+            }
+            course.setBand(null, null);
+            return;
+        }
+        if (req.bandFrom() == null && req.bandTo() == null) {
+            return;
+        }
+        BigDecimal from = req.bandFrom() != null ? req.bandFrom() : course.getBandFrom();
+        BigDecimal to = req.bandTo() != null ? req.bandTo() : course.getBandTo();
+        if (from == null || to == null) {
+            throw ApiException.validation("bandFrom", "Cần đủ cả bandFrom và bandTo");
+        }
+        if (from.compareTo(to) >= 0) {
+            throw ApiException.validation("bandTo", "bandTo phải lớn hơn bandFrom");
+        }
+        if (from.multiply(BigDecimal.valueOf(2)).stripTrailingZeros().scale() > 0
+                || to.multiply(BigDecimal.valueOf(2)).stripTrailingZeros().scale() > 0) {
+            throw ApiException.validation("bandFrom", "Band tính theo bước 0.5");
+        }
+        course.setBand(from.setScale(1), to.setScale(1));
+    }
+
     private static ApiException taken() {
         return new ApiException(HttpStatus.CONFLICT, SLUG_TAKEN, "Slug đã được dùng");
     }
 
     static CourseView view(Course c) {
-        return new CourseView(c.getId(), c.getSlug(), c.getTitle(), c.getDescription(), c.getTargetType(), c.getStatus());
+        return new CourseView(c.getId(), c.getSlug(), c.getTitle(), c.getDescription(), c.getTargetType(), c.getStatus(),
+                c.getAiPeriod(), c.getAiPeriodQuota(), c.getExamBankId(), c.getExamUnlockPercent(), c.getExamRetakes(),
+                c.getBandFrom(), c.getBandTo());
     }
 }

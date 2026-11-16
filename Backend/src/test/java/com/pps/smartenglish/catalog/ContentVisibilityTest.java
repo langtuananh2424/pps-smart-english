@@ -36,7 +36,7 @@ class ContentVisibilityTest extends ApiTestBase {
                 "video_source", "YOUTUBE", "video_ref", "dQw4w9WgXcQ", "duration_sec", 100));
         long bank = insert("question_banks", Map.of("topic_id", topic, "lesson_id", lesson, "title", "Bộ", "is_trial", false, "status", "PUBLISHED"));
         var student = register(newEmail(), "Password123!");
-        jdbc.update("insert into user_course_enrollments (user_id, level_id, starts_at) values (?, ?, CURRENT_TIMESTAMP)", student.id(), level);
+        jdbc.update("insert into user_course_enrollments (user_id, course_id, starts_at) values (?, ?, CURRENT_TIMESTAMP)", student.id(), course);
         return new Chain(slug, course, level, topic, lesson, bank, student);
     }
 

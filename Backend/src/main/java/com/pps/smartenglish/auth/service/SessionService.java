@@ -32,13 +32,15 @@ public class SessionService {
 
     private final RefreshTokenRepository tokens;
     private final UserRepository users;
+    private final PermissionService permissions;
     private final JwtEncoder jwt;
     private final ProfileService profiles;
     private final TransactionTemplate tx;
     private final Clock clock;
 
     SessionService(RefreshTokenRepository tokens, UserRepository users, JwtEncoder jwt, ProfileService profiles,
-                   TransactionTemplate tx, Clock clock) {
+                   TransactionTemplate tx, Clock clock, PermissionService permissions) {
+        this.permissions = permissions;
         this.tokens = tokens;
         this.users = users;
         this.jwt = jwt;
@@ -51,7 +53,8 @@ public class SessionService {
         String raw = TokenUtil.newToken();
         tokens.save(new RefreshToken(user.getId(), TokenUtil.hash(raw), clock.instant().plus(REFRESH_TTL), deviceLabel));
         return new LoginResult(new AuthResponse(accessToken(user), ACCESS_TTL_SECONDS,
-                new AuthResponse.UserSummary(user.getId(), profiles.displayName(user.getId()), user.getRole().name())), raw);
+                new AuthResponse.UserSummary(user.getId(), profiles.displayName(user.getId()), permissions.primaryRole(user.getId()))),
+                raw);
     }
 
     /**
@@ -121,7 +124,6 @@ public class SessionService {
                 .subject(String.valueOf(user.getId()))
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(ACCESS_TTL_SECONDS))
-                .claim("role", user.getRole().name())
                 .build();
         return jwt.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
     }

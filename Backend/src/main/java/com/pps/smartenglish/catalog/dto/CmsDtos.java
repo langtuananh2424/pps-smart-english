@@ -1,9 +1,13 @@
 package com.pps.smartenglish.catalog.dto;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -29,7 +33,16 @@ public final class CmsDtos {
             @Size(max = 120) @Pattern(regexp = SLUG, message = "Chỉ gồm chữ thường, số và dấu gạch ngang") String slug,
             @Size(max = 200) @Pattern(regexp = NOT_BLANK, message = "Không được để trống") String title,
             @Size(max = 4000) String description,
-            @Size(max = 30) String targetType) {}
+            @Size(max = 30) String targetType,
+            @Pattern(regexp = "WEEK|MONTH", message = "Chỉ nhận WEEK hoặc MONTH") String aiPeriod,
+            @Min(0) @Max(100000) Integer aiPeriodQuota,
+            Long examBankId,
+            Boolean clearExamBank,
+            @Min(0) @Max(100) Integer examUnlockPercent,
+            @Min(0) @Max(1000) Integer examRetakes,
+            @DecimalMin("0") @DecimalMax("9") BigDecimal bandFrom,
+            @DecimalMin("0") @DecimalMax("9") BigDecimal bandTo,
+            Boolean clearBand) {}
 
     public record CreateLevel(
             @NotBlank @Size(max = 20) String code,
@@ -67,7 +80,9 @@ public final class CmsDtos {
 
     // ---- phản hồi ----
 
-    public record CourseView(Long id, String slug, String title, String description, String targetType, String status) {}
+    public record CourseView(Long id, String slug, String title, String description, String targetType, String status,
+                             String aiPeriod, int aiPeriodQuota, Long examBankId, int examUnlockPercent, int examRetakes,
+                             BigDecimal bandFrom, BigDecimal bandTo) {}
 
     public record LevelView(Long id, Long courseId, String code, String title, int sortOrder, String status) {}
 

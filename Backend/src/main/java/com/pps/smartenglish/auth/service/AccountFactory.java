@@ -1,6 +1,7 @@
 package com.pps.smartenglish.auth.service;
 
 import com.pps.smartenglish.auth.domain.User;
+import com.pps.smartenglish.auth.repository.AccessRepository;
 import com.pps.smartenglish.auth.repository.UserRepository;
 import com.pps.smartenglish.shared.event.UserCreated;
 import java.time.Instant;
@@ -12,16 +13,19 @@ import org.springframework.stereotype.Component;
 class AccountFactory {
 
     private final UserRepository users;
+    private final AccessRepository access;
     private final ApplicationEventPublisher events;
 
-    AccountFactory(UserRepository users, ApplicationEventPublisher events) {
+    AccountFactory(UserRepository users, AccessRepository access, ApplicationEventPublisher events) {
         this.users = users;
+        this.access = access;
         this.events = events;
     }
 
     /** passwordHash null cho tài khoản chỉ đăng nhập bằng nhà cung cấp ngoài; verifiedAt null nếu chưa xác thực. */
     User createStudent(String email, String passwordHash, Instant verifiedAt, String displayName) {
         User user = users.saveAndFlush(new User(email, passwordHash, verifiedAt));
+        access.grantRole(user.getId(), "STUDENT", null);
         events.publishEvent(new UserCreated(user.getId(), displayName));
         return user;
     }

@@ -70,10 +70,10 @@ class ActivationLinkTest extends ApiTestBase {
         return u;
     }
 
-    /** Role nằm trong JWT nên phải đăng nhập lại sau khi đổi role. */
+    /** Quyền đọc từ DB mỗi lần gọi, nên đổi role không cần đăng nhập lại. */
     private Account admin() throws Exception {
         var u = register(newEmail(), PASSWORD);
-        jdbc.update("update users set role = 'ADMIN' where id = ?", u.id());
+        jdbc.update("insert into user_roles (user_id, role_id) select ?, id from roles where code = 'ADMIN'", u.id());
         return login(u.email(), PASSWORD);
     }
 
@@ -195,7 +195,7 @@ class ActivationLinkTest extends ApiTestBase {
     }
 
     @Test
-    void redeemGrantsAccessAndQuotaLikeAPurchaseButWithoutOrder() throws Exception {
+    void redeemGrantsAccessWithoutOrderAndCourseProductDoesNotCreditPool() throws Exception {
         var c = paidContent();
         long p = product("LEVEL", 180, 20, "ACTIVE", c.levelId);
         var admin = admin();
@@ -207,10 +207,9 @@ class ActivationLinkTest extends ApiTestBase {
                 .andExpect(jsonPath("$.expiresAt").isNotEmpty());
 
         lesson(c, u).andExpect(status().isOk());
-        assertEquals(20, balance(u));
-        long redemptionId = jdbc.queryForObject("select id from activation_redemptions where user_id = ?", Long.class, u.id());
-        assertEquals(1, count("select count(*) from ai_quota_ledger where user_id = ? and reason = 'ACTIVATION_LINK' and delta = 20 and ref_id = ?", u.id(), redemptionId));
-        assertEquals(0, count("select count(*) from ai_quota_ledger where user_id = ? and reason = 'PURCHASE'", u.id()));
+        // sản phẩm khóa không cộng pool dù có ai_quota (D-47): lượt của khóa theo cấu hình khóa
+        assertEquals(0, balance(u));
+        assertEquals(0, count("select count(*) from ai_quota_ledger where user_id = ?", u.id()));
         assertEquals(0, count("select count(*) from orders where user_id = ?", u.id()));
         assertEquals(1, count("select count(*) from user_course_enrollments where user_id = ? and order_id is null", u.id()));
         long days = Duration.between(Instant.now(), expiry(u).toInstant()).toDays();
@@ -240,7 +239,7 @@ class ActivationLinkTest extends ApiTestBase {
         redeem(newLink(admin, p, 1), u).andExpect(status().isOk());
         assertEquals(Duration.ofDays(180), Duration.between(first, expiry(u)));
         assertEquals(1, count("select count(*) from user_course_enrollments where user_id = ?", u.id()));
-        assertEquals(40, balance(u));
+        assertEquals(0, balance(u));
     }
 
     @Test
@@ -252,7 +251,7 @@ class ActivationLinkTest extends ApiTestBase {
         var u2 = student();
         redeem(token, u1).andExpect(status().isOk());
         redeem(token, u1).andExpect(status().isConflict()).andExpect(jsonPath("$.error.code").value("activation_link_already_used"));
-        assertEquals(20, balance(u1));
+        assertEquals(1, count("select count(*) from activation_redemptions where user_id = ?", u1.id()));
         redeem(token, u2).andExpect(status().isConflict()).andExpect(jsonPath("$.error.code").value("activation_link_exhausted"));
         assertEquals(0, balance(u2));
         assertEquals(0, count("select count(*) from activation_redemptions where user_id = ?", u2.id())); // rollback sạch
@@ -288,7 +287,7 @@ class ActivationLinkTest extends ApiTestBase {
     @Test
     void sameUserClickingConcurrentlyIsGrantedOnce() throws Exception {
         var c = paidContent();
-        long p = product("LEVEL", 30, 20, "ACTIVE", c.levelId);
+        long p = product("AI_ADDON", null, 20, "ACTIVE"); // chỉ gói nạp lượt cộng pool
         String token = newLink(admin(), p, 10);
         var u = student();
         int n = 6;
@@ -344,7 +343,7 @@ class ActivationLinkTest extends ApiTestBase {
         redeem(token, late).andExpect(status().isNotFound()).andExpect(jsonPath("$.error.code").value("activation_link_invalid"));
         assertEquals(0, balance(late));
         lesson(c, early).andExpect(status().isOk()); // quyền đã cấp còn nguyên
-        assertEquals(20, balance(early));
+        assertEquals(1, count("select count(*) from user_course_enrollments where user_id = ?", early.id()));
     }
 
     @Test

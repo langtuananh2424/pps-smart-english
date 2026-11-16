@@ -66,7 +66,7 @@ public class WritingService {
         emailVerification.require(userId);
         WritingQuestion q = questions.find(questionId, userId);
         guard.rateLimit(userId);
-        quota.requirePositive(userId);
+        quota.requireAvailable(userId, q.courseId(), q.aiTask());
         ArrayNode turns = mapper.createArrayNode().add(turn(ASSISTANT, q.prompt()));
         var s = sessions.save(new WritingSession(userId, q.id(), turns));
         return new SessionCreated(s.getId(), new RootQuestion(q.id(), q.prompt(), q.payload()));
@@ -79,7 +79,8 @@ public class WritingService {
             throw new ApiException(HttpStatus.CONFLICT, "session_not_active", "Phiên viết không còn nhận câu trả lời");
         }
         guard.rateLimit(userId);
-        quota.requirePositive(userId);
+        WritingQuestion q = questions.find(s.getQuestionId(), userId);
+        quota.requireAvailable(userId, q.courseId(), q.aiTask());
         requireIdle(s);
         s.setTurns(append(s.getTurns(), STUDENT, text));
         if (s.getStep() >= MAX_FOLLOWUPS) {
@@ -89,7 +90,6 @@ public class WritingService {
         }
         guard.requireCapacity();
         sessions.save(s);
-        WritingQuestion q = questions.find(s.getQuestionId(), userId);
         ObjectNode in = baseInput(s, q).put("asked", s.getStep());
         in.set("turns", s.getTurns());
         return new AnswerAccepted(aiJobs.enqueue(userId, AiJobKind.SCAFFOLD_FOLLOWUP, in, s.getId()).getId(), WritingSession.ACTIVE);
@@ -102,10 +102,10 @@ public class WritingService {
             throw new ApiException(HttpStatus.CONFLICT, "session_not_ready", "Chưa đủ câu trả lời để tạo bản nháp");
         }
         guard.rateLimit(userId);
-        quota.requirePositive(userId);
+        WritingQuestion q = questions.find(s.getQuestionId(), userId);
+        quota.requireAvailable(userId, q.courseId(), q.aiTask());
         requireIdle(s);
         guard.requireCapacity();
-        WritingQuestion q = questions.find(s.getQuestionId(), userId);
         ObjectNode in = baseInput(s, q);
         in.set("turns", s.getTurns());
         return new DraftAccepted(aiJobs.enqueue(userId, AiJobKind.SCAFFOLD_DRAFT, in, s.getId()).getId());
@@ -128,13 +128,13 @@ public class WritingService {
         in.put("text", finalText);
         in.put("wordCount", WordStats.count(finalText));
         in.put("copiedWords", WordStats.copiedFromPrompt(finalText, q.task()));
-        Long jobId = aiJobs.enqueueCharged(userId, AiJobKind.WRITING_GRADE, in, s.getId(), null)
+        Long jobId = aiJobs.enqueueCharged(userId, AiJobKind.WRITING_GRADE, in, s.getId(), null, q.aiTask(), q.courseId())
                 .orElseThrow(quota::exhausted);
         // chặn nộp đồng thời bằng hai khóa khác nhau: bên thua rollback, kéo theo cả lượt đã trừ
         if (sessions.claimSubmit(s.getId(), jobId, Instant.now(clock)) == 0) {
             throw new ApiException(HttpStatus.CONFLICT, "session_submitted", "Phiên viết này đã được nộp");
         }
-        return new SubmitAccepted(jobId, "PENDING", quota.balance(userId));
+        return new SubmitAccepted(jobId, "PENDING", quota.available(userId, q.courseId()));
     }
 
     private WritingSession load(long userId, long sessionId) {

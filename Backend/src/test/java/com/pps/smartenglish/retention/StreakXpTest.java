@@ -212,10 +212,10 @@ class StreakXpTest extends AiTestSupport {
     @Test
     void highScoreBonusStartsExactlyAtEightyPercent() throws Exception {
         var u = student(0);
-        publisher.publishEvent(new ExerciseScored(u.id(), 11, 1, 4, 5, true)); // 80%: đúng biên
-        publisher.publishEvent(new ExerciseScored(u.id(), 12, 1, 79, 100, true)); // 79%
-        publisher.publishEvent(new ExerciseScored(u.id(), 13, 1, 3, 5, true)); // 60%
-        publisher.publishEvent(new ExerciseScored(u.id(), 14, 1, 0, 0, true)); // không có câu chấm được
+        publisher.publishEvent(new ExerciseScored(u.id(), 11, 1, java.math.BigDecimal.valueOf(4), 5, true)); // 80%: đúng biên
+        publisher.publishEvent(new ExerciseScored(u.id(), 12, 1, java.math.BigDecimal.valueOf(79), 100, true)); // 79%
+        publisher.publishEvent(new ExerciseScored(u.id(), 13, 1, java.math.BigDecimal.valueOf(3), 5, true)); // 60%
+        publisher.publishEvent(new ExerciseScored(u.id(), 14, 1, java.math.BigDecimal.valueOf(0), 0, true)); // không có câu chấm được
         assertEquals(1, xpEvents(u, "EXERCISE_HIGH"));
         assertEquals(4, xpEvents(u, "EXERCISE"));
         assertEquals(50, xp(u));
@@ -280,7 +280,7 @@ class StreakXpTest extends AiTestSupport {
         tx.executeWithoutResult(s -> {
             jdbc.update("update user_ai_quota set balance = 77 where user_id = ?", u.id());
             publisher.publishEvent(new LessonCompleted(999_999_999L, 1));
-            publisher.publishEvent(new ExerciseScored(999_999_999L, 1, 1, 5, 5, true));
+            publisher.publishEvent(new ExerciseScored(999_999_999L, 1, 1, java.math.BigDecimal.valueOf(5), 5, true));
         });
         assertEquals(77, balance(u));
         assertEquals(0, count("select count(*) from activity_days where user_id = 999999999"));

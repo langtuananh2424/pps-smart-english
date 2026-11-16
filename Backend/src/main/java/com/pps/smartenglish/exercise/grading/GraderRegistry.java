@@ -3,6 +3,7 @@ package com.pps.smartenglish.exercise.grading;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.pps.smartenglish.exercise.domain.QuestionType;
+import java.math.BigDecimal;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Component;
 /**
  * Chọn grader theo type, chấm thuần trong bộ nhớ. Các dạng không có ở đây không chấm theo answer_key:
  * CONNECTIVE_REWRITE và GRAMMAR_REWRITE đi qua RewriteRules rồi job AI trong SubmissionService;
- * WRITING chấm ở luồng phiên viết của module ai; SPEAKING chờ FR-AI-03.
+ * WRITING chấm ở luồng phiên viết của module ai; SPEAKING chấm ở phiên nói của module ai (FR-AI-03).
  */
 @Component
 public class GraderRegistry {
@@ -26,16 +27,16 @@ public class GraderRegistry {
         return graders.containsKey(type);
     }
 
-    /** Dạng tự chấm: true/false; dạng AI: null. Câu trả lời sai định dạng tính sai, không ném lỗi. */
-    public Boolean grade(QuestionType type, GradingInput input, JsonNode answer) {
+    /** Dạng tự chấm: credit 0..1; dạng AI: null. Câu trả lời sai định dạng tính 0, không ném lỗi. */
+    public BigDecimal credit(QuestionType type, GradingInput input, JsonNode answer) {
         var grader = graders.get(type);
         if (grader == null) {
             return null;
         }
         try {
-            return grader.isCorrect(input, answer == null ? MissingNode.getInstance() : answer);
+            return grader.credit(input, answer == null ? MissingNode.getInstance() : answer);
         } catch (RuntimeException e) {
-            return false;
+            return Credit.ZERO;
         }
     }
 

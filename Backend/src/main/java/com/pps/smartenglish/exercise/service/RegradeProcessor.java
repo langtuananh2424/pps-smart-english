@@ -7,6 +7,7 @@ import com.pps.smartenglish.exercise.domain.Question;
 import com.pps.smartenglish.exercise.domain.QuestionChoice;
 import com.pps.smartenglish.exercise.domain.RegradeItem;
 import com.pps.smartenglish.exercise.domain.RegradeRun;
+import com.pps.smartenglish.exercise.grading.Credit;
 import com.pps.smartenglish.exercise.grading.GraderRegistry;
 import com.pps.smartenglish.exercise.repository.QuestionChoiceRepository;
 import com.pps.smartenglish.exercise.repository.QuestionRepository;
@@ -72,14 +73,14 @@ class RegradeProcessor {
             return; // job chấm lần đầu của lượt này còn chạy: hoãn để hai bên không cùng ghi
         }
         if (!ResultAssembler.REWRITE_TYPES.contains(q.getType())) {
-            Boolean correct = graders.grade(q.getType(), inputOf(q), answer.getAnswer());
-            applier.apply(itemId, RegradeItem.PENDING, new Outcome(Boolean.TRUE.equals(correct), null, null, null));
+            var credit = graders.credit(q.getType(), inputOf(q), answer.getAnswer());
+            applier.apply(itemId, RegradeItem.PENDING, new Outcome(credit == null ? Credit.ZERO : credit, null, null, null));
             return;
         }
         var r = rules.check(q, answer.getAnswer());
         switch (r.verdict()) {
-            case WRONG -> applier.apply(itemId, RegradeItem.PENDING, new Outcome(false, AnswerGrading.RULE, r.feedback(), r.corrected()));
-            case CORRECT -> applier.apply(itemId, RegradeItem.PENDING, new Outcome(true, AnswerGrading.RULE, r.feedback(), r.corrected()));
+            case WRONG -> applier.apply(itemId, RegradeItem.PENDING, new Outcome(Credit.ZERO, AnswerGrading.RULE, r.feedback(), r.corrected()));
+            case CORRECT -> applier.apply(itemId, RegradeItem.PENDING, new Outcome(Credit.ONE, AnswerGrading.RULE, r.feedback(), r.corrected()));
             case NEEDS_AI -> enqueue(item, run, q, answer.getAttemptId(), answer.getAnswer());
         }
     }

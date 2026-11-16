@@ -34,11 +34,12 @@ public class AttemptService {
     private final AiJobService aiJobs;
     private final QuestionLoader loader;
     private final ResultAssembler assembler;
+    private final ExamService exam;
     private final Clock clock;
 
     AttemptService(BankGate gate, StudentAttemptRepository attempts, StudentAnswerRepository answers,
                    AnswerGradingRepository gradings, AiJobService aiJobs, QuestionLoader loader, ResultAssembler assembler,
-                   Clock clock) {
+                   ExamService exam, Clock clock) {
         this.gate = gate;
         this.attempts = attempts;
         this.answers = answers;
@@ -46,14 +47,16 @@ public class AttemptService {
         this.aiJobs = aiJobs;
         this.loader = loader;
         this.assembler = assembler;
+        this.exam = exam;
         this.clock = clock;
     }
 
     @Transactional
     public AttemptStarted start(Long bankId, long userId) {
-        gate.require(bankId, userId);
-        var a = attempts.save(new StudentAttempt(userId, bankId, Instant.now(clock)));
-        return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt());
+        exam.guardStart(userId, bankId); // trước gate để người chưa mua nhận exam_requires_enrollment thay vì bank_locked
+        var bank = gate.require(bankId, userId);
+        var a = attempts.save(new StudentAttempt(userId, bankId, Instant.now(clock), bank.timeLimitSec()));
+        return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec());
     }
 
     /** Chưa nộp: không có đáp án. Đã nộp: kết quả từ đáp án đã lưu (không chấm lại). */

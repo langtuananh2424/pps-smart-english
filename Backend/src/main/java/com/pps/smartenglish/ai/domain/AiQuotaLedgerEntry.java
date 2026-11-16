@@ -16,6 +16,9 @@ public class AiQuotaLedgerEntry {
 
     public enum Reason { PURCHASE, GRADING, REFUND, ACTIVATION_LINK }
 
+    /** Nguồn lượt bị trừ/hoàn: lượt định kỳ của khóa hoặc pool mua thêm (D-47). */
+    public enum Source { PERIODIC, POOL }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,12 +36,21 @@ public class AiQuotaLedgerEntry {
     @Column(name = "ref_id")
     private Long refId;
 
+    @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
+    @Column(nullable = false)
+    private Source source;
+
+    @Column(name = "course_id")
+    private Long courseId;
+
     protected AiQuotaLedgerEntry() {}
 
-    public AiQuotaLedgerEntry(Long userId, int delta, Reason reason, Long refId) {
+    public AiQuotaLedgerEntry(Long userId, int delta, Reason reason, Long refId, Source source, Long courseId) {
         this.userId = userId;
         this.delta = delta;
         this.reason = reason;
         this.refId = refId;
+        this.source = source;
+        this.courseId = courseId;
     }
 }

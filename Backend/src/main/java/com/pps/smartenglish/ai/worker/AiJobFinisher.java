@@ -58,7 +58,7 @@ public class AiJobFinisher {
             return null;
         }
         if (job.isCharged()) {
-            quota.refund(job.getUserId(), job.getId());
+            quota.refund(job);
         }
         return AiJob.FAILED;
     }

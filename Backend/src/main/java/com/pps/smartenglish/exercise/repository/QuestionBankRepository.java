@@ -13,8 +13,14 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long
     /** CMS: mọi trạng thái. */
     List<QuestionBank> findByTopicIdOrderByIdAsc(Long topicId);
 
+    List<QuestionBank> findByPurposeOrderByIdAsc(String purpose);
+
+    /** Đề kiểm tra đầu vào đang hoạt động: PLACEMENT + PUBLISHED, mới nhất trước. */
+    List<QuestionBank> findByPurposeAndStatusOrderByIdDesc(String purpose, String status);
+
     @Query("""
-            select new com.pps.smartenglish.exercise.dto.BankInfo(b.id, b.title, b.lessonId, b.trial, t.freeTrial, lv.id)
+            select new com.pps.smartenglish.exercise.dto.BankInfo(b.id, b.title, b.lessonId, b.trial, t.freeTrial, lv.id,
+                   b.timeLimitSec, b.mode)
             from QuestionBank b, Topic t, CourseLevel lv, Course c
             where b.id = :id and b.status = 'PUBLISHED'
               and t.id = b.topicId and t.status = 'PUBLISHED'
@@ -30,4 +36,11 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long
             where b.id = :id and t.id = b.topicId and lv.id = t.levelId and c.id = lv.courseId
             """)
     Optional<String> findCourseTitle(@Param("id") Long id);
+
+    /** Khóa chứa bộ câu hỏi, để chọn lượt AI định kỳ của khóa đó (D-47). */
+    @Query("""
+            select c.id from QuestionBank b, Topic t, CourseLevel lv, Course c
+            where b.id = :id and t.id = b.topicId and lv.id = t.levelId and c.id = lv.courseId
+            """)
+    Optional<Long> findCourseId(@Param("id") Long id);
 }

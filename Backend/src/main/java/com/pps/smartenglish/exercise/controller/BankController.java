@@ -2,10 +2,13 @@ package com.pps.smartenglish.exercise.controller;
 
 import com.pps.smartenglish.exercise.dto.AttemptStarted;
 import com.pps.smartenglish.exercise.dto.BankResponse;
+import com.pps.smartenglish.exercise.dto.CamDtos.FaqItem;
 import com.pps.smartenglish.exercise.service.AttemptService;
+import com.pps.smartenglish.exercise.service.BankFaqService;
 import com.pps.smartenglish.exercise.service.BankService;
 import com.pps.smartenglish.shared.security.CurrentUser;
 import com.pps.smartenglish.shared.web.PathId;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,10 +25,18 @@ class BankController {
 
     private final BankService banks;
     private final AttemptService attempts;
+    private final BankFaqService faqs;
 
-    BankController(BankService banks, AttemptService attempts) {
+    BankController(BankService banks, AttemptService attempts, BankFaqService faqs) {
         this.banks = banks;
         this.attempts = attempts;
+        this.faqs = faqs;
+    }
+
+    /** FR-AI-07: Cam hỏi đáp soạn sẵn. */
+    @GetMapping("/{id}/faqs")
+    List<FaqItem> faqs(@PathVariable String id, Authentication auth) {
+        return faqs.list(bankId(id), CurrentUser.id(auth));
     }
 
     @GetMapping("/{id}")

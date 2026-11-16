@@ -3,6 +3,7 @@ package com.pps.smartenglish.ai.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.pps.smartenglish.ai.domain.AiJob;
 import com.pps.smartenglish.ai.domain.AiJobKind;
+import com.pps.smartenglish.ai.domain.AiTask;
 import com.pps.smartenglish.ai.dto.JobView;
 import com.pps.smartenglish.ai.repository.AiJobRepository;
 import com.pps.smartenglish.shared.error.ApiException;
@@ -37,18 +38,23 @@ public class AiJobService {
     }
 
     /**
-     * Job chấm bài: rate limit, kiểm hàng đợi, rồi trừ 1 lượt và tạo job trong CÙNG transaction của nơi gọi.
-     * Hết lượt thì không để lại job nào và trả empty. Gọi trong transaction để rollback kéo theo cả lượt đã trừ.
+     * Job chấm bài: rate limit, kiểm hàng đợi, rồi trừ lượt theo trọng số của task (định kỳ của courseId, thiếu thì pool)
+     * và tạo job trong CÙNG transaction của nơi gọi. Hết lượt thì không để lại job nào và trả empty.
+     * Gọi trong transaction để rollback kéo theo cả lượt đã trừ.
      */
     @Transactional
-    public Optional<Long> enqueueCharged(long userId, AiJobKind kind, JsonNode input, Long sessionId, Long attemptId) {
+    public Optional<Long> enqueueCharged(long userId, AiJobKind kind, JsonNode input, Long sessionId, Long attemptId,
+                                         AiTask task, Long courseId) {
         guard.rateLimit(userId);
         guard.requireCapacity();
         AiJob job = jobs.save(new AiJob(userId, kind, input, sessionId, attemptId, true, Instant.now(clock)));
-        if (!quota.tryDebit(userId, job.getId())) {
+        var charge = quota.charge(userId, job.getId(), courseId, task);
+        if (charge.isEmpty()) {
             jobs.deleteById(job.getId());
             return Optional.empty();
         }
+        var c = charge.get();
+        jobs.recordCharge(job.getId(), c.courseId(), c.periodStart(), c.periodic(), c.pool());
         return Optional.of(job.getId());
     }
 

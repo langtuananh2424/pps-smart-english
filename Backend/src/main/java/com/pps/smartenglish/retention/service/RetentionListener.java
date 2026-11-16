@@ -4,6 +4,7 @@ import com.pps.smartenglish.retention.config.RetentionProperties;
 import com.pps.smartenglish.shared.event.AiGradingFinished;
 import com.pps.smartenglish.shared.event.ExerciseScored;
 import com.pps.smartenglish.shared.event.LessonCompleted;
+import java.math.BigDecimal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -46,7 +47,8 @@ public class RetentionListener {
             safely("xp", () -> xp.grant(e.userId(), "EXERCISE", e.bankId(), props.xp().exercise()));
         }
         // sự kiện sau khi AI chấm xong câu viết lại cũng xét thưởng điểm cao, nhưng không tính thêm ngày học
-        if (e.maxScore() > 0 && (long) e.score() * 100 >= (long) props.xp().highScorePercent() * e.maxScore()) {
+        if (e.maxScore() > 0 && e.score().multiply(BigDecimal.valueOf(100))
+                .compareTo(BigDecimal.valueOf((long) props.xp().highScorePercent() * e.maxScore())) >= 0) {
             safely("xp-high", () -> xp.grant(e.userId(), "EXERCISE_HIGH", e.bankId(), props.xp().highScore()));
         }
     }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pps.smartenglish.ai.dto.RewriteGrades;
 import com.pps.smartenglish.ai.service.RewriteResultSink;
 import com.pps.smartenglish.exercise.domain.AnswerGrading;
+import com.pps.smartenglish.exercise.grading.Credit;
 import com.pps.smartenglish.exercise.repository.AnswerGradingRepository;
 import com.pps.smartenglish.exercise.repository.StudentAnswerRepository;
 import com.pps.smartenglish.exercise.repository.StudentAttemptRepository;
@@ -47,18 +48,18 @@ class RewriteResultApplier implements RewriteResultSink {
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public void apply(long attemptId, List<RewriteGrades.Item> items) {
-        int points = 0;
+        boolean anyCorrect = false;
         for (var item : items) {
-            if (answers.applyAiVerdict(attemptId, item.id(), item.correct()) == 0) {
+            if (answers.applyAiVerdict(attemptId, item.id(), item.correct(), Credit.of(item.correct())) == 0) {
                 continue; // đã có kết quả (chạy lại job): không ghi đè, không cộng điểm lần hai
             }
             var answer = answers.findByAttemptIdAndQuestionId(attemptId, item.id()).orElseThrow();
             var result = mapper.createObjectNode().put("feedback", item.feedback()).put("correctedAnswer", item.correctedAnswer());
             gradings.save(new AnswerGrading(answer.getId(), AnswerGrading.AI, item.correct() ? 1 : 0, result));
-            points += item.correct() ? 1 : 0;
+            anyCorrect |= item.correct();
         }
-        if (points > 0) {
-            attempts.addScore(attemptId, points);
+        if (anyCorrect) {
+            attempts.recomputeScore(attemptId);
             // báo điểm mới để retention xét thưởng điểm cao cho câu viết lại chấm muộn (không tính thêm ngày học)
             attempts.findById(attemptId).ifPresent(a -> events.publishEvent(new ExerciseScored(a.getUserId(), a.getBankId(),
                     attemptId, a.getScore(), a.getMaxScore(), false)));

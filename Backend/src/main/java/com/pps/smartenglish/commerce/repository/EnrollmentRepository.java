@@ -10,10 +10,11 @@ import org.springframework.data.repository.query.Param;
 
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
-    Optional<Enrollment> findByUserIdAndLevelId(Long userId, Long levelId);
+    Optional<Enrollment> findByUserIdAndCourseId(Long userId, Long courseId);
 
-    @Query("select count(e) > 0 from Enrollment e where e.userId = :userId and e.levelId = :levelId "
-            + "and e.status = 'ACTIVE' and (e.expiresAt is null or e.expiresAt > :now)")
+    /** Level thuộc khóa nào thì quyền theo khóa đó (D-25). */
+    @Query("select count(e) > 0 from Enrollment e, CourseLevel cl where cl.id = :levelId and e.courseId = cl.courseId "
+            + "and e.userId = :userId and e.status = 'ACTIVE' and (e.expiresAt is null or e.expiresAt > :now)")
     boolean existsActive(@Param("userId") Long userId, @Param("levelId") Long levelId, @Param("now") Instant now);
 
     /** Khóa dòng user để các đơn của cùng một người kích hoạt tuần tự (tránh trùng unique user+level khi gia hạn). */

@@ -1,6 +1,7 @@
 package com.pps.smartenglish.exercise.repository;
 
 import com.pps.smartenglish.exercise.domain.StudentAnswer;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -44,12 +45,13 @@ public interface StudentAnswerRepository extends JpaRepository<StudentAnswer, Lo
 
     /** Ghi kết quả chấm lại: đổi is_correct sang bất kỳ giá trị nào, kể cả đang null. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("update StudentAnswer a set a.correct = :correct where a.id = :id")
-    int setVerdict(@Param("id") Long id, @Param("correct") boolean correct);
+    @Query("update StudentAnswer a set a.correct = :correct, a.credit = :credit where a.id = :id")
+    int setVerdict(@Param("id") Long id, @Param("correct") boolean correct, @Param("credit") BigDecimal credit);
 
     /** Ghi kết quả AI một lần: chỉ khi còn null nên chạy lại cùng job không ghi đè hay tính điểm hai lần. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("update StudentAnswer a set a.correct = :correct where a.attemptId = :attemptId and a.questionId = :questionId "
-            + "and a.correct is null")
-    int applyAiVerdict(@Param("attemptId") Long attemptId, @Param("questionId") Long questionId, @Param("correct") boolean correct);
+    @Query("update StudentAnswer a set a.correct = :correct, a.credit = :credit where a.attemptId = :attemptId "
+            + "and a.questionId = :questionId and a.correct is null")
+    int applyAiVerdict(@Param("attemptId") Long attemptId, @Param("questionId") Long questionId, @Param("correct") boolean correct,
+                       @Param("credit") BigDecimal credit);
 }

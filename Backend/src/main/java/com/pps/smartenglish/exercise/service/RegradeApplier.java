@@ -7,6 +7,7 @@ import com.pps.smartenglish.ai.dto.RewriteGrades;
 import com.pps.smartenglish.exercise.domain.AnswerGrading;
 import com.pps.smartenglish.exercise.domain.RegradeItem;
 import com.pps.smartenglish.exercise.domain.RegradeRun;
+import com.pps.smartenglish.exercise.grading.Credit;
 import com.pps.smartenglish.exercise.repository.AnswerGradingRepository;
 import com.pps.smartenglish.exercise.repository.QuestionRepository;
 import com.pps.smartenglish.exercise.repository.RegradeItemRepository;
@@ -14,6 +15,7 @@ import com.pps.smartenglish.exercise.repository.RegradeRunRepository;
 import com.pps.smartenglish.exercise.repository.StudentAnswerRepository;
 import com.pps.smartenglish.exercise.repository.StudentAttemptRepository;
 import com.pps.smartenglish.shared.event.ExerciseScored;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import org.springframework.context.ApplicationEventPublisher;
@@ -29,7 +31,11 @@ import org.springframework.transaction.annotation.Transactional;
 class RegradeApplier {
 
     /** grader null = dạng tự chấm (không có dòng student_answer_grading). */
-    record Outcome(boolean correct, String grader, String feedback, String correctedAnswer) {}
+    record Outcome(BigDecimal credit, String grader, String feedback, String correctedAnswer) {
+        boolean correct() {
+            return Credit.isFull(credit);
+        }
+    }
 
     private final RegradeItemRepository items;
     private final RegradeRunRepository runs;
@@ -69,7 +75,7 @@ class RegradeApplier {
             return;
         }
         if (graded.id() == question.getId()) {
-            apply(itemId, RegradeItem.AI_WAITING, new Outcome(graded.correct(), AnswerGrading.AI, graded.feedback(),
+            apply(itemId, RegradeItem.AI_WAITING, new Outcome(Credit.of(graded.correct()), AnswerGrading.AI, graded.feedback(),
                     graded.correctedAnswer()));
         }
     }
@@ -86,25 +92,23 @@ class RegradeApplier {
         Boolean oldCorrect = answer.getCorrect();
         JsonNode oldResult = oldResult(answer.getId());
 
-        int delta = bit(outcome.correct()) - bit(oldCorrect);
-        answers.setVerdict(answer.getId(), outcome.correct());
-        if (delta != 0) {
-            attempts.adjustScore(attempt.getId(), delta); // score = score + delta nguyên tử, null tính 0
-        }
-        int newScore = attempts.scoreOf(attempt.getId());
+        BigDecimal oldScore = attempts.scoreOf(attempt.getId());
+        answers.setVerdict(answer.getId(), outcome.correct(), outcome.credit());
+        attempts.recomputeScore(attempt.getId()); // tổng lại từ credit từng câu, không cộng delta nên không trôi làm tròn
+        BigDecimal newScore = attempts.scoreOf(attempt.getId());
         JsonNode newResult = null;
         if (outcome.grader() != null) {
             gradings.deleteByAnswerId(answer.getId());
             var result = mapper.createObjectNode().put("feedback", outcome.feedback()).put("correctedAnswer", outcome.correctedAnswer());
-            gradings.save(new AnswerGrading(answer.getId(), outcome.grader(), bit(outcome.correct()), result));
-            var wrapped = mapper.createObjectNode().put("grader", outcome.grader()).put("score", bit(outcome.correct()));
+            gradings.save(new AnswerGrading(answer.getId(), outcome.grader(), outcome.correct() ? 1 : 0, result));
+            var wrapped = mapper.createObjectNode().put("grader", outcome.grader()).put("score", outcome.correct() ? 1 : 0);
             wrapped.set("result", result);
             newResult = wrapped;
         }
         // mọi UPDATE hàng loạt ở trên đã xong: nạp lại item rồi ghi điểm cũ/mới (entity cũ đã bị tách)
-        items.findById(itemId).orElseThrow().record(oldCorrect, outcome.correct(), newScore - delta, newScore, oldResult,
+        items.findById(itemId).orElseThrow().record(oldCorrect, outcome.correct(), oldScore, newScore, oldResult,
                 newResult, Instant.now(clock));
-        if (delta > 0) {
+        if (newScore.compareTo(oldScore) > 0) {
             int max = attempt.getMaxScore() == null ? 0 : attempt.getMaxScore();
             events.publishEvent(new ExerciseScored(attempt.getUserId(), attempt.getBankId(), attempt.getId(), newScore, max, false));
         }
@@ -124,9 +128,5 @@ class RegradeApplier {
             out.add(one);
         }
         return out;
-    }
-
-    private static int bit(Boolean b) {
-        return Boolean.TRUE.equals(b) ? 1 : 0;
     }
 }

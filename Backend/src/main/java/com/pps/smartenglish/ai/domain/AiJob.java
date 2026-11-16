@@ -66,6 +66,19 @@ public class AiJob extends Auditable {
     @Column(name = "regrade_item_id", updatable = false)
     private Long regradeItemId;
 
+    /** Nguồn đã trừ, để hoàn đúng chỗ khi job lỗi hẳn (D-47). Đặt một lần ngay sau khi tạo job, bằng UPDATE ở repository. */
+    @Column(name = "course_id")
+    private Long courseId;
+
+    @Column(name = "period_start")
+    private java.time.LocalDate periodStart;
+
+    @Column(name = "charged_periodic", nullable = false)
+    private int chargedPeriodic;
+
+    @Column(name = "charged_pool", nullable = false)
+    private int chargedPool;
+
     protected AiJob() {}
 
     public AiJob(Long userId, AiJobKind kind, JsonNode input, Long sessionId, Long attemptId, boolean charged, Instant now) {
@@ -97,6 +110,10 @@ public class AiJob extends Auditable {
     public Long getAttemptId() { return attemptId; }
     public boolean isCharged() { return charged; }
     public Long getRegradeItemId() { return regradeItemId; }
+    public Long getCourseId() { return courseId; }
+    public java.time.LocalDate getPeriodStart() { return periodStart; }
+    public int getChargedPeriodic() { return chargedPeriodic; }
+    public int getChargedPool() { return chargedPool; }
 
     public boolean isTerminal() { return DONE.equals(status) || FAILED.equals(status); }
 }

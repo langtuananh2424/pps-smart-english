@@ -30,7 +30,7 @@ class DashboardRateTest extends ApiTestBase {
     @Test
     void costIsConvertedToVndWithTheConfiguredRate() throws Exception {
         var reg = register(newEmail(), "Password123!");
-        jdbc.update("update users set role = 'ADMIN' where id = ?", reg.id());
+        jdbc.update("insert into user_roles (user_id, role_id) select ?, id from roles where code = 'ADMIN'", reg.id());
         var admin = login(reg.email(), "Password123!");
         long job = insert("ai_jobs", Map.of("user_id", reg.id(), "kind", "WRITING_GRADE"));
         var when = OffsetDateTime.of(2007, 5, 10, 3, 0, 0, 0, ZoneOffset.UTC);

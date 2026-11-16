@@ -31,8 +31,8 @@ class CmsTest extends ApiTestBase {
 
     private Account withRole(String role) throws Exception {
         var u = register(newEmail(), PASSWORD);
-        jdbc.update("update users set role = ? where id = ?", role, u.id());
-        return login(u.email(), PASSWORD); // role nằm trong JWT nên phải đăng nhập lại
+        jdbc.update("insert into user_roles (user_id, role_id) select ?, id from roles where code = ?", u.id(), role);
+        return login(u.email(), PASSWORD);
     }
 
     private ResultActions call(MockHttpServletRequestBuilder req, Account a, Object body) throws Exception {

@@ -33,6 +33,7 @@ class UsageRecorder {
                 .add(price.cacheWrite().multiply(BigDecimal.valueOf(u.cacheWriteTokens())))
                 .divide(PER_MILLION, 6, RoundingMode.HALF_UP);
         usages.save(new TokenUsage(job.getId(), job.getUserId(), u.provider(), u.model(), u.inputTokens(), u.outputTokens(),
-                u.cacheReadTokens(), u.cacheWriteTokens(), cost));
+                u.cacheReadTokens(), u.cacheWriteTokens(), cost,
+                u.audioSeconds() == null ? null : BigDecimal.valueOf(u.audioSeconds())));
     }
 }

@@ -106,7 +106,7 @@ class WritingFlowTest extends AiTestSupport {
                 .andExpect(jsonPath("$.error.details.products", hasSize(greaterThanOrEqualTo(1))))
                 .andExpect(jsonPath("$.error.details.products[0].type").value("AI_ADDON"));
         assertEquals(0, count("select count(*) from writing_sessions where user_id = ?", u.id()));
-        getJson("/api/me/quota", u).andExpect(status().isOk()).andExpect(jsonPath("$.balance").value(0));
+        getJson("/api/me/quota", u).andExpect(status().isOk()).andExpect(jsonPath("$.pool").value(0));
     }
 
     @Test

@@ -31,7 +31,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query(nativeQuery = true, value = """
             SELECT d, COUNT(*), COUNT(verified_at) FROM (
                 SELECT TO_CHAR(created_at AT TIME ZONE CAST(:zone AS varchar(64)), 'YYYY-MM-DD') AS d, email_verified_at AS verified_at
-                FROM users WHERE role = 'STUDENT' AND created_at >= :start AND created_at < :end) t
+                FROM users WHERE id IN (SELECT ur.user_id FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE r.code = 'STUDENT')
+                  AND created_at >= :start AND created_at < :end) t
             GROUP BY d ORDER BY d
             """)
     List<Object[]> registrationsByDay(@Param("zone") String zone, @Param("start") Instant start, @Param("end") Instant end);

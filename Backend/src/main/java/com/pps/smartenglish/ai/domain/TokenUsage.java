@@ -43,10 +43,19 @@ public class TokenUsage {
     @Column(name = "cache_write_tokens", nullable = false)
     private int cacheWriteTokens;
 
+    @Column(name = "audio_seconds")
+    private BigDecimal audioSeconds;
+
     @Column(name = "cost_usd", nullable = false)
     private BigDecimal costUsd;
 
     protected TokenUsage() {}
+
+    public TokenUsage(Long jobId, Long userId, String provider, String model, int inputTokens, int outputTokens,
+                      int cacheReadTokens, int cacheWriteTokens, BigDecimal costUsd, BigDecimal audioSeconds) {
+        this(jobId, userId, provider, model, inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, costUsd);
+        this.audioSeconds = audioSeconds;
+    }
 
     public TokenUsage(Long jobId, Long userId, String provider, String model, int inputTokens, int outputTokens,
                       int cacheReadTokens, int cacheWriteTokens, BigDecimal costUsd) {

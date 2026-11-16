@@ -72,7 +72,9 @@ public interface OrderRepository extends JpaRepository<ShopOrder, Long> {
                    SUM(CASE WHEN NOT EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id AND o.status = 'PAID')
                              AND EXISTS (SELECT 1 FROM user_course_enrollments e WHERE e.user_id = u.id AND e.order_id IS NULL)
                             THEN 1 ELSE 0 END)
-            FROM users u WHERE u.role = 'STUDENT' AND u.created_at >= :start AND u.created_at < :end
+            FROM users u WHERE EXISTS (SELECT 1 FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+                                       WHERE ur.user_id = u.id AND r.code = 'STUDENT')
+              AND u.created_at >= :start AND u.created_at < :end
             """)
     List<Object[]> conversionCounts(@Param("start") Instant start, @Param("end") Instant end);
 }

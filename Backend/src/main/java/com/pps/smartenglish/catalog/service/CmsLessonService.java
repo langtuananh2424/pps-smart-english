@@ -7,6 +7,7 @@ import com.pps.smartenglish.catalog.dto.CmsDtos.LessonView;
 import com.pps.smartenglish.catalog.dto.CmsDtos.PatchLesson;
 import com.pps.smartenglish.catalog.repository.LessonRepository;
 import com.pps.smartenglish.catalog.repository.TopicRepository;
+import com.pps.smartenglish.shared.audit.AuditRecorder;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.persistence.CmsWrites;
 import org.springframework.http.HttpStatus;
@@ -25,8 +26,10 @@ public class CmsLessonService {
     private final LessonRepository lessons;
     private final TopicRepository topics;
     private final CmsWrites writes;
+    private final AuditRecorder audit;
 
-    CmsLessonService(LessonRepository lessons, TopicRepository topics, CmsWrites writes) {
+    CmsLessonService(LessonRepository lessons, TopicRepository topics, CmsWrites writes, AuditRecorder audit) {
+        this.audit = audit;
         this.lessons = lessons;
         this.topics = topics;
         this.writes = writes;
@@ -40,12 +43,15 @@ public class CmsLessonService {
         var lesson = new Lesson(topicId, req.type(), req.title().strip(), req.durationSec(),
                 req.sortOrder() == null ? 0 : req.sortOrder());
         applyVideo(lesson, req.videoSource(), req.videoRef());
-        return view(writes.save(lessons, lesson, CONFLICT, "Không lưu được bài học"));
+        var after = view(writes.save(lessons, lesson, CONFLICT, "Không lưu được bài học"));
+        audit.record("CREATE", "LESSON", after.id(), null, after);
+        return after;
     }
 
     @Transactional
     public LessonView patch(long id, PatchLesson req) {
         Lesson lesson = find(id);
+        var before = view(lesson);
         if (req.type() != null) {
             lesson.setType(req.type());
         }
@@ -59,13 +65,17 @@ public class CmsLessonService {
             lesson.setSortOrder(req.sortOrder());
         }
         applyVideo(lesson, req.videoSource(), req.videoRef());
-        return view(writes.save(lessons, lesson, CONFLICT, "Không lưu được bài học"));
+        var after = view(writes.save(lessons, lesson, CONFLICT, "Không lưu được bài học"));
+        audit.record("UPDATE", "LESSON", id, before, after);
+        return after;
     }
 
     /** Còn tiến độ học hoặc bộ câu hỏi tham chiếu thì in_use (khóa ngoại). */
     @Transactional
     public void delete(long id) {
-        writes.delete(lessons, find(id));
+        Lesson lesson = find(id);
+        audit.record("DELETE", "LESSON", id, view(lesson), null);
+        writes.delete(lessons, lesson);
     }
 
     /** Idempotent. Xuất bản cần có video và thời lượng; hạ xuống DRAFT thì luôn được. */
@@ -80,8 +90,11 @@ public class CmsLessonService {
                 throw ApiException.validation("durationSec", "Cần có thời lượng lớn hơn 0 trước khi xuất bản");
             }
         }
+        var before = view(lesson);
         lesson.setStatus(published ? ContentStatus.PUBLISHED : ContentStatus.DRAFT);
-        return view(writes.save(lessons, lesson, CONFLICT, "Không lưu được bài học"));
+        var after = view(writes.save(lessons, lesson, CONFLICT, "Không lưu được bài học"));
+        audit.record(published ? "PUBLISH" : "UNPUBLISH", "LESSON", id, before, after);
+        return after;
     }
 
     /** videoRef là mã hoặc URL YouTube, luôn lưu dạng mã. Có videoRef mà không nói nguồn thì mặc định YOUTUBE. */

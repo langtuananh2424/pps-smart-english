@@ -6,6 +6,7 @@ import com.pps.smartenglish.ai.domain.AiJob;
 import com.pps.smartenglish.ai.domain.AiJobKind;
 import com.pps.smartenglish.ai.provider.AiCallException;
 import com.pps.smartenglish.shared.event.AiGradingFinished;
+import com.pps.smartenglish.shared.event.AiJobFailed;
 import jakarta.annotation.PreDestroy;
 import java.util.EnumMap;
 import java.util.List;
@@ -106,6 +107,7 @@ public class AiJobRunner {
     private void failed(AiJob job, boolean retryable, String error) {
         if (AiJob.FAILED.equals(finisher.fail(job, retryable, error))) {
             notifier.publish(job.getId());
+            events.publishEvent(new AiJobFailed(job.getId(), job.getKind().name()));
         }
     }
 

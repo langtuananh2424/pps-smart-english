@@ -8,11 +8,13 @@ import com.pps.smartenglish.commerce.dto.ActivationLinkView;
 import com.pps.smartenglish.commerce.dto.CreateActivationLinkRequest;
 import com.pps.smartenglish.commerce.repository.ActivationLinkRepository;
 import com.pps.smartenglish.commerce.repository.ProductRepository;
+import com.pps.smartenglish.shared.audit.AuditRecorder;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.web.CursorPage;
 import com.pps.smartenglish.shared.web.Cursors;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Map;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -31,12 +33,14 @@ public class ActivationLinkAdminService {
     private final ProductRepository products;
     private final Clock clock;
     private final String baseUrl;
+    private final AuditRecorder audit;
 
     ActivationLinkAdminService(ActivationLinkRepository links, ProductRepository products, Clock clock,
-                               @Value("${app.base-url}") String baseUrl) {
+                               @Value("${app.base-url}") String baseUrl, AuditRecorder audit) {
         this.links = links;
         this.products = products;
         this.clock = clock;
+        this.audit = audit;
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 
@@ -48,6 +52,8 @@ public class ActivationLinkAdminService {
         String token = TokenUtil.newToken();
         var link = links.save(new ActivationLink(TokenUtil.hash(token), product.getId(), req.maxUses(), req.expiresAt(),
                 req.note(), adminId));
+        // mã thô không vào nhật ký, chỉ id link và sản phẩm
+        audit.record("LINK_CREATE", "ACTIVATION_LINK", link.getId(), null, Map.of("productId", product.getId()));
         return new Created(link.getId(), baseUrl + "/activate/" + token);
     }
 
@@ -66,6 +72,8 @@ public class ActivationLinkAdminService {
             throw new ApiException(HttpStatus.NOT_FOUND, "activation_link_not_found", "Không tìm thấy link kích hoạt");
         }
         links.revoke(id, Instant.now(clock));
-        return new Revoked(id, links.findById(id).orElseThrow().getRevokedAt());
+        var revoked = new Revoked(id, links.findById(id).orElseThrow().getRevokedAt());
+        audit.record("LINK_REVOKE", "ACTIVATION_LINK", id, null, revoked);
+        return revoked;
     }
 }

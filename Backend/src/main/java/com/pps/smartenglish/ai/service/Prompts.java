@@ -14,11 +14,13 @@ public class Prompts {
     private final String scaffoldFollowup = load("scaffold-followup.md");
     private final String scaffoldDraft = load("scaffold-draft.md");
     private final String rewriteGrading = load("rewrite-grading.md");
+    private final String speakingRubric = load("speaking-rubric-ielts.md");
 
     public String writingRubric() { return writingRubric; }
     public String scaffoldFollowup() { return scaffoldFollowup; }
     public String scaffoldDraft() { return scaffoldDraft; }
     public String rewriteGrading() { return rewriteGrading; }
+    public String speakingRubric() { return speakingRubric; }
 
     private static String load(String name) {
         try {

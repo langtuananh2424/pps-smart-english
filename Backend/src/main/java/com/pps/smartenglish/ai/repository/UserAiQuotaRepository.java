@@ -14,10 +14,10 @@ public interface UserAiQuotaRepository extends JpaRepository<UserAiQuota, Long> 
     @Query("update UserAiQuota q set q.balance = q.balance + :delta where q.userId = :userId")
     int addBalance(@Param("userId") Long userId, @Param("delta") int delta);
 
-    /** Trừ 1 lượt, không bao giờ âm dù nhiều request đồng thời; 0 dòng = hết lượt. */
+    /** Trừ n lượt, không bao giờ âm dù nhiều request đồng thời; 0 dòng = không đủ. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("update UserAiQuota q set q.balance = q.balance - 1 where q.userId = :userId and q.balance >= 1")
-    int debitOne(@Param("userId") Long userId);
+    @Query("update UserAiQuota q set q.balance = q.balance - :n where q.userId = :userId and q.balance >= :n")
+    int debit(@Param("userId") Long userId, @Param("n") int n);
 
     @Query("select q.balance from UserAiQuota q where q.userId = :userId")
     Optional<Integer> findBalance(@Param("userId") Long userId);

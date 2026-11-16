@@ -10,6 +10,7 @@ import com.pps.smartenglish.exercise.repository.QuestionRepository;
 import com.pps.smartenglish.exercise.repository.RegradeItemRepository;
 import com.pps.smartenglish.exercise.repository.RegradeRunRepository;
 import com.pps.smartenglish.exercise.repository.StudentAnswerRepository;
+import com.pps.smartenglish.shared.audit.AuditRecorder;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.web.CursorPage;
 import com.pps.smartenglish.shared.web.Cursors;
@@ -33,6 +34,7 @@ public class RegradeService {
     public static final int MAX_LIMIT = 100;
 
     private final QuestionRepository questions;
+    private final AuditRecorder audit;
     private final StudentAnswerRepository answers;
     private final RegradeRunRepository runs;
     private final RegradeItemRepository items;
@@ -40,7 +42,9 @@ public class RegradeService {
     private final RegradeRunCreator creator;
 
     RegradeService(QuestionRepository questions, StudentAnswerRepository answers, RegradeRunRepository runs,
-                   RegradeItemRepository items, RegradeRequirement requirement, RegradeRunCreator creator) {
+                   RegradeItemRepository items, RegradeRequirement requirement, RegradeRunCreator creator,
+                   AuditRecorder audit) {
+        this.audit = audit;
         this.questions = questions;
         this.answers = answers;
         this.runs = runs;
@@ -76,7 +80,9 @@ public class RegradeService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "no_submissions", "Câu hỏi chưa có bài nộp nào để chấm lại");
         }
         try {
-            return new Started(RunView.of(creator.create(q, adminId), null), true);
+            var run = RunView.of(creator.create(q, adminId), null);
+            audit.record("REGRADE", "QUESTION", questionId, null, run);
+            return new Started(run, true);
         } catch (DataIntegrityViolationException e) {
             // hai Admin bấm cùng lúc: bên thua lấy run của bên thắng
             return existingRun(runs.findByQuestionIdAndQuestionVersion(questionId, answerVersion).orElseThrow());

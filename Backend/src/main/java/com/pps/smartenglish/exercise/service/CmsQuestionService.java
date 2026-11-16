@@ -3,6 +3,7 @@ package com.pps.smartenglish.exercise.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.pps.smartenglish.exercise.domain.GrammarElement;
 import com.pps.smartenglish.exercise.domain.Question;
+import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.domain.QuestionChoice;
 import com.pps.smartenglish.exercise.domain.QuestionTag;
 import com.pps.smartenglish.exercise.domain.QuestionType;
@@ -10,6 +11,7 @@ import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.ChoiceInput;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.CreateQuestion;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.PatchQuestion;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.QuestionDetail;
+import com.pps.smartenglish.exercise.grading.GraderRegistry;
 import com.pps.smartenglish.exercise.repository.GrammarElementRepository;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
 import com.pps.smartenglish.exercise.repository.QuestionChoiceRepository;
@@ -19,6 +21,7 @@ import com.pps.smartenglish.exercise.repository.StudentAnswerRepository;
 import com.pps.smartenglish.exercise.validation.QuestionDraft;
 import com.pps.smartenglish.exercise.validation.QuestionDraft.ChoiceDraft;
 import com.pps.smartenglish.exercise.validation.QuestionValidators;
+import com.pps.smartenglish.shared.audit.AuditRecorder;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.persistence.CmsWrites;
 import java.util.Comparator;
@@ -48,10 +51,15 @@ public class CmsQuestionService {
     private final QuestionValidators validators;
     private final QuestionDetails details;
     private final CmsWrites writes;
+    private final AuditRecorder audit;
+    private final GraderRegistry graders;
 
     CmsQuestionService(QuestionRepository questions, QuestionBankRepository banks, QuestionChoiceRepository choices,
                        QuestionTagRepository tags, GrammarElementRepository grammar, StudentAnswerRepository answers,
-                       QuestionValidators validators, QuestionDetails details, CmsWrites writes) {
+                       QuestionValidators validators, QuestionDetails details, CmsWrites writes, AuditRecorder audit,
+                       GraderRegistry graders) {
+        this.audit = audit;
+        this.graders = graders;
         this.questions = questions;
         this.banks = banks;
         this.choices = choices;
@@ -65,21 +73,25 @@ public class CmsQuestionService {
 
     @Transactional
     public QuestionDetail create(long bankId, CreateQuestion req) {
-        if (!banks.existsById(bankId)) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "bank_not_found", "Không tìm thấy bộ câu hỏi");
-        }
+        QuestionBank bank = banks.findById(bankId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "bank_not_found", "Không tìm thấy bộ câu hỏi"));
         QuestionType type = parseType(req.type());
+        requireSkillRules(bank, type, req.skill());
         var draft = new QuestionDraft(QuestionValidators.normalize(req.payload()), QuestionValidators.normalize(req.answerKey()),
                 drafts(req.choices()));
         Map<String, GrammarElement> elements = elements();
         validators.validate(type, draft, elements.keySet());
         Set<Long> tagIds = tagIds(req.grammarElementCodes(), elements);
 
-        var question = writes.save(questions, new Question(bankId, type, req.prompt().strip(), draft.payload(), draft.answerKey(),
-                req.explanation(), req.sortOrder() == null ? 0 : req.sortOrder()), "conflict", "Không lưu được câu hỏi");
+        var entity = new Question(bankId, type, req.prompt().strip(), draft.payload(), draft.answerKey(), req.explanation(),
+                req.sortOrder() == null ? 0 : req.sortOrder());
+        entity.setSkill(req.skill());
+        var question = writes.save(questions, entity, "conflict", "Không lưu được câu hỏi");
         saveChoices(question.getId(), draft.choices());
         saveTags(question.getId(), tagIds);
-        return one(question);
+        var after = one(question);
+        audit.record("CREATE", "QUESTION", question.getId(), null, after);
+        return after;
     }
 
     /**
@@ -89,6 +101,10 @@ public class CmsQuestionService {
     @Transactional
     public QuestionDetail patch(long id, PatchQuestion req) {
         Question q = find(id);
+        var before = one(q);
+        String skill = req.skill() != null ? req.skill() : q.getSkill();
+        requireSkillRules(banks.findById(q.getBankId()).orElseThrow(), req.type() != null ? parseType(req.type()) : q.getType(), skill);
+        q.setSkill(skill);
         List<QuestionChoice> oldChoices = choices.findByQuestionIdInOrderByLabelAscIdAsc(List.of(id));
         boolean touchesContent = req.type() != null || req.payload() != null || req.answerKey() != null || req.choices() != null;
         if (touchesContent) {
@@ -123,17 +139,36 @@ public class CmsQuestionService {
         if (req.grammarElementCodes() != null) {
             replaceTags(id, tagIds(req.grammarElementCodes(), elements()));
         }
-        return one(writes.save(questions, q, "conflict", "Không lưu được câu hỏi"));
+        var after = one(writes.save(questions, q, "conflict", "Không lưu được câu hỏi"));
+        audit.record("UPDATE", "QUESTION", id, before, after);
+        return after;
     }
 
     /** Xóa luôn lựa chọn và thẻ của câu; còn bài nộp hoặc phiên viết tham chiếu thì in_use và rollback toàn bộ. */
     @Transactional
     public void delete(long id) {
         Question q = find(id);
+        audit.record("DELETE", "QUESTION", id, one(q), null);
         choices.deleteByQuestionId(id);
         tags.deleteByQuestionId(id);
         choices.flush();
         writes.delete(questions, q);
+    }
+
+    /** Đề đầu vào: bắt buộc skill và chỉ dạng tự chấm (không WRITING/SPEAKING/REWRITE). Bộ khóa học: không có skill. */
+    private void requireSkillRules(QuestionBank bank, QuestionType type, String skill) {
+        if (!bank.isPlacement()) {
+            if (skill != null) {
+                throw ApiException.validation("skill", "Chỉ dùng cho đề kiểm tra đầu vào");
+            }
+            return;
+        }
+        if (skill == null) {
+            throw ApiException.validation("skill", "Bắt buộc với đề kiểm tra đầu vào");
+        }
+        if (!graders.isAutoGraded(type)) {
+            throw ApiException.validation("type", "Đề kiểm tra đầu vào chỉ nhận dạng câu hỏi chấm tự động");
+        }
     }
 
     private QuestionDetail one(Question q) {

@@ -8,6 +8,7 @@ import com.pps.smartenglish.catalog.dto.CmsDtos.TopicView;
 import com.pps.smartenglish.catalog.repository.CourseLevelRepository;
 import com.pps.smartenglish.catalog.repository.LessonRepository;
 import com.pps.smartenglish.catalog.repository.TopicRepository;
+import com.pps.smartenglish.shared.audit.AuditRecorder;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.persistence.CmsWrites;
 import org.springframework.http.HttpStatus;
@@ -24,8 +25,11 @@ public class CmsTopicService {
     private final CourseLevelRepository levels;
     private final LessonRepository lessons;
     private final CmsWrites writes;
+    private final AuditRecorder audit;
 
-    CmsTopicService(TopicRepository topics, CourseLevelRepository levels, LessonRepository lessons, CmsWrites writes) {
+    CmsTopicService(TopicRepository topics, CourseLevelRepository levels, LessonRepository lessons, CmsWrites writes,
+                    AuditRecorder audit) {
+        this.audit = audit;
         this.topics = topics;
         this.levels = levels;
         this.lessons = lessons;
@@ -39,12 +43,15 @@ public class CmsTopicService {
         }
         var topic = new Topic(levelId, req.title().strip(), req.sortOrder() == null ? 0 : req.sortOrder(),
                 Boolean.TRUE.equals(req.isFreeTrial()));
-        return view(writes.save(topics, topic, CONFLICT, "Không lưu được topic"));
+        var after = view(writes.save(topics, topic, CONFLICT, "Không lưu được topic"));
+        audit.record("CREATE", "TOPIC", after.id(), null, after);
+        return after;
     }
 
     @Transactional
     public TopicView patch(long id, PatchTopic req) {
         Topic topic = find(id);
+        var before = view(topic);
         if (req.title() != null) {
             topic.setTitle(req.title().strip());
         }
@@ -54,7 +61,9 @@ public class CmsTopicService {
         if (req.isFreeTrial() != null) {
             topic.setFreeTrial(req.isFreeTrial());
         }
-        return view(writes.save(topics, topic, CONFLICT, "Không lưu được topic"));
+        var after = view(writes.save(topics, topic, CONFLICT, "Không lưu được topic"));
+        audit.record("UPDATE", "TOPIC", id, before, after);
+        return after;
     }
 
     /** Còn bài học hoặc bộ câu hỏi tham chiếu thì in_use. */
@@ -64,6 +73,7 @@ public class CmsTopicService {
         if (lessons.existsByTopicId(id)) {
             throw CmsWrites.inUse();
         }
+        audit.record("DELETE", "TOPIC", id, view(topic), null);
         writes.delete(topics, topic);
     }
 
@@ -71,8 +81,11 @@ public class CmsTopicService {
     @Transactional
     public TopicView setPublished(long id, boolean published) {
         Topic topic = find(id);
+        var before = view(topic);
         topic.setStatus(published ? ContentStatus.PUBLISHED : ContentStatus.DRAFT);
-        return view(writes.save(topics, topic, CONFLICT, "Không lưu được topic"));
+        var after = view(writes.save(topics, topic, CONFLICT, "Không lưu được topic"));
+        audit.record(published ? "PUBLISH" : "UNPUBLISH", "TOPIC", id, before, after);
+        return after;
     }
 
     private Topic find(long id) {

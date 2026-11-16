@@ -14,6 +14,22 @@ public interface LessonProgressRepository extends JpaRepository<LessonProgress, 
 
     Optional<LessonProgress> findByUserIdAndLessonId(Long userId, Long lessonId);
 
+    /** Bài học học viên thấy được của khóa: bài, topic, level đều PUBLISHED (cùng quy tắc hiển thị với catalog). */
+    @Query("""
+            select count(l) from Lesson l, Topic t, CourseLevel lv
+            where lv.courseId = :courseId and lv.status = 'PUBLISHED' and t.levelId = lv.id and t.status = 'PUBLISHED'
+              and l.topicId = t.id and l.status = 'PUBLISHED'
+            """)
+    long countVisibleLessons(@Param("courseId") Long courseId);
+
+    @Query("""
+            select count(p) from LessonProgress p, Lesson l, Topic t, CourseLevel lv
+            where p.userId = :userId and p.completedAt is not null and p.lessonId = l.id and l.status = 'PUBLISHED'
+              and t.id = l.topicId and t.status = 'PUBLISHED' and lv.id = t.levelId and lv.status = 'PUBLISHED'
+              and lv.courseId = :courseId
+            """)
+    long countCompletedVisible(@Param("userId") Long userId, @Param("courseId") Long courseId);
+
     /**
      * Không dùng ON CONFLICT vì H2 (test) không hỗ trợ. Hai request đầu tiên đồng thời: unique (user, lesson) chặn trùng,
      * bên thua ném DataIntegrityViolationException; REQUIRES_NEW để lỗi đó không làm hỏng transaction của người gọi.

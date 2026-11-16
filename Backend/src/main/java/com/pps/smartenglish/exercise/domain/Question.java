@@ -46,6 +46,9 @@ public class Question extends Auditable {
     @Column(name = "answer_version")
     private int answerVersion = 1;
 
+    /** LISTENING/READING/GRAMMAR; chỉ có ở câu của đề kiểm tra đầu vào. */
+    private String skill;
+
     protected Question() {}
 
     public Question(Long bankId, QuestionType type, String prompt, JsonNode payload, JsonNode answerKey, String explanation,
@@ -68,6 +71,8 @@ public class Question extends Auditable {
     public String getExplanation() { return explanation; }
     public int getSortOrder() { return sortOrder; }
     public int getAnswerVersion() { return answerVersion; }
+    public String getSkill() { return skill; }
+    public void setSkill(String skill) { this.skill = skill; }
 
     public void setType(QuestionType type) { this.type = type.name(); }
     public void setPrompt(String prompt) { this.prompt = prompt; }

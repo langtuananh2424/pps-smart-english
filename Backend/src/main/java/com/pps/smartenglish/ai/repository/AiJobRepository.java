@@ -72,4 +72,11 @@ public interface AiJobRepository extends JpaRepository<AiJob, Long> {
             + "where j.id = :id and j.status = 'RUNNING' and j.attempts = :attempts")
     int markFailed(@Param("id") Long id, @Param("attempts") int attempts, @Param("error") String error,
                    @Param("now") Instant now);
+
+    /** Ghi nguồn lượt đã trừ cho job vừa tạo trong cùng transaction. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update AiJob j set j.courseId = :courseId, j.periodStart = :start, j.chargedPeriodic = :periodic, "
+            + "j.chargedPool = :pool where j.id = :id")
+    int recordCharge(@Param("id") Long id, @Param("courseId") Long courseId, @Param("start") java.time.LocalDate start,
+                     @Param("periodic") int periodic, @Param("pool") int pool);
 }

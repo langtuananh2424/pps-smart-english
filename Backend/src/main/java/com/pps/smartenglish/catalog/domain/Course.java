@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "courses")
@@ -25,6 +26,30 @@ public class Course extends Auditable {
 
     private String status = ContentStatus.DRAFT;
 
+    /** Lượt AI định kỳ (D-31): WEEK hoặc MONTH, mỗi kỳ đủ aiPeriodQuota lượt cho học viên còn hạn. */
+    @Column(name = "ai_period", nullable = false)
+    private String aiPeriod = "WEEK";
+
+    @Column(name = "ai_period_quota", nullable = false)
+    private int aiPeriodQuota = 20;
+
+    /** FR-EXAM-02: bộ câu hỏi mode EXAM làm bài thi khóa; mở khi học xong >= examUnlockPercent, thi lại tối đa examRetakes lần. */
+    @Column(name = "exam_bank_id")
+    private Long examBankId;
+
+    @Column(name = "exam_unlock_percent", nullable = false)
+    private int examUnlockPercent = 80;
+
+    @Column(name = "exam_retakes", nullable = false)
+    private int examRetakes = 0;
+
+    /** FR-GOAL-03: dải band đầu vào <= band < đầu ra; null cả hai = không tham gia gợi ý. */
+    @Column(name = "band_from")
+    private BigDecimal bandFrom;
+
+    @Column(name = "band_to")
+    private BigDecimal bandTo;
+
     protected Course() {}
 
     public Course(String slug, String title, String description, String targetType) {
@@ -40,10 +65,28 @@ public class Course extends Auditable {
     public String getDescription() { return description; }
     public String getTargetType() { return targetType; }
     public String getStatus() { return status; }
+    public String getAiPeriod() { return aiPeriod; }
+    public int getAiPeriodQuota() { return aiPeriodQuota; }
 
+    public BigDecimal getBandFrom() { return bandFrom; }
+    public BigDecimal getBandTo() { return bandTo; }
+    public void setBand(BigDecimal from, BigDecimal to) {
+        this.bandFrom = from;
+        this.bandTo = to;
+    }
+
+    public Long getExamBankId() { return examBankId; }
+    public int getExamUnlockPercent() { return examUnlockPercent; }
+    public int getExamRetakes() { return examRetakes; }
+
+    public void setExamBankId(Long examBankId) { this.examBankId = examBankId; }
+    public void setExamUnlockPercent(int examUnlockPercent) { this.examUnlockPercent = examUnlockPercent; }
+    public void setExamRetakes(int examRetakes) { this.examRetakes = examRetakes; }
     public void setSlug(String slug) { this.slug = slug; }
     public void setTitle(String title) { this.title = title; }
     public void setDescription(String description) { this.description = description; }
     public void setTargetType(String targetType) { this.targetType = targetType; }
     public void setStatus(String status) { this.status = status; }
+    public void setAiPeriod(String aiPeriod) { this.aiPeriod = aiPeriod; }
+    public void setAiPeriodQuota(int aiPeriodQuota) { this.aiPeriodQuota = aiPeriodQuota; }
 }

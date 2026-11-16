@@ -40,7 +40,7 @@ class CmsQuestionTest extends ApiTestBase {
 
     private Account withRole(String role) throws Exception {
         var u = register(newEmail(), PASSWORD);
-        jdbc.update("update users set role = ? where id = ?", role, u.id());
+        jdbc.update("insert into user_roles (user_id, role_id) select ?, id from roles where code = ?", u.id(), role);
         return login(u.email(), PASSWORD);
     }
 
@@ -188,7 +188,9 @@ class CmsQuestionTest extends ApiTestBase {
                 q("GRAMMAR_SPOT_FIX", Map.of("payload", Map.of("tokens", List.of("The", "letter", "was", "write")),
                         "answerKey", Map.of("position", 3, "corrections", List.of("written")))),
                 q("GRAMMAR_REWRITE", Map.of("payload", Map.of("sentence", "They built it.", "requiredElement", "PASSIVE"))),
-                q("WRITING", Map.of("payload", Map.of("task", "Do you agree?", "requiredWords", 120))));
+                q("WRITING", Map.of("payload", Map.of("task", "Do you agree?", "requiredWords", 120))),
+                q("SPEAKING", Map.of("payload", Map.of("part", 1, "prompt", "Do you work or study?"))),
+                q("SPEAKING", Map.of("payload", Map.of("part", 2, "prompt", "Describe a trip.", "cueCard", List.of("where", "when"), "maxSeconds", 120))));
         for (var body : cases) {
             ResultActions r = question(admin, bank, body).andExpect(status().isCreated()).andExpect(jsonPath("$.type").value(body.get("type")));
             JsonNode saved = json.readTree(r.andReturn().getResponse().getContentAsString());
@@ -257,7 +259,15 @@ class CmsQuestionTest extends ApiTestBase {
         // viết, nói, dạng lạ, choices ở dạng khác
         rejected(admin, bank, q("WRITING", Map.of("payload", Map.of("task", "t", "requiredWords", 0))), "payload.requiredWords");
         rejected(admin, bank, q("WRITING", Map.of("payload", Map.of("task", "t", "requiredWords", 50), "answerKey", Map.of("x", 1))), "answerKey");
-        rejected(admin, bank, q("SPEAKING", Map.of("payload", Map.of("x", 1))), "type");
+        rejected(admin, bank, q("SPEAKING", Map.of("payload", Map.of("x", 1))), "payload.x");
+        // nói: part, prompt, cueCard chỉ part 2, maxSeconds 10..180, không answerKey
+        rejected(admin, bank, q("SPEAKING", Map.of("payload", Map.of("part", 4, "prompt", "p"))), "payload.part");
+        rejected(admin, bank, q("SPEAKING", Map.of("payload", Map.of("part", 1))), "payload.prompt");
+        rejected(admin, bank, q("SPEAKING", Map.of("payload", Map.of("part", 1, "prompt", "x".repeat(2001)))), "payload.prompt");
+        rejected(admin, bank, q("SPEAKING", Map.of("payload", Map.of("part", 1, "prompt", "p", "cueCard", List.of("a")))), "payload.cueCard");
+        rejected(admin, bank, q("SPEAKING", Map.of("payload", Map.of("part", 2, "prompt", "p", "maxSeconds", 9))), "payload.maxSeconds");
+        rejected(admin, bank, q("SPEAKING", Map.of("payload", Map.of("part", 2, "prompt", "p", "maxSeconds", 181))), "payload.maxSeconds");
+        rejected(admin, bank, q("SPEAKING", Map.of("payload", Map.of("part", 2, "prompt", "p"), "answerKey", Map.of("x", 1))), "answerKey");
         rejected(admin, bank, q("NOPE", Map.of()), "type");
         rejected(admin, bank, q("WRITING", Map.of("payload", Map.of("task", "t", "requiredWords", 50), "choices", List.of(ok, no))), "choices");
         question(admin, bank, Map.of("type", "CONNECTIVE_MCQ")).andExpect(status().isBadRequest()); // thiếu prompt

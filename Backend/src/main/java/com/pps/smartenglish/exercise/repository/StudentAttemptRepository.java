@@ -1,6 +1,7 @@
 package com.pps.smartenglish.exercise.repository;
 
 import com.pps.smartenglish.exercise.domain.StudentAttempt;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -22,19 +23,33 @@ public interface StudentAttemptRepository extends JpaRepository<StudentAttempt, 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update StudentAttempt a set a.submittedAt = :now, a.score = :score, a.maxScore = :maxScore "
             + "where a.id = :id and a.submittedAt is null")
-    int claimSubmission(@Param("id") Long id, @Param("now") Instant now, @Param("score") int score,
+    int claimSubmission(@Param("id") Long id, @Param("now") Instant now, @Param("score") BigDecimal score,
                         @Param("maxScore") int maxScore);
 
-    /** Cộng điểm do AI chấm sau khi nộp, nguyên tử để nhiều kết quả không ghi đè nhau. */
+    /**
+     * Tính lại điểm lượt đã nộp bằng tổng credit các câu (bỏ qua câu chưa chấm), nguyên tử và idempotent: dùng sau khi AI chấm
+     * xong và sau khi chấm lại, không cộng dồn delta nên không trôi làm tròn.
+     */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("update StudentAttempt a set a.score = a.score + :points where a.id = :id and a.submittedAt is not null")
-    int addScore(@Param("id") Long id, @Param("points") int points);
+    @Query("update StudentAttempt a set a.score = (select coalesce(sum(s.credit), 0) from StudentAnswer s where s.attemptId = a.id) "
+            + "where a.id = :id and a.submittedAt is not null")
+    int recomputeScore(@Param("id") Long id);
 
-    /** Chấm lại: cộng delta (âm được) nguyên tử, điểm null tính 0. */
-    @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("update StudentAttempt a set a.score = coalesce(a.score, 0) + :delta where a.id = :id and a.submittedAt is not null")
-    int adjustScore(@Param("id") Long id, @Param("delta") int delta);
+    /** Lượt có giờ đang chạy (chưa tạm dừng, chưa nộp): ứng viên của AttemptTimeoutJob. */
+    @Query("select a from StudentAttempt a where a.submittedAt is null and a.timeLimitSec is not null and a.resumedAt is not null")
+    List<StudentAttempt> findRunningTimed();
+
+    long countByUserIdAndBankId(Long userId, Long bankId);
+
+    /** Lượt đang làm dở (chưa nộp) mới nhất của bài thi. */
+    Optional<StudentAttempt> findFirstByUserIdAndBankIdAndSubmittedAtIsNullOrderByIdDesc(Long userId, Long bankId);
+
+    Optional<StudentAttempt> findFirstByUserIdAndBankIdAndSubmittedAtIsNotNullOrderBySubmittedAtDesc(Long userId, Long bankId);
+
+    /** Khóa dòng user để hai request start song song của cùng một người chạy tuần tự (đếm lượt thi không bị vượt). */
+    @Query(value = "select id from users where id = :userId for update", nativeQuery = true)
+    List<Long> lockUser(@Param("userId") Long userId);
 
     @Query("select coalesce(a.score, 0) from StudentAttempt a where a.id = :id")
-    int scoreOf(@Param("id") Long id);
+    BigDecimal scoreOf(@Param("id") Long id);
 }

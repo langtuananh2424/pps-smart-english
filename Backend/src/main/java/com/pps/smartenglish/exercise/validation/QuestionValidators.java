@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 
-/** Chọn validator theo dạng (cùng kiểu GraderRegistry). Dạng chưa có validator (SPEAKING) bị từ chối. */
+/** Chọn validator theo dạng (cùng kiểu GraderRegistry). Dạng chưa có validator bị từ chối. */
 @Component
 public class QuestionValidators {
 

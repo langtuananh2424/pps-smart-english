@@ -15,9 +15,6 @@ import java.time.Instant;
 @Table(name = "users")
 public class User extends Auditable {
 
-    /** EDITOR (Q-12): soạn nội dung ở /api/admin/cms; không xem báo cáo, link kích hoạt hay gói bán. Gán bằng SQL, chưa có API. */
-    public enum Role { STUDENT, ADMIN, EDITOR }
-
     public enum Status { ACTIVE, LOCKED }
 
     @Id
@@ -33,10 +30,6 @@ public class User extends Auditable {
     /** Null với tài khoản chỉ đăng nhập bằng Google. */
     @Column(name = "password_hash")
     private String passwordHash;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role = Role.STUDENT;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -72,10 +65,6 @@ public class User extends Auditable {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
-    }
-
-    public Role getRole() {
-        return role;
     }
 
     public Status getStatus() {

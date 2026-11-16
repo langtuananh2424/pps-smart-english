@@ -8,7 +8,11 @@ import java.util.List;
 public record BankResponse(Long id, String title, Long lessonId, boolean isTrial, List<QuestionView> questions) {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record QuestionView(Long id, String type, String prompt, JsonNode payload, List<ChoiceView> choices) {}
+    public record QuestionView(Long id, String type, String prompt, JsonNode payload, List<ChoiceView> choices,
+                        List<HintView> hints) {}
 
     public record ChoiceView(Long id, String label, String content) {}
+
+    /** FR-AI-06: gợi ý soạn sẵn; chỉ có ở bộ PRACTICE, bộ EXAM luôn là mảng rỗng. */
+    public record HintView(Long id, String content, String detail) {}
 }
