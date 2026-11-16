@@ -52,7 +52,9 @@ function send(path: string, init: RequestInit = {}) {
 
 async function parse<T>(res: Response): Promise<T> {
   if (!res.ok) throw await toApiError(res)
-  return (res.status === 204 ? undefined : await res.json()) as T
+  // 204 và 202 (forgot-password) không có body.
+  const text = res.status === 204 ? '' : await res.text()
+  return (text ? JSON.parse(text) : undefined) as T
 }
 
 // Gộp các lần refresh đồng thời: refresh token xoay vòng, gọi hai lần sẽ làm hỏng phiên.
