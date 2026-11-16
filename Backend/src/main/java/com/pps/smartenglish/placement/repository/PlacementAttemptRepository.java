@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -31,4 +32,13 @@ public interface PlacementAttemptRepository extends JpaRepository<PlacementAttem
     /** Lượt chưa nộp mà deadline đã qua trước mốc cutoff (đã trừ ân hạn); lấy theo lô để job không nạp quá nhiều. */
     @Query("select a.id from PlacementAttempt a where a.submittedAt is null and a.deadlineAt < :cutoff order by a.id")
     List<Long> findOverdueIds(@Param("cutoff") Instant cutoff, Pageable page);
+
+    /** Lượt của khách (chưa gắn user) chưa nộp, bắt đầu trước mốc cutoff. */
+    @Query("select a.id from PlacementAttempt a where a.userId is null and a.submittedAt is null and a.startedAt < :cutoff order by a.id")
+    List<Long> findGuestAbandonedIds(@Param("cutoff") Instant cutoff, Pageable page);
+
+    /** Xóa kèm lại điều kiện: lượt vừa được nộp hoặc claim giữa lúc chọn và xóa thì giữ nguyên. Bảng không có dữ liệu con. */
+    @Modifying
+    @Query("delete from PlacementAttempt a where a.id in :ids and a.userId is null and a.submittedAt is null")
+    int deleteGuestAbandoned(@Param("ids") List<Long> ids);
 }
