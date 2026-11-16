@@ -1,7 +1,18 @@
+import { QueryClientProvider } from '@tanstack/react-query'
+import { createBrowserRouter, RouterProvider } from 'react-router'
+import { AuthProvider } from './auth/AuthContext'
+import { makeQueryClient } from './lib/queryClient'
+import { routes } from './routes'
+
+const queryClient = makeQueryClient()
+const router = createBrowserRouter(routes)
+
 export default function App() {
   return (
-    <main className="mx-auto my-12 max-w-2xl px-4">
-      <h1 className="text-3xl font-bold">PPS Smart English</h1>
-    </main>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </QueryClientProvider>
   )
 }
