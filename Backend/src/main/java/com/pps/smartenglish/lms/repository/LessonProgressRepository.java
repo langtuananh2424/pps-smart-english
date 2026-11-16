@@ -2,6 +2,8 @@ package com.pps.smartenglish.lms.repository;
 
 import com.pps.smartenglish.lms.domain.LessonProgress;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -13,6 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 public interface LessonProgressRepository extends JpaRepository<LessonProgress, Long> {
 
     Optional<LessonProgress> findByUserIdAndLessonId(Long userId, Long lessonId);
+
+    List<LessonProgress> findByUserIdAndLessonIdIn(Long userId, Collection<Long> lessonIds);
+
+    /** Bài hoàn thành trong [from, to): việc xong hôm nay của Trang chủ. */
+    List<LessonProgress> findByUserIdAndLessonIdInAndCompletedAtGreaterThanEqualAndCompletedAtLessThan(
+            Long userId, Collection<Long> lessonIds, Instant from, Instant to);
 
     /** Bài học học viên thấy được của khóa: bài, topic, level đều PUBLISHED (cùng quy tắc hiển thị với catalog). */
     @Query("""

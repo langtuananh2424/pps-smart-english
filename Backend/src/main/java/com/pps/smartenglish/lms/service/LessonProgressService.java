@@ -30,6 +30,16 @@ public class LessonProgressService {
         this.events = events;
     }
 
+    /** Cùng cổng quyền với GET bài; chưa có dòng tiến độ thì 0/false. */
+    @Transactional(readOnly = true)
+    public ProgressResponse get(long userId, Long lessonId) {
+        gate.require(lessonId, userId);
+        return progress.findByUserIdAndLessonId(userId, lessonId)
+                .map(p -> new ProgressResponse(lessonId, p.getWatchedSec(), p.getMaxPositionSec(), p.getCompletedAt() != null,
+                        p.getCompletedAt()))
+                .orElse(new ProgressResponse(lessonId, 0, 0, false, null));
+    }
+
     @Transactional
     public ProgressResponse record(long userId, Long lessonId, ProgressRequest req) {
         var lesson = gate.require(lessonId, userId);

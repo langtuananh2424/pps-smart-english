@@ -60,6 +60,9 @@ app:
     zone: Asia/Ho_Chi_Minh
     # tỷ giá USD/VND để quy đổi chi phí AI; không có mặc định, để trống thì báo cáo chỉ có USD
     usd-vnd-rate: ${REPORT_USD_VND_RATE:}
+  cam:
+    # Cam nhắc khóa sắp hết hạn khi còn từng này ngày (D-53)
+    expiring-days: 7
   retention:
     # múi giờ tính "ngày có học" cho mọi người dùng (Q-18)
     zone: Asia/Ho_Chi_Minh

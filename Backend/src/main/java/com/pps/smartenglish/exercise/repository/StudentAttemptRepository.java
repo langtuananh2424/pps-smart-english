@@ -41,6 +41,14 @@ public interface StudentAttemptRepository extends JpaRepository<StudentAttempt, 
 
     long countByUserIdAndBankId(Long userId, Long bankId);
 
+    /** Lượt đang làm dở (chưa nộp) mới nhất của người dùng, mọi bộ. */
+    Optional<StudentAttempt> findFirstByUserIdAndSubmittedAtIsNullOrderByIdDesc(Long userId);
+
+    /** [bankId, lần nộp gần nhất] của các bộ người dùng đã nộp. */
+    @Query("select a.bankId, max(a.submittedAt) from StudentAttempt a where a.userId = :userId and a.bankId in :bankIds "
+            + "and a.submittedAt is not null group by a.bankId")
+    List<Object[]> lastSubmitted(@Param("userId") Long userId, @Param("bankIds") java.util.Collection<Long> bankIds);
+
     /** Lượt đang làm dở (chưa nộp) mới nhất của bài thi. */
     Optional<StudentAttempt> findFirstByUserIdAndBankIdAndSubmittedAtIsNullOrderByIdDesc(Long userId, Long bankId);
 

@@ -35,6 +35,11 @@ class LessonController {
         return lessons.get(parse(id), CurrentUser.idOrNull(auth));
     }
 
+    @GetMapping("/{id}/progress")
+    ProgressResponse getProgress(@PathVariable String id, Authentication auth) {
+        return progress.get(CurrentUser.id(auth), parse(id));
+    }
+
     @PostMapping("/{id}/progress")
     ProgressResponse progress(@PathVariable String id, Authentication auth, @Valid @RequestBody ProgressRequest req) {
         return progress.record(CurrentUser.id(auth), parse(id), req);

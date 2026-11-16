@@ -18,6 +18,10 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     @Query("select q.id from Question q where q.id = :id")
     List<Long> lockById(@Param("id") Long id);
 
+    /** Id câu WRITING của các bộ, theo thứ tự bộ rồi thứ tự câu. */
+    @Query("select q.id from Question q where q.bankId in :bankIds and q.type = 'WRITING' order by q.bankId, q.sortOrder, q.id")
+    List<Long> findWritingIds(@Param("bankIds") Collection<Long> bankIds);
+
     boolean existsByBankId(Long bankId);
 
     long countByBankId(Long bankId);

@@ -19,5 +19,16 @@ public class XpEvent {
     @Column(name = "user_id")
     private Long userId;
 
+    private String source;
+
+    @Column(name = "ref_id")
+    private Long refId;
+
+    private int xp;
+
     protected XpEvent() {}
+
+    public String getSource() { return source; }
+    public Long getRefId() { return refId; }
+    public int getXp() { return xp; }
 }

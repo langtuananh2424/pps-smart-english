@@ -75,6 +75,11 @@ public class NotificationService {
                 more ? Cursors.encode(page.get(size - 1).getId()) : null);
     }
 
+    @Transactional(readOnly = true)
+    public long unreadCount(long userId) {
+        return notifications.countByUserIdAndReadAtIsNull(userId);
+    }
+
     /** Chỉ của chính mình, người khác 404; đọc lại giữ thời điểm đọc đầu tiên. */
     @Transactional
     public NotificationView markRead(long userId, long id) {

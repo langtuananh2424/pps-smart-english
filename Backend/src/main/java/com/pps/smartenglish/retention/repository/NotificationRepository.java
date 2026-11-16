@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
+    long countByUserIdAndReadAtIsNull(Long userId);
+
     boolean existsByUserIdAndDedupeKey(Long userId, String dedupeKey);
 
     /** Luôn kèm userId: thông báo của người khác coi như không tồn tại. */

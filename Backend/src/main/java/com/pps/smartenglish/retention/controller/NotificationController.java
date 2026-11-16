@@ -5,6 +5,7 @@ import com.pps.smartenglish.retention.service.NotificationService;
 import com.pps.smartenglish.shared.security.CurrentUser;
 import com.pps.smartenglish.shared.web.CursorPage;
 import com.pps.smartenglish.shared.web.PathId;
+import java.util.Map;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,6 +28,11 @@ class NotificationController {
     CursorPage<NotificationView> list(Authentication auth, @RequestParam(required = false) String limit,
                                       @RequestParam(required = false) String cursor) {
         return notifications.list(CurrentUser.id(auth), limit, cursor);
+    }
+
+    @GetMapping("/unread-count")
+    Map<String, Long> unreadCount(Authentication auth) {
+        return Map.of("count", notifications.unreadCount(CurrentUser.id(auth)));
     }
 
     @PostMapping("/{id}/read")

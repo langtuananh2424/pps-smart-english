@@ -3,6 +3,7 @@ package com.pps.smartenglish.exercise.repository;
 import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.dto.BankInfo;
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,6 +22,9 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long
     List<QuestionBank> findByTopicIdOrderByIdAsc(Long topicId);
 
     List<QuestionBank> findByPurposeOrderByIdAsc(String purpose);
+
+    /** Bộ của khóa học (không PLACEMENT) theo topic và trạng thái; người gọi tự lọc theo mode. */
+    List<QuestionBank> findByTopicIdInAndStatusAndPurposeOrderByIdAsc(Collection<Long> topicIds, String status, String purpose);
 
     /** Đề kiểm tra đầu vào đang hoạt động: PLACEMENT + PUBLISHED, mới nhất trước. */
     List<QuestionBank> findByPurposeAndStatusOrderByIdDesc(String purpose, String status);
