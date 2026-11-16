@@ -34,3 +34,7 @@ CREATE TRIGGER trg_audit_logs_append_only
     FOR EACH ROW EXECUTE FUNCTION audit_logs_reject_change();
 
 CREATE INDEX idx_refresh_tokens_active_user ON refresh_tokens (user_id) WHERE revoked_at IS NULL;
+
+-- Chỉ một đề kiểm tra đầu vào PUBLISHED (FR-ADM-06); service đã hạ đề cũ, index chặn race. CmsWrites đổi vi phạm thành 409 conflict.
+CREATE UNIQUE INDEX uq_question_banks_one_published_placement ON question_banks ((true))
+    WHERE purpose = 'PLACEMENT' AND status = 'PUBLISHED';
