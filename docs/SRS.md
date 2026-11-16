@@ -141,11 +141,11 @@ Hệ thống vận hành theo kiến trúc Client-Server hiện đại, phi tậ
 | :---- | :---- | :---- |
 | **FR-AI-01** | Dẫn dắt phát triển ý (Scaffolding) | Bước 1: Hiển thị câu hỏi dẫn dắt (Root Question). Bước 2: AI hỏi sâu 2–3 câu hỏi tiếp nối dựa trên câu trả lời của học viên. Bước 3: AI tự động tổng hợp câu trả lời thành bản nháp hoàn chỉnh có từ kết nối. |
 | **FR-AI-02** | Chấm bài tự luận AI chuyên sâu | Kế thừa rubric PPS: Bôi đỏ lỗi sai trên bài gốc (`markedAnswer`), đưa ra bản sửa chuẩn (`correctedAnswer`) bảo toàn ý tưởng gốc, phân tích tần suất/độ chính xác của từ kết nối, đánh giá các yếu tố trong 8 Yếu tố ngữ pháp đã dùng đúng hoặc sai kèm gợi ý nâng cấp câu, cảnh báo lạc đề (`gateNote`). |
-| **FR-AI-03** | Chấm phát âm & Phản xạ nói | Thu âm câu trả lời qua mic; sử dụng Whisper STT chuyển thành văn bản; chấm điểm độ chính xác phát âm, độ trôi chảy và thời gian phản xạ theo rubric. |
+| **FR-AI-03** | Chấm phát âm & Phản xạ nói | Thu âm câu trả lời qua mic; sử dụng Whisper STT chuyển thành văn bản; chấm điểm độ chính xác phát âm, độ trôi chảy và thời gian phản xạ theo rubric. Tải âm thanh lên bằng presigned POST policy: backend xin quyền tải lên (kiểm tra người dùng, lượt làm bài, giới hạn tần suất và quota), khóa file do server sinh, giới hạn dung lượng và kiểu audio, hết hạn ngắn. Client tải thẳng lên MinIO, rồi gọi xác nhận để backend kiểm tra dung lượng và kiểu file thật trước khi tạo job chấm. File không được xác nhận trong thời hạn sẽ bị xóa tự động. |
 | **FR-AI-04** | Lượt AI theo tuần, theo khóa | Mỗi khóa còn hạn có một ví tuần lượt AI, nạp lại đủ mức mỗi 00:00 thứ Hai (Asia/Ho_Chi_Minh), lượt thừa không chuyển sang tuần sau; khóa hết hạn thì ví dừng. Tác vụ AI phát sinh trong khóa nào thì trừ ví tuần của khóa đó theo trọng số tác vụ. Thứ tự trừ: ví tuần của khóa → pool lượt mua thêm (FR-COM-05) → từ chối, báo hết lượt và mời mua thêm. Trước khi gọi AI hệ thống giữ chỗ lượt; xong thì trừ thật; AI lỗi thì hoàn lượt. Mọi cộng/trừ ghi sổ cái; token tiêu hao ghi vào `ai_grading_token_usage` để kiểm soát chi phí. Tác vụ AI ngoài khóa (kiểm tra đầu vào, Cam hỗ trợ) không trừ lượt, chỉ giới hạn tần suất. Số lượt mỗi tuần của từng khóa và trọng số: BQ-04. |
 | **FR-AI-05** | Chấm phát âm từng từ | Học viên đọc một từ trong popup giải nghĩa (FR-LMS-02). Mô hình nhận dạng âm vị chạy ngay trên thiết bị, không gửi âm thanh lên máy chủ; tính điểm GOP theo từng âm so với chuỗi âm chuẩn của từ, trả điểm cả từ, điểm từng âm và âm bị đọc nhầm. |
 | **FR-AI-06** | Cam gợi ý khi luyện tập | Ở chế độ Luyện tập IELTS, Cam hiện bong bóng gợi ý theo dạng câu; gợi ý dài chuyển thành popup; học viên thu gọn được Cam. Gợi ý ưu tiên soạn sẵn theo câu; chỉ gọi AI khi chủ dự án duyệt. Không có ở chế độ Mô phỏng thi và kiểm tra đầu vào. |
-| **FR-AI-07** | Trợ lý AI (Cam) hỏi đáp học tập | Học viên hỏi Cam các câu hỏi về bài học và tiếng Anh theo thiết kế Figma mục "Trợ lý AI". Cách tính lượt: chờ chủ dự án quyết định. |
+| **FR-AI-07** | Trợ lý AI (Cam) hỏi đáp học tập | Cam trả lời câu hỏi về bài học bằng câu hỏi soạn sẵn theo từng bài tập (theo thiết kế Figma mục "Trợ lý AI"). Học viên chọn câu hỏi trong danh sách; Cam trả lời theo nội dung soạn sẵn do Phòng Đào tạo nhập. Không gọi AI, không trừ lượt. Câu hỏi ngoài danh sách: Cam thông báo chưa trả lời được. |
 
 ## **PHÂN HỆ 6: THƯƠNG MẠI & QUẢN LÝ GÓI HỌC (MODULE 6: E-COMMERCE & PAYMENTS)**
 
@@ -261,7 +261,7 @@ Tên bảng mới ở trên là tên khái niệm; tên vật lý chốt khi thi
 | Phân hệ 4 | Luyện thêm | FR-EX-07 | Medium | MVP |
 | Phân hệ 5 | AI Viết phát triển ý, Chấm chữa, Lượt AI theo khóa, Cam gợi ý | FR-AI-01 đến 04, FR-AI-06 | High | MVP |
 | Phân hệ 5 | Trợ lý AI hỏi đáp | FR-AI-07 | Medium | MVP nếu kịp |
-| Phân hệ 5 | Phát âm từng từ trên thiết bị | FR-AI-05 | Low | Sau MVP |
+| Phân hệ 5 | Phát âm từng từ trên thiết bị | FR-AI-05 | High | MVP (đưa sớm, sau đợt thử nghiệm kỹ thuật) |
 | Phân hệ 6 | Đơn hàng, Gói lượt, Gia hạn, Sản phẩm | FR-COM-01, 03 đến 07 | High | MVP |
 | Phân hệ 6 | Cổng thanh toán thật | FR-COM-02 | Low | Khi Kế toán chốt cổng |
 | Phân hệ 7 | Streak, XP & Thông báo đẩy | FR-RET-01 đến 03 | Medium | MVP |
