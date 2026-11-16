@@ -4,6 +4,7 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react()],
+  envDir: '..', // dùng .env gốc repo; Vite chỉ lộ biến VITE_*
   server: {
     port: 5173,
     proxy: { '/api': 'http://localhost:8080' },

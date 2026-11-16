@@ -93,7 +93,10 @@ services:
       start_period: 30s
 
   web:
-    build: ./Web
+    build:
+      context: ./Web
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     ports:
       - "3000:80"
     depends_on:
