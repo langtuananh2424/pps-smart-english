@@ -1,5 +1,5 @@
 -- Sản phẩm, đơn hàng, ghi danh theo khóa (D-25), sổ cái lượt AI và link kích hoạt (FR-COM-04).
--- raw_payload dùng kiểu json (chạy được cả H2 lẫn PostgreSQL); db/migration-pg/V100 đổi sang jsonb trên PostgreSQL.
+-- raw_payload dùng kiểu json (chạy được cả H2 lẫn PostgreSQL); db/migration-pg/V8 đổi sang jsonb trên PostgreSQL.
 CREATE TABLE products (
     id          bigserial PRIMARY KEY,
     type        varchar(20)  NOT NULL CHECK (type IN ('LEVEL', 'COMBO', 'AI_ADDON')),

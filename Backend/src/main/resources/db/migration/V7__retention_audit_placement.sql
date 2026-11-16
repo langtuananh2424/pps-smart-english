@@ -1,5 +1,5 @@
 -- Giữ chân học viên (streak, XP, thông báo), nhật ký thao tác nội bộ và kiểm tra đầu vào.
--- Cột JSON dùng kiểu json (chạy được cả H2 lẫn PostgreSQL); db/migration-pg/V100 đổi sang jsonb trên PostgreSQL.
+-- Cột JSON dùng kiểu json (chạy được cả H2 lẫn PostgreSQL); db/migration-pg/V8 đổi sang jsonb trên PostgreSQL.
 CREATE TABLE activity_days (
     user_id       bigint NOT NULL REFERENCES users (id),
     activity_date date   NOT NULL, -- ngày theo Asia/Ho_Chi_Minh (Q-18); không đặt tên "day" vì DAY là từ khóa của H2
@@ -40,7 +40,7 @@ CREATE TABLE notifications (
 );
 CREATE INDEX idx_notifications_user_created ON notifications (user_id, created_at DESC);
 
--- FR-ADM-05: chỉ ghi thêm; bất biến trên PostgreSQL ở db/migration-pg/V100
+-- FR-ADM-05: chỉ ghi thêm; bất biến trên PostgreSQL ở db/migration-pg/V8
 CREATE TABLE audit_logs (
     id           bigserial PRIMARY KEY,
     actor_id     bigint       NOT NULL REFERENCES users (id),

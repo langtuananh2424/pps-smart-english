@@ -1,5 +1,5 @@
 -- Chấm AI: hàng đợi job, token usage, lượt định kỳ, trọng số tác vụ, chấm lại bài cũ (FR-ADM-02) và phiên chấm nói (FR-AI-03).
--- Cột JSON dùng kiểu json (chạy được cả H2 lẫn PostgreSQL); db/migration-pg/V100 đổi sang jsonb trên PostgreSQL.
+-- Cột JSON dùng kiểu json (chạy được cả H2 lẫn PostgreSQL); db/migration-pg/V8 đổi sang jsonb trên PostgreSQL.
 CREATE TABLE writing_sessions (
     id           bigserial PRIMARY KEY,
     user_id      bigint      NOT NULL REFERENCES users (id),

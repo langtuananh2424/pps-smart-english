@@ -1,5 +1,5 @@
 -- Bài tập, chấm điểm và nội dung soạn sẵn cho Cam. Cột JSON dùng kiểu json (chạy được cả H2 lẫn PostgreSQL);
--- db/migration-pg/V100 đổi sang jsonb trên PostgreSQL.
+-- db/migration-pg/V8 đổi sang jsonb trên PostgreSQL.
 CREATE TABLE grammar_elements (
     id         bigserial PRIMARY KEY,
     code       varchar(40)  NOT NULL UNIQUE,
