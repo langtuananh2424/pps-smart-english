@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-pps}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pps}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432" # đổi DB_PORT khi 5432 đã có DB khác chiếm
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -76,6 +76,12 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       MINIO_BUCKET: ${MINIO_BUCKET:-pps-media}
+      # engine chấm nói qua SSH tunnel trên máy dev; trong container phải gọi host.docker.internal (docs/speaking-engine-local.md)
+      SPEAKING_ENGINE: ${SPEAKING_ENGINE:-http}
+      ENGINE_URL: ${COMPOSE_ENGINE_URL:-http://host.docker.internal:8100}
+      ENGINE_TOKEN: ${ENGINE_TOKEN:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Linux không tự có tên này
     ports:
       - "8080:8080"
     depends_on:
