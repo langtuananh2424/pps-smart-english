@@ -50,6 +50,16 @@ Các lệch trước đây (PostgreSQL 17, React 19, MinIO, chưa làm đăng k�
 - Mục P0 liên quan đến tải, lỗi mạng hay dữ liệu lớn phải có test chứng minh, không chỉ đọc code.
 - Khi viết code, áp dụng sẵn các yêu cầu P0 của checklist (timeout, giới hạn tài nguyên, phân quyền theo bản ghi, migration tương thích ngược...) để không dồn việc đến lúc duyệt.
 
+## Theo dõi tiến độ trên GitHub Project
+
+Chủ dự án theo dõi việc trên GitHub Project "PPS Smart English MVP" (`gh project ... 1 --owner langtuananh2424`, field `Status`: Todo / In Progress / Done). Phiên chính (Opus) cập nhật thường xuyên, không đợi được nhắc:
+
+- Bắt đầu làm một việc thuộc issue nào thì chuyển issue đó sang **In Progress**.
+- Xong một phần (backend, web, mobile) thì bình luận ngắn vào issue: phần đã xong, commit/PR, phần còn lại, điểm chưa kiểm chứng.
+- Chỉ chuyển **Done** khi mọi phần của issue (backend, giao diện, test) đã xong và đã merge vào `develop`.
+- Việc mới phát sinh mà chưa có issue: tạo issue, gắn vào project, ghi mã yêu cầu (FR/D-xx).
+- Không đổi trạng thái hay tạo issue cho việc chưa bắt đầu hoặc chỉ là đề xuất chưa duyệt.
+
 ## Commit
 
 Theo Conventional Commits: `type(scope): subject`
