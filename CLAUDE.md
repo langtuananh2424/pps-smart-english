@@ -43,6 +43,13 @@ Các lệch trước đây (PostgreSQL 17, React 19, MinIO, chưa làm đăng k�
 
 `feat/*` → `develop` (chỉ tích hợp, không deploy) → `main` (staging) → `production` (người dùng). `hotfix/*` vào `production` rồi vào `main`. Chi tiết và cách chuẩn bị server: `README.md` mục CI/CD.
 
+## Duyệt trước khi lên production
+
+- Mọi PR vào nhánh `production` (kể cả `hotfix/*`) phải qua `docs/production-checklist.md`: copy checklist vào mô tả PR, tick từng mục, ghi lý do với mục không áp dụng.
+- Kiểm tra theo thứ tự P0, P1, P2. Một mục P0 không đạt thì không merge. P1 sửa trước khi deploy, hoặc có kế hoạch kèm người chịu trách nhiệm. P2 được ghi nợ kỹ thuật.
+- Mục P0 liên quan đến tải, lỗi mạng hay dữ liệu lớn phải có test chứng minh, không chỉ đọc code.
+- Khi viết code, áp dụng sẵn các yêu cầu P0 của checklist (timeout, giới hạn tài nguyên, phân quyền theo bản ghi, migration tương thích ngược...) để không dồn việc đến lúc duyệt.
+
 ## Commit
 
 Theo Conventional Commits: `type(scope): subject`

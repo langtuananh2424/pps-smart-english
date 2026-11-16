@@ -1,6 +1,6 @@
 # Quyết định và câu hỏi mở (BA)
 
-Nguồn: trao đổi BA với chủ dự án ngày 2026-11-13. Ngày 2026-11-13 chủ dự án cho phép (BQ-14) và các quyết định D-01..D-20 đã được đưa vào PRD v0.2 / SRS v1.1; cột "Lệch PRD/SRS" và mục 5 giữ lại để truy vết lý do thay đổi. Câu hỏi BQ-xx còn mở vẫn chặn phần liên quan.
+Nguồn: trao đổi BA với chủ dự án ngày 2026-11-13 và 2026-11-14 (D-21..D-25). Ngày 2026-11-13 chủ dự án cho phép (BQ-14) và các quyết định D-01..D-20 đã được đưa vào PRD v0.2 / SRS v1.1; cột "Lệch PRD/SRS" và mục 5 giữ lại để truy vết lý do thay đổi. Câu hỏi BQ-xx còn mở vẫn chặn phần liên quan.
 
 Mã: `D-xx` quyết định đã chốt, `BQ-xx` câu hỏi BA còn mở (khác `Q-xx` trong `docs/system-design.md`).
 
@@ -28,6 +28,34 @@ Mã: `D-xx` quyết định đã chốt, `BQ-xx` câu hỏi BA còn mở (khác 
 | D-18 | Cổng thanh toán **chưa chốt**, chờ Kế toán. Xếp xuống cuối danh sách việc; tới lúc đó dùng cổng giả lập. | FR-COM-02 | Giữ `FakePaymentGateway` |
 | D-19 | Mật khẩu tối thiểu 8 ký tự, không bắt buộc chữ hoa / số / ký tự đặc biệt. | Đóng Q-28 | Khớp `PasswordRules` (cần kiểm) |
 | D-20 | Các màn hình còn thiếu (thanh toán, hồ sơ, admin, nhân viên, hỗ trợ) chủ dự án thiết kế dần trong Figma. | — | FE chờ Figma từng màn |
+| D-21 | (2026-11-14, BQ-04) Ví tuần mặc định **20 lượt/tuần/khóa**, quản trị chỉnh được. Trọng số mục 3 vẫn chờ duyệt. | FR-AI-04 (số lượt chưa có) | `AiQuotaService`: ví theo khóa, mức nạp lấy từ cấu hình |
+| D-22 | (2026-11-14, BQ-02/BQ-03; làm rõ 2026-11-14) Có hai nguồn lượt, như gói Pro của Claude: **(a) Lượt thường niên**: số lượt AI cấp khi đăng ký khóa, dùng được đến khi hết hạn khóa. **(b) Pool mua thêm** (như credits): không có hạn dùng, không reset, chỉ bị trừ khi lượt hàng tuần của khóa đã hết. **Đã làm rõ ở D-31:** lượt thường niên chính là lượt định kỳ. | FR-COM-05, FR-AI-04 | `user_ai_quota` phải tách thành ví tuần theo khóa, lượt thường niên theo khóa và pool riêng |
+| D-23 | (2026-11-14, BQ-06) Kiểm tra đầu vào được làm lại; số lần làm lại cấu hình được; để trống = không cho làm lại. | FR-TEST-01 | Cấu hình số lần trên đề đầu vào |
+| D-24 | (2026-11-14, BQ-08) Role gồm học sinh, nhân viên, giáo viên, giám đốc, quản trị viên, ... (danh sách mở). Có bảng chọn quyền và thêm role như `pps-education`. Quyền từng role: chưa chốt. | FR-ADM-04 (thay D-15) | Bảng `roles`, `permissions`, … (thay enum `User.Role`) |
+| D-25 | (2026-11-14) **Ghi danh theo khóa** (course), không theo level. | SRS 6 (đã ghi theo khóa) | Đã đổi (V20) |
+| D-26 | (2026-11-14, đã duyệt) Dạng câu hỏi IELTS giữ theo chuẩn đề thi (Reading, Listening) như bộ luyện của IDP. Dạng PPS giữ 39 mục Figma, chỉ ở tầng hiển thị; kiểu chấm đi theo bảng ánh xạ, không theo số mục Figma. | FR-EX-04, FR-EX-05 | Tách kiểu chấm khỏi dạng hiển thị |
+| D-27 | (2026-11-14, đã duyệt) Chấm nói không dùng PUT trực tiếp. Backend cấp presigned POST policy (khóa do server sinh, giới hạn dung lượng và kiểu audio, hết hạn ngắn), client tải thẳng lên MinIO, gọi `complete` để backend kiểm tra thật, rồi mới tạo job. Job dọn file không hoàn tất. | FR-AI-03 | Thêm endpoint xin quyền tải lên và xác nhận; job dọn dẹp |
+| D-28 | (2026-11-14, đã duyệt) Cam gợi ý (FR-AI-06) và Cam hỏi đáp (FR-AI-07) dùng câu soạn sẵn do Phòng Đào tạo nhập. Lúc chạy không gọi AI, không trừ lượt. Câu ngoài danh sách: Cam nói chưa trả lời được. **Sửa FR-AI-07 trong SRS cần chủ dự án cho phép.** | FR-AI-06, FR-AI-07 | Bảng câu soạn sẵn; không cần AI cho Cam |
+| D-29 | (2026-11-14, đã duyệt) Phát âm từng từ (FR-AI-05) đưa lên sớm vì là tính năng cốt lõi. Làm một đợt thử nghiệm ngắn trước để đo kích thước mô hình, độ trễ trên điện thoại tầm trung, độ chính xác và khả năng chạy trên web. **Đổi mức ưu tiên trong SRS cần chủ dự án cho phép.** | FR-AI-05 | Phần lớn ở Flutter và web, backend gần như không đổi |
+| D-31 | (2026-11-14, BQ-15) Có hai loại lượt, không có ví "tổng cả khóa". (a) **Lượt định kỳ** của khóa: mặc định 20 lượt/tuần, chỉnh được theo tuần hoặc tháng, nạp lại đủ mức mỗi kỳ, không cộng dồn, dùng đến khi khóa hết hạn. (b) **Pool mua thêm**: mua như credits, không hết hạn, không reset, bán như sản phẩm riêng (FR-COM-05). Khi chấm AI: trừ (a), hết thì trừ (b), hết nữa thì báo hết lượt và mời mua. Việc mua thêm là quyết định của học viên, không do hệ thống tự động. | FR-AI-04, FR-COM-05 | `user_ai_quota` tách thành định kỳ theo khóa (chu kỳ tuần/tháng cấu hình được) và pool riêng |
+| D-30 | (2026-11-14, BQ-07) Bài thi của khóa: mở khi học viên học xong **một tỷ lệ phần trăm của khóa**, chỉnh được, mặc định **80%**. Không cấp chứng nhận. Thi lại **N lần**, N chỉnh được, mặc định **0** (chỉ được một lần). | FR-EXAM-02 | Cấu hình ngưỡng mở và số lần thi lại; không có bảng chứng nhận |
+| D-32 | (2026-11-14, BQ-04) **Trọng số trừ lượt AI**: bộ câu viết lại (CONNECTIVE_REWRITE, GRAMMAR_REWRITE) 1 lượt mỗi lần nộp, chỉ khi còn câu phải gọi AI; Writing Task 1: 2; Task 2: 3; Speaking: 2 mỗi part. Trọng số lưu thành bảng, quản trị chỉnh được. Job lỗi hoàn đúng số lượt đã trừ. | FR-AI-04 | `AiQuotaService` đang trừ phẳng 1 lượt |
+| D-33 | (2026-11-14, BQ-02) Mua lại khi khóa còn hạn: **cộng dồn** thời hạn. "Không có hạn dùng" (D-22) chỉ nói về pool mua thêm. | FR-COM-06 | Không (`EntitlementGranter` đã cộng dồn) |
+| D-34 | (2026-11-14, BQ-01/BQ-03 hoãn) Giá thật chưa chốt. Dữ liệu mẫu dùng **giá tạm**: gói 12 tháng = 1,6 × gói 6 tháng; gói lượt 10/20/50/100/200/500 = 49k/89k/199k/369k/699k/1.590k. Chỉ dùng để dựng giao diện, ghi rõ "giá mẫu". Trước khi chốt giá lượt AI phải đối chiếu chi phí AI thật. Mỗi khóa có hai sản phẩm 180 và 365 ngày. | FR-COM-01, FR-COM-05 | Seed demo; bỏ `COMBO` khỏi seed |
+| D-35 | (2026-11-14, BQ-10) Học thử: mặc định mở **Topic đầu của Level đầu** mỗi khóa, Phòng Đào tạo đổi trong CMS. Học thử không có lượt AI, không được thi khóa (D-10). Thống nhất "1 Topic" (bỏ "1–2 Topic" trong `system-design.md`). | FR-COM-04, FR-EXAM-02 | Chặn bài thi với người chỉ học thử khi làm module thi |
+| D-36 | (2026-11-14, BQ-11) Khóa hết hạn: **vẫn xem được lịch sử và kết quả**, không làm bài mới. | FR-COM-03 | Không (code đang như vậy) |
+| D-37 | (2026-11-14, BQ-08) Ma trận quyền mặc định: Quản trị viên tất cả; Giám đốc `report.view`, `audit.view`, `order.view`; Kế toán `report.view`, `order.view`; Nhân viên hỗ trợ `student.view`, `order.view`, `activation.manage`; Biên tập viên `cms.content`, `regrade.manage`; Giáo viên `regrade.manage`, `student.view`. Thêm quyền `product.manage`, `order.view`, `student.view`. Bỏ role `STAFF` (gộp vào Nhân viên hỗ trợ). SRS chưa có chức năng riêng của Giáo viên trong B2C. | FR-ADM-04 | Migration seed quyền, bỏ `STAFF` |
+| D-38 | (2026-11-14, BQ-12) MVP không tự phát hành hóa đơn. Xuất CSV đơn đã thanh toán đủ trường để Kế toán xuất hóa đơn điện tử bằng phần mềm của họ. Tích hợp nhà cung cấp hóa đơn sau, khi chốt cổng thanh toán. Nghĩa vụ hóa đơn với khách lẻ: Kế toán xác nhận. | FR-ADM-03 | Endpoint xuất CSV đơn hàng |
+| D-39 | (2026-11-14, BQ-06) Kiểm tra đầu vào: Nghe, Đọc, Ngữ pháp, khoảng 40 câu, 30–40 phút; **không có Writing/Speaking** trong MVP. Khách làm được, phải đăng ký mới xem kết quả. Band → khóa gợi ý theo bảng 6 khóa mục 2 (bỏ bảng 4 khóa và combo ở Q-04). Đề do Phòng Đào tạo soạn. | FR-TEST-01, FR-GOAL-03 | Module mới |
+| D-40 | (2026-11-14, BQ-05) "1.000 user" = **1.000 người dùng đồng thời**, như NFR-PERF-01. | NFR-PERF-01 | Kịch bản load test |
+| D-41 | (2026-11-14, BQ-13) Tranh nguồn lực: phần học viên luyện tập ưu tiên **mobile**; quản trị và luồng mua ưu tiên **web**. | SRS 1.2 | Không (backend dùng chung API) |
+| D-42 | (2026-11-14) `pps-speaking-engine` chạy **bản riêng** cho dự án, không dùng chung với `pps-education`. Đo RAM mỗi bản trong đợt thử phát âm (D-29) rồi chốt số bản. Máy thật 32 GB (SRS 2.3 ghi 8 GB là mức tối thiểu). | NFR-PERF-03 | Docker Compose thêm dịch vụ |
+| D-43 | (2026-11-14) Ghi âm tối đa 3 phút mỗi part Speaking, 1 phút mỗi câu trả lời ngắn; file giữ 30 ngày. Cam hỏi đáp không giới hạn số câu mỗi ngày, chỉ giới hạn tần suất khoảng 30 câu/phút. | FR-AI-03, FR-AI-07 | Giới hạn trong luồng tải lên (D-27) |
+| D-45 | (2026-11-14, **tạm hoãn**) "Chuyển đổi đề" = nhập đề có sẵn dạng Word/PDF thành câu hỏi có cấu trúc trong CMS. Chủ dự án định dùng CKEditor 5, nhưng nếu cần giấy phép thì tạm bỏ qua. CKEditor 5 dùng GPL (sản phẩm đóng mã cần bản thương mại) và tính năng nhập Word là gói trả phí, nên **hoãn cả CKEditor lẫn chuyển đổi đề**. Khi làm lại: cân nhắc thư viện MIT/BSD (ví dụ trình soạn TipTap/Lexical, đọc .docx bằng mammoth); backend lọc HTML theo danh sách thẻ cho phép (chống XSS). | FR-ADM-02 | Không (hoãn) |
+| D-46 | (2026-11-14, bổ sung D-30) Tỷ lệ học xong khóa = số bài học đã hoàn thành ÷ số bài học đã xuất bản của khóa (bài xong khi xem đủ 80% video, quy tắc hiện có). Mỗi khóa có **một bộ đề thi** (bộ câu hỏi chế độ EXAM), chọn trong trang cài đặt khóa cùng ngưỡng % và số lần thi lại. | FR-EXAM-02 | Cột cấu hình trên `courses`; kiểm tra khi bắt đầu thi |
+| D-47 | (2026-11-14, thiết kế theo D-31/D-32, chờ chủ dự án xem lại) Lượt định kỳ tính theo kỳ hiện tại (tuần từ 00:00 thứ Hai, tháng từ 00:00 ngày 1, giờ Việt Nam), không cần job nạp lại. Khi lượt định kỳ còn ít hơn trọng số tác vụ thì lấy phần còn lại từ pool mua thêm; tổng không đủ thì báo hết lượt. Tác vụ ngoài khóa đang còn hạn (ví dụ học thử) chỉ trừ pool. Hoàn lượt trả về đúng nguồn đã trừ. | FR-AI-04 | Ví theo khóa và kỳ; sổ cái ghi nguồn trừ |
+| D-48 | (2026-11-14, Q-17) Chấm Speaking theo **4 tiêu chí IELTS**: Phát âm (điểm IPA/GOPT của `pps-speaking-engine` `/v1/analyze`); Độ trôi chảy (tính từ thời gian từng từ của `/v1/transcribe`: tốc độ nói, ngập ngừng, khoảng lặng); Từ vựng và Ngữ pháp (Haiku chấm trên bản chép lời theo bảng mô tả band Speaking công khai của IELTS). Band tổng = trung bình 4 tiêu chí, làm tròn 0.5. Trả bản chép lời, từ phát âm sai, nhận xét, gợi ý. Bản ghi im lặng/không rõ (quá ngắn, quá ít từ, độ tin cậy thấp — Whisper có thể bịa chữ) thì báo thu lại, không chấm, không trừ lượt. | FR-AI-03 | Job chấm nói, client engine, prompt rubric Speaking |
+| D-44 | (2026-11-14) **GRAMMAR_IDENTIFY** (nhận diện cấu trúc): học viên chọn cụm liền nhau trong câu và gắn một trong 8 yếu tố ngữ pháp. (a) Đề hiện số cụm cần tìm. (b) Cụm lồng nhau hiển thị bằng gạch chân nhiều lớp theo màu yếu tố, tối đa 3 lớp, kèm danh sách chip "cụm → nhãn". (c) **Chấm từng phần**: điểm câu = số cụm đúng ÷ max(số cụm đáp án, số cụm học viên chọn); câu "đúng" khi đạt 100%. (d) Không hỗ trợ cụm ngắt quãng trong MVP; người soạn đánh dấu phần lõi liền nhau. **GRAMMAR_BUILD** (xếp khối) vẫn chấm cả câu. Ứng với màn Figma nào: chủ dự án tự thiết kế. | FR-EX-02 | Điểm bài làm phải nhận số lẻ; trả số cụm cho học viên |
 
 ## 2. Danh mục khóa MVP (D-01, D-02)
 
@@ -47,28 +75,30 @@ Bảng giá tham khảo, có thể điều chỉnh. Giá gói 12 tháng: BQ-01.
 - Đơn vị: **lượt AI**, không hiển thị token cho học viên. Token vẫn ghi ở `ai_grading_token_usage` để tính chi phí.
 - **Ví tuần**: mỗi khóa đang còn hạn có một ví riêng, nạp lại đủ mức mỗi **00:00 thứ Hai giờ Việt Nam**; lượt thừa không chuyển sang tuần sau.
 - Tác vụ AI phát sinh trong khóa nào thì trừ ví tuần của khóa đó.
-- **Pool mua thêm**: thuộc tài khoản, không reset theo tuần; chỉ trừ khi ví tuần của khóa đang dùng đã hết.
-- Thứ tự trừ: ví tuần của khóa → pool mua thêm → báo hết lượt, mời mua thêm.
-- Trọng số tạm (chờ BQ-04): viết lại câu 1; IELTS Writing Task 1: 2; Task 2: 3; mỗi phần Speaking: 2.
+- **Pool mua thêm** (làm rõ 2026-11-14): như credits đã nạp. Thuộc tài khoản, không có hạn dùng, không reset; chỉ trừ khi lượt của khóa đang dùng trong tuần đã hết.
+- **Lượt thường niên = lượt định kỳ** (chốt 2026-11-14, D-31): mỗi kỳ được nạp lại đủ mức, **mặc định 20 lượt/tuần**, chỉnh được theo tuần hoặc tháng. Lượt không dùng hết không cộng dồn sang kỳ sau. Được cấp từ lúc đăng ký khóa và nạp lại đến khi khóa hết hạn. Không có ví "tổng cả khóa" riêng.
+- **Thứ tự trừ** (chốt 2026-11-14, D-31): (1) lượt định kỳ của khóa đang dùng → (2) pool mua thêm → (3) báo hết lượt chấm AI, mời mua thêm. Tác vụ không có lượt nào thì học viên quyết định có mua hay không.
+- Trọng số (chốt 2026-11-14, D-32): viết lại câu 1; IELTS Writing Task 1: 2; Task 2: 3; mỗi phần Speaking: 2. Chỉnh được.
 - Tác vụ AI ngoài khóa (bài kiểm tra đầu vào miễn phí, Cam trả lời hỗ trợ): không trừ lượt, chống lạm dụng bằng giới hạn tần suất (BQ-06, BQ-09).
 
 ## 4. Câu hỏi BA còn mở
 
 | Mã | Câu hỏi | Chặn phần |
 |---|---|---|
-| BQ-01 | Giá gói 12 tháng của từng khóa? | Sản phẩm, trang mua |
-| BQ-02 | Mua lại / gia hạn khi khóa còn hạn: cộng dồn thời hạn (đề xuất) hay tính lại từ ngày mua? | Kích hoạt |
-| BQ-03 | Giá từng mức gói lượt (10…500)? Pool có hạn dùng không? Đề xuất: 12 tháng kể từ ngày mua. | Sản phẩm `AI_ADDON` |
-| BQ-04 | Mỗi khóa được bao nhiêu lượt/tuần? Duyệt trọng số ở mục 3? | Quota |
-| BQ-05 | "1.000 user" là 1.000 người **dùng đồng thời** (như NFR-PERF-01) hay 1.000 tài khoản? | Load test, cấu hình server |
-| BQ-06 | Kiểm tra đầu vào: gồm kỹ năng nào, bao nhiêu câu, bao lâu? Có Writing/Speaking (tốn AI) không? Khách chưa đăng nhập có làm được không? Được làm lại bao nhiêu lần? Quy tắc đổi điểm → khóa gợi ý? | Module kiểm tra đầu vào |
-| BQ-07 | Bài thi của khóa: được thi mấy lần? Mở khi nào (bất cứ lúc nào hay sau khi học xong X%)? Có cấp chứng nhận không? | Module thi |
-| BQ-08 | Danh sách role chính thức và việc từng role làm. Giáo viên làm gì trong B2C (chấm tay, trả lời câu hỏi, soạn đề)? | Phân quyền |
-| BQ-09 | Chatbox: Cam trả lời dựa trên nguồn nào (FAQ do ai soạn)? Giờ làm việc và thời gian phản hồi cam kết của nhân viên? Ticket có cần trạng thái, phân công, đánh giá không? | Module hỗ trợ |
-| BQ-10 | Học thử áp dụng thế nào cho 6 khóa (mặc định 1 Topic đầu, Q-03)? Học thử có được làm bài thi khóa không? (D-10: không) | Quyền truy cập |
-| BQ-11 | Khóa hết hạn: học viên còn xem được lịch sử bài làm, kết quả không? | Quyền truy cập |
-| BQ-12 | Có xuất hóa đơn VAT / hóa đơn điện tử không? Kế toán cần báo cáo gì? | Thương mại, báo cáo |
-| BQ-13 | Khi nguồn lực web và mobile giành nhau, ưu tiên bên nào? | Kế hoạch |
+| BQ-01 | Giá gói 12 tháng của từng khóa? **Hoãn 2026-11-14; tạm dùng giá mẫu D-34.** | Giá thật trên trang mua |
+| BQ-02 | **Đã trả lời 2026-11-14, xem D-33.** | — |
+| BQ-03 | Giá từng mức gói lượt (10…500)? Hạn dùng: không có (D-22). **Giá: hoãn 2026-11-14; tạm dùng giá mẫu D-34.** | Giá thật `AI_ADDON` |
+| BQ-15 | **Đã trả lời 2026-11-14, xem D-31.** Mức định kỳ chỉnh được theo từng khóa. | — |
+| BQ-04 | **Đã trả lời 2026-11-14, xem D-21 và D-32.** | — |
+| BQ-05 | **Đã trả lời 2026-11-14, xem D-40.** | — |
+| BQ-06 | **Đã trả lời 2026-11-14, xem D-23 và D-39.** Nội dung đề: chờ Phòng Đào tạo. | Nội dung đề |
+| BQ-07 | **Đã trả lời 2026-11-14, xem D-30.** | — |
+| BQ-08 | **Đã trả lời 2026-11-14, xem D-24 và D-37.** | — |
+| BQ-09 | **Hoãn 2026-11-14: bổ sung sau.** | Module hỗ trợ (chưa làm) |
+| BQ-10 | **Đã trả lời 2026-11-14, xem D-35.** | — |
+| BQ-11 | **Đã trả lời 2026-11-14, xem D-36.** | — |
+| BQ-12 | **Đã trả lời 2026-11-14, xem D-38.** Nghĩa vụ hóa đơn: chờ Kế toán. | — |
+| BQ-13 | **Đã trả lời 2026-11-14, xem D-41.** | — |
 | ~~BQ-14~~ | ~~Cho phép sửa `CLAUDE.md` và cập nhật PRD/SRS theo các quyết định trên?~~ **Đã trả lời 2026-11-13: cho phép.** PRD v0.2, SRS v1.1, `CLAUDE.md` đã cập nhật. | — |
 
 Câu hỏi mở từ `docs/system-design.md` vẫn còn hiệu lực: Q-07 (giấy phép từ điển), Q-09/Q-27 (gộp vào BQ-04), Q-13 (mobile lưu token, nay cần vì D-07), Q-16, Q-17, Q-22, Q-25 (chấm nói), Q-23 (giám sát), Q-29 (đường truyền video), Q-32..Q-36 (phát âm từng từ).
@@ -87,3 +117,13 @@ Câu hỏi mở từ `docs/system-design.md` vẫn còn hiệu lực: Q-07 (gi�
 | Kiểm tra đầu vào | Hoãn | Không bắt buộc | Có trong MVP (D-08) |
 | Mobile | Giai đoạn 2 | Giai đoạn 2 | Song song (D-07) |
 | Thanh toán | VietQR / VNPay / MoMo | PayOS / VNPay / MoMo | Chưa chốt (D-18) |
+
+## 6. Sửa SRS theo D-27, D-28, D-29 (đã áp dụng 2026-11-14 với sự cho phép của chủ dự án)
+
+- **FR-AI-03 (bổ sung):** Chấm nói dùng luồng tải lên qua presigned POST policy: xin quyền tải lên (kiểm tra người dùng, lượt làm bài, giới hạn tần suất và quota), client tải thẳng lên MinIO, gọi xác nhận để backend kiểm tra dung lượng và kiểu file rồi tạo job. File không được xác nhận trong thời hạn sẽ bị xóa tự động.
+- **FR-AI-05 (đổi mức ưu tiên):** từ "Sau MVP" / Low thành MVP, sau đợt thử nghiệm kỹ thuật.
+- **FR-AI-07 (viết lại):** Trợ lý Cam hỏi đáp học tập bằng câu hỏi soạn sẵn theo từng bài tập. Học viên chọn câu hỏi trong danh sách, Cam trả lời theo nội dung soạn sẵn. Không gọi AI, không trừ lượt. Câu hỏi ngoài danh sách: Cam thông báo chưa trả lời được.
+
+## 7. Các câu hỏi còn mở sau lượt duyệt 2026-11-14
+
+Các câu trước đây ở mục này đã có trả lời: BQ-07 (D-30), BQ-15 (D-31), giới hạn ghi âm và Cam (D-43). Còn mở: BQ-01, BQ-03 (giá thật), BQ-09, nội dung đề kiểm tra đầu vào, nghĩa vụ hóa đơn (Kế toán).
