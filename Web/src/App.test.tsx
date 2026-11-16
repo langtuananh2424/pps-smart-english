@@ -43,9 +43,9 @@ afterEach(() => vi.unstubAllGlobals())
 
 test('chưa đăng nhập vào route bảo vệ bị chuyển về đăng nhập, giữ next', async () => {
   mockServer(() => json(200, auth))
-  const router = renderAt('/khoa-hoc')
+  const router = renderAt('/bai-tap')
   expect(await screen.findByRole('heading', { name: 'Chào mừng trở lại!' })).toBeInTheDocument()
-  expect(router.state.location.search).toBe('?next=%2Fkhoa-hoc')
+  expect(router.state.location.search).toBe('?next=%2Fbai-tap')
 })
 
 test('đăng nhập thành công vào trang chủ thấy lời chào', async () => {

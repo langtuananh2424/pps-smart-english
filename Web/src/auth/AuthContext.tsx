@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { syncGuestQa } from '../features/qa/sync'
 import { api, postJson, refreshSession, setAccessToken, setSessionLostHandler, type AuthResponse, type SessionUser } from '../lib/api'
 
 interface AuthState {
@@ -28,6 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const start = useCallback(async (path: string, body: unknown) => {
     const a = await postJson<AuthResponse>(path, body)
     setAccessToken(a.accessToken)
+    // Xong trước khi vào app để trang Khóa học không đọc Q&A cũ.
+    await syncGuestQa()
     setUser(a.user)
   }, [])
   const login = useCallback((email: string, password: string) => start('/auth/login', { identifier: email, password }), [start])

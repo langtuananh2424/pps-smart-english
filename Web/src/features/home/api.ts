@@ -8,7 +8,8 @@ export const useMeStats = () => useQuery({ queryKey: ['me', 'stats'], queryFn: (
 export const useUnreadCount = () =>
   useQuery({ queryKey: ['me', 'unread'], queryFn: () => api<{ count: number }>('/me/notifications/unread-count') })
 
-export const useMyCourses = () => useQuery({ queryKey: ['me', 'courses'], queryFn: () => api<MyCourse[]>('/me/courses') })
+export const useMyCourses = (enabled = true) =>
+  useQuery({ queryKey: ['me', 'courses'], queryFn: () => api<MyCourse[]>('/me/courses'), enabled })
 
 export const useRoadmap = (courseId?: number) =>
   useQuery({

@@ -1,5 +1,8 @@
 import type { RouteObject } from 'react-router'
 import { PublicOnly, RequireAuth } from '../auth/guards'
+import { CoursesPage } from '../features/courses/CoursesPage'
+import { QaPage } from '../features/qa/QaPage'
+import { AdaptiveShell } from '../layout/AdaptiveShell'
 import { AppShell } from '../layout/AppShell'
 import { ErrorPage, NotFoundPage } from './ErrorPages'
 import { HomePage } from './HomePage'
@@ -27,13 +30,22 @@ export const routes: RouteObject[] = [
       { path: '/reset-password', element: <ResetPasswordPage /> },
       { path: '/verify-email', element: <VerifyEmailPage /> },
       {
+        // Công khai: khách làm Q&A và xem khóa (US-201).
+        element: <AdaptiveShell />,
+        children: [
+          { path: '/khoa-hoc', element: <CoursesPage /> },
+          { path: '/goi-y-khoa', element: <QaPage /> },
+          // Trang chi tiết khóa chưa có thiết kế.
+          { path: '/khoa-hoc/:slug', element: todo('Chi tiết khóa học') },
+        ],
+      },
+      {
         element: <RequireAuth />,
         children: [
           {
             element: <AppShell />,
             children: [
               { path: '/', element: <HomePage /> },
-              { path: '/khoa-hoc', element: todo('Khóa học') },
               { path: '/bai-giang', element: todo('Bài giảng') },
               { path: '/bai-tap', element: todo('Bài tập') },
               { path: '/ho-so', element: <ProfilePage /> },
@@ -41,7 +53,6 @@ export const routes: RouteObject[] = [
               { path: '/bai-giang/:lessonId', element: todo('Bài giảng') },
               { path: '/bai-tap/:bankId', element: todo('Bài tập') },
               { path: '/viet/:questionId', element: todo('Viết phát triển ý') },
-              { path: '/khoa-hoc/:slug', element: todo('Chi tiết khóa học') },
               { path: '/thong-bao', element: todo('Thông báo') },
               { path: '/tro-ly-ai', element: todo('Trợ lý AI') },
               { path: '/kiem-tra-dau-vao', element: todo('Kiểm tra đầu vào') },
