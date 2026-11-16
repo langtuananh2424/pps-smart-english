@@ -1,15 +1,22 @@
 package com.pps.smartenglish.exercise.repository;
 
 import com.pps.smartenglish.exercise.domain.Question;
+import jakarta.persistence.LockModeType;
 import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     List<Question> findByBankIdOrderBySortOrderAscIdAsc(Long bankId);
+
+    /** Khóa dòng câu hỏi để đếm + chèn gợi ý của cùng một câu chạy tuần tự. Rỗng nếu không có câu. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select q.id from Question q where q.id = :id")
+    List<Long> lockById(@Param("id") Long id);
 
     boolean existsByBankId(Long bankId);
 

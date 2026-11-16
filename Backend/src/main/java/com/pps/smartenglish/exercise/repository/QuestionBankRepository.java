@@ -2,13 +2,20 @@ package com.pps.smartenglish.exercise.repository;
 
 import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.dto.BankInfo;
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long> {
+
+    /** Khóa dòng bộ câu hỏi để đếm + chèn hỏi đáp của cùng một bộ chạy tuần tự. Rỗng nếu không có bộ. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select b.id from QuestionBank b where b.id = :id")
+    List<Long> lockById(@Param("id") Long id);
 
     /** CMS: mọi trạng thái. */
     List<QuestionBank> findByTopicIdOrderByIdAsc(Long topicId);

@@ -160,6 +160,47 @@ class CamContentTest extends ApiTestBase {
         assertEquals(1, count("select count(*) from audit_logs where target_type = 'BANK_FAQ' and action = 'DELETE' and target_id = ?", String.valueOf(b)));
     }
 
+    /** Đang ở 9/10 (gợi ý) và 29/30 (hỏi đáp): 8 luồng cùng thêm thì đúng một luồng thành công. */
+    @Test
+    void parallelCreatesCannotExceedLimits() throws Exception {
+        var p = place("PRACTICE", true);
+        var admin = withRole("ADMIN");
+        for (int i = 0; i < 9; i++) {
+            hint(admin, p.q1, "g" + i, null, null);
+        }
+        for (int i = 0; i < 29; i++) {
+            faq(admin, p.bank, "q" + i, "a", null);
+        }
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(8);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        var results = new java.util.ArrayList<java.util.concurrent.Future<int[]>>();
+        for (int i = 0; i < 8; i++) {
+            results.add(pool.submit(() -> {
+                start.await();
+                int h = call(post(CMS + "/questions/" + p.q1 + "/hints"), admin, Map.of("content", "song song"))
+                        .andReturn().getResponse().getStatus();
+                int f = call(post(CMS + "/banks/" + p.bank + "/faqs"), admin, Map.of("question", "song song", "answer", "x"))
+                        .andReturn().getResponse().getStatus();
+                return new int[] {h, f};
+            }));
+        }
+        start.countDown();
+        int hintOk = 0;
+        int faqOk = 0;
+        for (var r : results) {
+            int[] s = r.get();
+            hintOk += s[0] == 201 ? 1 : 0;
+            faqOk += s[1] == 201 ? 1 : 0;
+            assertEquals(s[0] == 201 ? 201 : 400, s[0]);
+            assertEquals(s[1] == 201 ? 201 : 400, s[1]);
+        }
+        pool.shutdown();
+        assertEquals(1, hintOk);
+        assertEquals(1, faqOk);
+        assertEquals(10, count("select count(*) from question_hints where question_id = ?", p.q1));
+        assertEquals(30, count("select count(*) from bank_faqs where bank_id = ?", p.bank));
+    }
+
     @Test
     void cmsRequiresContentPermission() throws Exception {
         var p = place("PRACTICE", true);

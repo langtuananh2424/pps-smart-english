@@ -42,7 +42,9 @@ public class CmsFaqService {
 
     @Transactional
     public FaqView create(long bankId, FaqInput req) {
-        requireBank(bankId);
+        if (banks.lockById(bankId).isEmpty()) { // khóa dòng cha: đếm + chèn không vượt giới hạn khi đồng thời
+            throw new ApiException(HttpStatus.NOT_FOUND, "bank_not_found", "Không tìm thấy bộ câu hỏi");
+        }
         String question = PlainText.required("question", req.question(), QUESTION_MAX);
         String answer = PlainText.required("answer", req.answer(), ANSWER_MAX);
         long count = faqs.countByBankId(bankId);

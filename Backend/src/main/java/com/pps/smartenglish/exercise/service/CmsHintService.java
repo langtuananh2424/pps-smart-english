@@ -42,7 +42,9 @@ public class CmsHintService {
 
     @Transactional
     public HintView create(long questionId, HintInput req) {
-        requireQuestion(questionId);
+        if (questions.lockById(questionId).isEmpty()) { // khóa dòng cha: đếm + chèn không vượt giới hạn khi đồng thời
+            throw new ApiException(HttpStatus.NOT_FOUND, "question_not_found", "Không tìm thấy câu hỏi");
+        }
         String content = PlainText.required("content", req.content(), CONTENT_MAX);
         String detail = blankToNull(PlainText.clean("detail", req.detail(), DETAIL_MAX));
         long count = hints.countByQuestionId(questionId);
