@@ -60,6 +60,15 @@ app:
     zone: Asia/Ho_Chi_Minh
     # tỷ giá USD/VND để quy đổi chi phí AI; không có mặc định, để trống thì báo cáo chỉ có USD
     usd-vnd-rate: ${REPORT_USD_VND_RATE:}
+  suggestion:
+    # band quy đổi từ trình độ tự đánh giá khi chưa làm kiểm tra đầu vào (D-56)
+    self-level-band:
+      MAT_GOC: 0
+      CO_BAN: 3.0
+      TRUNG_CAP: 4.0
+      KHA: 5.0
+    # số lần gọi gợi ý công khai tối đa mỗi IP mỗi giờ
+    guest-ip-limit: 30
   cam:
     # Cam nhắc khóa sắp hết hạn khi còn từng này ngày (D-53)
     expiring-days: 7

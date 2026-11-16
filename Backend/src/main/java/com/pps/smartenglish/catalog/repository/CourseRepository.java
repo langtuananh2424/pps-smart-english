@@ -1,11 +1,13 @@
 package com.pps.smartenglish.catalog.repository;
 
 import com.pps.smartenglish.catalog.domain.Course;
+import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -20,6 +22,11 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     /** Khóa đã xuất bản có dải band, để gợi ý khóa theo level (FR-GOAL-03). */
     List<Course> findByStatusAndBandFromIsNotNullOrderByBandFromAscIdAsc(String status);
+
+    /** Khóa dòng course để các thao tác đổi topic học thử của cùng khóa chạy tuần tự (D-57). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select c from Course c where c.id = :id")
+    Optional<Course> lockById(@Param("id") Long id);
 
     boolean existsBySlug(String slug);
 

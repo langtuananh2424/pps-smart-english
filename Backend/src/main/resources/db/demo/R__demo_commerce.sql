@@ -11,15 +11,26 @@ DECLARE
     pid bigint;
     pname text;
 BEGIN
-    -- Dọn seed cũ (sản phẩm theo Level và COMBO): ẩn đi, không xóa vì có thể đã có đơn tham chiếu.
+    -- Dọn seed cũ (sản phẩm theo Level, COMBO, sản phẩm không còn level nào của khóa đang xuất bản): ẩn đi, không xóa vì có thể đã có đơn tham chiếu.
     UPDATE products SET status = 'INACTIVE', updated_at = CURRENT_TIMESTAMP
-    WHERE status = 'ACTIVE' AND (type = 'COMBO' OR (type = 'LEVEL' AND name NOT LIKE '% - % ngày'));
+    WHERE status = 'ACTIVE' AND (type = 'COMBO' OR (type = 'LEVEL' AND (name NOT LIKE '% - % ngày' OR NOT EXISTS (
+        SELECT 1 FROM product_levels pl JOIN course_levels lv ON lv.id = pl.level_id JOIN courses c ON c.id = lv.course_id
+        WHERE pl.product_id = products.id AND c.status = 'PUBLISHED'))));
 
-    -- Mỗi khóa hai sản phẩm: 180 ngày và 365 ngày (giá 365 = 1,6 x giá 180). type 'LEVEL' là giá trị khóa học còn hợp lệ.
-    FOR course_row IN SELECT id, title FROM courses WHERE status = 'PUBLISHED' LOOP
-        FOR tier IN SELECT * FROM (VALUES (180, 4200000::bigint), (365, 6720000::bigint)) AS t(days, price) LOOP
+    -- D-54/D-02: giá 6 tháng theo bảng; D-34: 12 tháng = 1,6 x, làm tròn đến nghìn. type 'LEVEL' là giá trị khóa học còn hợp lệ.
+    FOR course_row IN
+        SELECT c.id, c.title, v.price FROM courses c
+        JOIN (VALUES ('begin', 5600000::bigint), ('academic-english-1', 4200000::bigint), ('academic-english-2', 4200000::bigint),
+                     ('pre-ielts', 7350000::bigint), ('ielts-foundation', 11025000::bigint), ('super-ielts', 7875000::bigint)
+        ) AS v(slug, price) ON v.slug = c.slug
+        WHERE c.status = 'PUBLISHED' LOOP
+        FOR tier IN SELECT 180 AS days, course_row.price AS price
+                    UNION ALL SELECT 365, (round(course_row.price * 1.6 / 1000) * 1000)::bigint LOOP
             pname := course_row.title || ' - ' || tier.days || ' ngày';
-            IF NOT EXISTS (SELECT 1 FROM products WHERE type = 'LEVEL' AND name = pname) THEN
+            IF EXISTS (SELECT 1 FROM products WHERE type = 'LEVEL' AND name = pname) THEN
+                UPDATE products SET price_vnd = tier.price, access_days = tier.days, status = 'ACTIVE', updated_at = CURRENT_TIMESTAMP
+                WHERE type = 'LEVEL' AND name = pname;
+            ELSE
                 INSERT INTO products (type, name, price_vnd, access_days, ai_quota)
                 VALUES ('LEVEL', pname, tier.price, tier.days, 0) -- lượt AI của khóa theo cấu hình khóa, không cộng pool (D-47)
                 RETURNING id INTO pid;

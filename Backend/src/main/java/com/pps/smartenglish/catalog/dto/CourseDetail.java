@@ -1,8 +1,11 @@
 package com.pps.smartenglish.catalog.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
-public record CourseDetail(String slug, String title, String description, String targetType, List<LevelNode> levels) {
+public record CourseDetail(String slug, String title, String description, String targetType, BigDecimal bandFrom,
+                           BigDecimal bandTo, int trialLessonCount, Long priceFromVnd, int levelCount, int lessonCount,
+                           List<ProductOption> products, List<LevelNode> levels) {
 
     public record LevelNode(Long id, String code, String title, List<TopicNode> topics) {}
 

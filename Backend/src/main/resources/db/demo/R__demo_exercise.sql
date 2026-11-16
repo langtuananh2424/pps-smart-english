@@ -9,10 +9,10 @@ DECLARE
 BEGIN
     SELECT t.id INTO free_topic
     FROM topics t JOIN course_levels lv ON lv.id = t.level_id JOIN courses c ON c.id = lv.course_id
-    WHERE c.slug = 'ielts-0-3' AND lv.code = 'L1' AND t.sort_order = 1;
+    WHERE c.slug = 'begin' AND lv.code = 'L1' AND t.sort_order = 1;
     SELECT t.id INTO locked_topic
     FROM topics t JOIN course_levels lv ON lv.id = t.level_id JOIN courses c ON c.id = lv.course_id
-    WHERE c.slug = 'ielts-0-3' AND lv.code = 'L1' AND t.sort_order = 2;
+    WHERE c.slug = 'begin' AND lv.code = 'L1' AND t.sort_order = 2;
 
     -- Bank ở Topic học thử: đủ các dạng chấm tự động và hai dạng chấm AI
     IF free_topic IS NOT NULL

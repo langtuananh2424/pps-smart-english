@@ -8,7 +8,9 @@ CREATE TABLE user_profiles (
     last_active_date date,
     timezone         varchar(64), -- để null: múi giờ chưa chốt (Q-18)
     created_at       timestamp with time zone  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at       timestamp with time zone  NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at       timestamp with time zone  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    qa_answers       json, -- câu trả lời Q&A gợi ý khóa (D-55); V8 đổi sang jsonb trên PostgreSQL
+    qa_updated_at    timestamp with time zone
 );
 
 CREATE TABLE user_goals (

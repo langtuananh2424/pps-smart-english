@@ -38,3 +38,6 @@ CREATE INDEX idx_refresh_tokens_active_user ON refresh_tokens (user_id) WHERE re
 -- Chỉ một đề kiểm tra đầu vào PUBLISHED (FR-ADM-06); service đã hạ đề cũ, index chặn race. CmsWrites đổi vi phạm thành 409 conflict.
 CREATE UNIQUE INDEX uq_question_banks_one_published_placement ON question_banks ((true))
     WHERE purpose = 'PLACEMENT' AND status = 'PUBLISHED';
+
+-- Q&A gợi ý khóa (D-55): json -> jsonb.
+ALTER TABLE user_profiles ALTER COLUMN qa_answers TYPE jsonb USING qa_answers::jsonb;

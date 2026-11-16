@@ -44,6 +44,7 @@ public class SecurityConfig {
                         // FR-TEST-01: khách làm kiểm tra đầu vào; quyền theo token của lượt được kiểm trong PlacementAccess
                         .requestMatchers(HttpMethod.POST, "/api/placement/attempts", "/api/placement/attempts/*/submit").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/placement/attempts/*/draft").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/catalog/course-suggestions").permitAll() // khách làm Q&A
                         .requestMatchers(HttpMethod.GET, "/api/products").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/activation-links/*").permitAll() // xem trước gói trước khi đăng nhập
                         // FR-ADM-04: quyền theo role và override, đọc từ DB mỗi lần gọi. Route không khai báo thì từ chối.
