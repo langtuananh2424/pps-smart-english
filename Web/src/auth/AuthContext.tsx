@@ -5,6 +5,8 @@ interface AuthState {
   user: SessionUser | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
+  register: (email: string, password: string, displayName: string) => Promise<void>
+  loginWithGoogle: (idToken: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -22,11 +24,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false))
   }, [])
 
-  const login = useCallback(async (email: string, password: string) => {
-    const a = await postJson<AuthResponse>('/auth/login', { identifier: email, password })
+  // Đăng nhập, đăng ký và Google cùng trả AuthResponse.
+  const start = useCallback(async (path: string, body: unknown) => {
+    const a = await postJson<AuthResponse>(path, body)
     setAccessToken(a.accessToken)
     setUser(a.user)
   }, [])
+  const login = useCallback((email: string, password: string) => start('/auth/login', { identifier: email, password }), [start])
+  const register = useCallback(
+    (email: string, password: string, displayName: string) => start('/auth/register', { email, password, displayName }),
+    [start],
+  )
+  const loginWithGoogle = useCallback((idToken: string) => start('/auth/oauth/google', { idToken }), [start])
 
   const logout = useCallback(async () => {
     // Dù server lỗi vẫn xóa phiên phía client.
@@ -35,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
-  const value = useMemo(() => ({ user, loading, login, logout }), [user, loading, login, logout])
+  const value = useMemo(() => ({ user, loading, login, register, loginWithGoogle, logout }), [user, loading, login, register, loginWithGoogle, logout])
   return <AuthContext value={value}>{children}</AuthContext>
 }
 

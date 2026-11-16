@@ -4,6 +4,12 @@ import { useAuth } from './AuthContext'
 // Chỉ nhận đường dẫn nội bộ, tránh open redirect.
 export const safeNext = (next: string | null) => (next && next.startsWith('/') && !next.startsWith('//') ? next : '/')
 
+// Giữ `next` khi chuyển giữa đăng nhập và đăng ký.
+export const withNext = (path: string, params: URLSearchParams) => {
+  const next = params.get('next')
+  return next ? `${path}?next=${encodeURIComponent(next)}` : path
+}
+
 export function FullScreenLoading() {
   return (
     <div role="status" className="grid min-h-dvh place-items-center bg-page text-ink-secondary font-bold">

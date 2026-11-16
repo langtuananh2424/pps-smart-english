@@ -4,6 +4,8 @@ import { AppShell } from '../layout/AppShell'
 import { ErrorPage, NotFoundPage } from './ErrorPages'
 import { HomePage } from './HomePage'
 import { LoginPage } from './LoginPage'
+import { ForgotPasswordPage, ResetPasswordPage, VerifyEmailPage } from './RecoveryPages'
+import { RegisterPage } from './RegisterPage'
 import { PlaceholderPage } from './PlaceholderPage'
 import { ProfilePage } from './ProfilePage'
 
@@ -13,9 +15,17 @@ export const routes: RouteObject[] = [
   {
     errorElement: <ErrorPage />,
     children: [
-      { element: <PublicOnly />, children: [{ path: '/dang-nhap', element: <LoginPage /> }] },
-      { path: '/quen-mat-khau', element: todo('Quên mật khẩu') },
-      { path: '/dang-ky', element: todo('Đăng ký') },
+      {
+        element: <PublicOnly />,
+        children: [
+          { path: '/dang-nhap', element: <LoginPage /> },
+          { path: '/dang-ky', element: <RegisterPage /> },
+        ],
+      },
+      { path: '/quen-mat-khau', element: <ForgotPasswordPage /> },
+      // Đường dẫn tiếng Anh vì link trong email do backend tạo (MailTemplate).
+      { path: '/reset-password', element: <ResetPasswordPage /> },
+      { path: '/verify-email', element: <VerifyEmailPage /> },
       {
         element: <RequireAuth />,
         children: [

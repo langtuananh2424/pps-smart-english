@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router'
 import logo from '../assets/logo-pps.png'
+import { VerifyEmailBanner } from '../auth/VerifyEmailBanner'
 import { Icon } from '../components/Icon'
 import { navItems } from './navItems'
 
@@ -33,6 +34,7 @@ export function AppShell() {
         </ul>
       </nav>
       <main className="min-h-dvh flex-1 bg-surface px-4 pb-24 pt-6 md:min-h-[calc(100dvh-2rem)] md:rounded-xl md:px-9 md:py-8">
+        <VerifyEmailBanner />
         <Outlet />
       </main>
     </div>
