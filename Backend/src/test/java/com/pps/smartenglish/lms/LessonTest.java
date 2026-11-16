@@ -74,6 +74,9 @@ class LessonTest extends ApiTestBase {
                 .andExpect(jsonPath("$.video.source").value("STORAGE"))
                 .andExpect(jsonPath("$.video.url").value("http://fake-storage/videos/a.mp4?ttl=7200"))
                 .andExpect(jsonPath("$.video.ref").doesNotExist())
+                .andExpect(jsonPath("$.courseId").isNumber()).andExpect(jsonPath("$.courseSlug").isString())
+                .andExpect(jsonPath("$.courseTitle").value("Khóa")).andExpect(jsonPath("$.topicId").isNumber())
+                .andExpect(jsonPath("$.topicTitle").value("Topic")).andExpect(jsonPath("$.levelId").isNumber())
                 .andReturn().getResponse().getContentAsString();
         var expires = Instant.parse(json.readTree(body).at("/video/expiresAt").asText());
         long minutes = Duration.between(before, expires).toMinutes();

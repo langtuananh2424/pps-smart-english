@@ -154,6 +154,13 @@ class CmsTest extends ApiTestBase {
         call(patch(CMS + "/topics/" + tp), admin, Map.of("isFreeTrial", false, "levelId", 1)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.isFreeTrial").value(false)).andExpect(jsonPath("$.levelId").value(lv))
                 .andExpect(jsonPath("$.title").value("Chủ đề 1")).andExpect(jsonPath("$.sortOrder").value(2));
+        // D-58: skill tùy chọn, nhận và trả lại; giá trị lạ bị từ chối; không gửi thì giữ nguyên
+        call(patch(CMS + "/topics/" + tp), admin, Map.of("skill", "LISTENING")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.skill").value("LISTENING"));
+        call(patch(CMS + "/topics/" + tp), admin, Map.of("title", "Chủ đề 1b")).andExpect(jsonPath("$.skill").value("LISTENING"));
+        call(patch(CMS + "/topics/" + tp), admin, Map.of("skill", "DANCING")).andExpect(status().isBadRequest());
+        call(post(CMS + "/levels/" + lv + "/topics"), admin, Map.of("title", "Có skill", "skill", "SPEAKING", "sortOrder", 99))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.skill").value("SPEAKING"));
         call(post(CMS + "/levels/999999999/topics"), admin, Map.of("title", "x")).andExpect(status().isNotFound());
 
         // video: URL được chuẩn hóa về mã; chỉ YOUTUBE

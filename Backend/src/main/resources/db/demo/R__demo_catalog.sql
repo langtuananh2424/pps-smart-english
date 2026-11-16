@@ -70,6 +70,10 @@ BEGIN
                     RETURNING id INTO tid;
                 END IF;
 
+                -- D-58: kỹ năng xoay vòng theo vị trí topic; chạy lại cho cùng kết quả
+                UPDATE topics SET skill = (ARRAY['LISTENING', 'READING', 'WRITING', 'SPEAKING', 'GRAMMAR_VOCAB'])[1 + (lv * 2 + tp) % 5]
+                WHERE id = tid;
+
                 IF NOT EXISTS (SELECT 1 FROM lessons WHERE topic_id = tid AND sort_order = 1) THEN
                     INSERT INTO lessons (topic_id, type, title, duration_sec, sort_order, status)
                     VALUES (tid, 'CONNECTIVE_VIDEO', 'Từ nối ' || lv || '.' || tp, 300, 1, 'PUBLISHED');

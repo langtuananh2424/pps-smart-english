@@ -28,7 +28,8 @@ public class LessonService {
     @Transactional(readOnly = true)
     public LessonResponse get(Long lessonId, Long userId) {
         var l = gate.require(lessonId, userId);
-        return new LessonResponse(l.id(), l.title(), l.type(), l.durationSec(), video(l.videoSource(), l.videoRef()));
+        return new LessonResponse(l.id(), l.title(), l.type(), l.durationSec(), video(l.videoSource(), l.videoRef()),
+                l.courseId(), l.courseSlug(), l.courseTitle(), l.topicId(), l.topicTitle(), l.levelId());
     }
 
     private VideoInfo video(String source, String ref) {

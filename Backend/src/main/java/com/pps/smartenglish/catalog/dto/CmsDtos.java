@@ -1,5 +1,6 @@
 package com.pps.smartenglish.catalog.dto;
 
+import com.pps.smartenglish.catalog.domain.TopicSkill;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
@@ -54,12 +55,14 @@ public final class CmsDtos {
             @Size(max = 200) @Pattern(regexp = NOT_BLANK, message = "Không được để trống") String title,
             @Min(0) Integer sortOrder) {}
 
-    public record CreateTopic(@NotBlank @Size(max = 200) String title, @Min(0) Integer sortOrder, Boolean isFreeTrial) {}
+    public record CreateTopic(@NotBlank @Size(max = 200) String title, @Min(0) Integer sortOrder, Boolean isFreeTrial,
+                             TopicSkill skill) {}
 
     public record PatchTopic(
             @Size(max = 200) @Pattern(regexp = NOT_BLANK, message = "Không được để trống") String title,
             @Min(0) Integer sortOrder,
-            Boolean isFreeTrial) {}
+            Boolean isFreeTrial,
+            TopicSkill skill) {}
 
     /** type: CONNECTIVE_VIDEO hoặc REFLEX_VIDEO. videoSource chỉ nhận YOUTUBE; videoRef là mã hoặc URL YouTube. */
     public record CreateLesson(
@@ -86,7 +89,8 @@ public final class CmsDtos {
 
     public record LevelView(Long id, Long courseId, String code, String title, int sortOrder, String status) {}
 
-    public record TopicView(Long id, Long levelId, String title, int sortOrder, boolean isFreeTrial, String status) {}
+    public record TopicView(Long id, Long levelId, String title, int sortOrder, boolean isFreeTrial, TopicSkill skill,
+                           String status) {}
 
     public record LessonView(Long id, Long topicId, String type, String title, Integer durationSec, int sortOrder, String status,
                              String videoSource, String videoRef) {}

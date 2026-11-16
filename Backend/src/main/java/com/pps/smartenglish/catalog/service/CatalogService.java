@@ -75,7 +75,7 @@ public class CatalogService {
         Map<Long, List<LessonNode>> lessonsByTopic = lss.stream().collect(Collectors.groupingBy(Lesson::getTopicId,
                 Collectors.mapping(l -> new LessonNode(l.getId(), l.getTitle(), l.getType(), l.getDurationSec()), Collectors.toList())));
         Map<Long, List<TopicNode>> topicsByLevel = tps.stream().collect(Collectors.groupingBy(Topic::getLevelId,
-                Collectors.mapping(t -> new TopicNode(t.getId(), t.getTitle(), t.isFreeTrial(),
+                Collectors.mapping(t -> new TopicNode(t.getId(), t.getTitle(), t.isFreeTrial(), t.getSkill(),
                         lessonsByTopic.getOrDefault(t.getId(), List.of())), Collectors.toList())));
         var tree = lvls.stream()
                 .map(l -> new LevelNode(l.getId(), l.getCode(), l.getTitle(), topicsByLevel.getOrDefault(l.getId(), List.of())))

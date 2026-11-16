@@ -152,6 +152,43 @@ class HomeApiTest extends AiTestSupport {
     // ---------- GET /api/me/courses/{id}/roadmap ----------
 
     @Test
+    void roadmapResumePicksMostRecentUnfinishedLessonAndReturnsPosition() throws Exception {
+        var w = world();
+        var u = student(0);
+        enroll(u, w.course(), null);
+        for (long l : new long[] {w.l2(), w.l4()}) {
+            jdbc.update("insert into lesson_progress (user_id, lesson_id, watched_sec, max_position_sec, updated_at) values (?, ?, 30, 45, ?)",
+                    u.id(), l, OffsetDateTime.now().minusDays(l == w.l2() ? 3 : 1));
+        }
+        var n = body("/api/me/courses/" + w.course() + "/roadmap", u);
+        assertEquals(w.l4(), n.at("/resume/lessonId").asLong()); // xem gần nhất, dù l1 chưa xem đứng trước
+        assertEquals(45, n.at("/resume/positionSec").asInt());
+        assertEquals(100, n.at("/resume/durationSec").asInt());
+        assertEquals(45, n.at("/levels/0/topics/1/lessons/1/maxPositionSec").asInt());
+        assertFalse(n.at("/levels/0/topics/1/lessons/1/lastWatchedAt").isNull());
+        assertTrue(n.at("/levels/0/topics/0/lessons/0/lastWatchedAt").isNull());
+        jdbc.update("update topics set skill = 'READING' where id = ?", w.t1());
+        assertEquals("READING", body("/api/me/courses/" + w.course() + "/roadmap", u).at("/levels/0/topics/0/skill").asText());
+    }
+
+    @Test
+    void trialCourseAppearsOnlyAfterTrialProgressAndCountsLessons() throws Exception {
+        var w = world();
+        var u = student(0);
+        assertEquals(0, body("/api/me/courses", u).size());
+        jdbc.update("insert into lesson_progress (user_id, lesson_id, watched_sec, max_position_sec) values (?, ?, 5, 5)", u.id(), w.l3());
+        assertEquals(0, body("/api/me/courses", u).size()); // topic trả phí không tính
+        completeLesson(u, w.l1(), 20);
+        var n = body("/api/me/courses", u);
+        assertEquals(1, n.size());
+        assertEquals("TRIAL", n.get(0).get("status").asText());
+        assertEquals(1, n.get(0).get("completedLessons").asInt());
+        assertEquals(4, n.get(0).get("totalLessons").asInt()); // bài nháp không tính
+        enroll(u, w.course(), null);
+        assertEquals("ACTIVE", body("/api/me/courses", u).get(0).get("status").asText());
+    }
+
+    @Test
     void roadmapOpensTrialTopicAndLocksPaidOneUntilPurchase() throws Exception {
         var w = world();
         var u = student(0);

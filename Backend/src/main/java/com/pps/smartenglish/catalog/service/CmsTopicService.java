@@ -47,6 +47,7 @@ public class CmsTopicService {
         // không nói rõ isFreeTrial: topic đầu của level đầu mà khóa chưa có học thử thì mặc định học thử (D-57)
         boolean free = req.isFreeTrial() != null ? req.isFreeTrial() : isFirstTopicOfFirstLevel(level);
         var topic = new Topic(levelId, req.title().strip(), req.sortOrder() == null ? 0 : req.sortOrder(), free);
+        topic.setSkill(req.skill());
         var saved = writes.save(topics, topic, CONFLICT, "Không lưu được topic");
         if (saved.isFreeTrial()) {
             keepSingleFreeTrial(saved);
@@ -65,6 +66,9 @@ public class CmsTopicService {
         }
         if (req.sortOrder() != null) {
             topic.setSortOrder(req.sortOrder());
+        }
+        if (req.skill() != null) {
+            topic.setSkill(req.skill());
         }
         if (req.isFreeTrial() != null) {
             topic.setFreeTrial(req.isFreeTrial());
@@ -127,6 +131,6 @@ public class CmsTopicService {
     }
 
     static TopicView view(Topic t) {
-        return new TopicView(t.getId(), t.getLevelId(), t.getTitle(), t.getSortOrder(), t.isFreeTrial(), t.getStatus());
+        return new TopicView(t.getId(), t.getLevelId(), t.getTitle(), t.getSortOrder(), t.isFreeTrial(), t.getSkill(), t.getStatus());
     }
 }

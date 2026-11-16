@@ -64,7 +64,7 @@ public class TodayService {
         List<Slot> slots = unlockedSlots(map);
         Set<Long> doneToday = completedToday(userId, slots);
         Slot anchor = slots.stream().filter(s -> doneToday.contains(s.lesson().id())).reduce((a, b) -> b)
-                .orElseGet(() -> resumeSlot(map, slots));
+                .orElseGet(() -> resumeSlot(slots));
         List<TodayTask> tasks = new ArrayList<>();
         if (anchor != null) {
             tasks.add(video(anchor, doneToday.contains(anchor.lesson().id())));
@@ -85,11 +85,9 @@ public class TodayService {
         return out;
     }
 
-    private static Slot resumeSlot(Roadmap map, List<Slot> slots) {
-        if (map.resume() == null) {
-            return null;
-        }
-        return slots.stream().filter(s -> s.lesson().id().equals(map.resume().lessonId())).findFirst().orElse(null);
+    private static Slot resumeSlot(List<Slot> slots) {
+        // D-51: việc hôm nay theo thứ tự lộ trình, không theo bài xem gần nhất của resume
+        return slots.stream().filter(s -> !s.lesson().completed()).findFirst().orElse(null);
     }
 
     private Set<Long> completedToday(long userId, List<Slot> slots) {

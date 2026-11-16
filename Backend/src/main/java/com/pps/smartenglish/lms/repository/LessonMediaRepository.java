@@ -12,7 +12,7 @@ public interface LessonMediaRepository extends JpaRepository<LessonMedia, Long> 
     /** Bài và mọi cấp cha (topic, level, course) đều phải PUBLISHED. */
     @Query("""
             select new com.pps.smartenglish.lms.dto.PlayableLesson(m.id, m.title, m.type, m.durationSec,
-                   m.videoSource, m.videoRef, t.freeTrial, lv.id)
+                   m.videoSource, m.videoRef, t.freeTrial, lv.id, c.id, c.slug, c.title, t.id, t.title)
             from LessonMedia m, Topic t, CourseLevel lv, Course c
             where m.id = :id and m.status = 'PUBLISHED'
               and t.id = m.topicId and t.status = 'PUBLISHED'

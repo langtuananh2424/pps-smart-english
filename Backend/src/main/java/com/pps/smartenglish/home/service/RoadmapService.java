@@ -23,6 +23,7 @@ import com.pps.smartenglish.lms.service.LessonAccessPolicy;
 import com.pps.smartenglish.retention.domain.XpEvent;
 import com.pps.smartenglish.retention.repository.XpEventRepository;
 import com.pps.smartenglish.shared.error.ApiException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -88,7 +89,6 @@ public class RoadmapService {
         Map<Long, Long> xp = xpByTopic(userId, lss, bankIndex.topicOfBank());
         Map<String, Boolean> lockMemo = new HashMap<>();
 
-        Resume resume = null;
         List<LevelNode> tree = new ArrayList<>();
         for (CourseLevel lv : lvls) {
             List<TopicNode> topicNodes = new ArrayList<>();
@@ -101,20 +101,17 @@ public class RoadmapService {
                 List<Lesson> topicLessons = lessonsByTopic.getOrDefault(t.getId(), List.of());
                 List<LessonNode> nodes = lessonNodes(topicLessons, done);
                 int completed = (int) nodes.stream().filter(LessonNode::completed).count();
-                if (resume == null && !locked) {
-                    resume = firstOpen(lv, t, nodes, completed);
-                }
-                topicNodes.add(new TopicNode(t.getId(), t.getTitle(), t.isFreeTrial(), locked, completed, nodes.size(),
+                topicNodes.add(new TopicNode(t.getId(), t.getTitle(), t.isFreeTrial(), t.getSkill(), locked, completed, nodes.size(),
                         xp.getOrDefault(t.getId(), 0L), status(locked, completed, nodes), nodes,
                         bankIndex.visibleByTopic().getOrDefault(t.getId(), List.of())));
             }
             tree.add(new LevelNode(lv.getId(), lv.getCode(), lv.getTitle(), topicNodes));
         }
-        return new Roadmap(tree, resume);
+        return new Roadmap(tree, resume(tree));
     }
 
     private boolean allowed(long userId, boolean freeTrial, Long levelId) {
-        var probe = new PlayableLesson(null, null, null, null, null, null, freeTrial, levelId);
+        var probe = new PlayableLesson(null, null, null, null, null, null, freeTrial, levelId, null, null, null, null, null);
         return policies.stream().anyMatch(p -> p.allows(userId, probe));
     }
 
@@ -124,16 +121,37 @@ public class RoadmapService {
         for (Lesson l : topicLessons) {
             LessonProgress p = done.get(l.getId());
             nodes.add(new LessonNode(l.getId(), l.getTitle(), l.getType(), l.getDurationSec(), order++,
-                    p != null && p.getCompletedAt() != null, p == null ? 0 : p.getWatchedSec()));
+                    p != null && p.getCompletedAt() != null, p == null ? 0 : p.getWatchedSec(),
+                    p == null ? 0 : p.getMaxPositionSec(), p == null ? null : p.getUpdatedAt()));
         }
         return nodes;
     }
 
-    private static Resume firstOpen(CourseLevel lv, Topic t, List<LessonNode> nodes, int completed) {
-        return nodes.stream().filter(n -> !n.completed()).findFirst()
-                .map(n -> new Resume(n.id(), n.title(), n.order(), t.getId(), t.getTitle(), lv.getId(), lv.getCode(),
-                        lv.getTitle(), completed, nodes.size()))
-                .orElse(null);
+    /** D-59: trong topic mở, bài chưa xong có tiến độ mới nhất; không có thì bài chưa xong đầu tiên theo lộ trình. */
+    private static Resume resume(List<LevelNode> tree) {
+        Resume first = null;
+        Resume recent = null;
+        Instant recentAt = null;
+        for (LevelNode lv : tree) {
+            for (TopicNode t : lv.topics()) {
+                if (t.locked()) {
+                    continue;
+                }
+                for (LessonNode n : t.lessons()) {
+                    if (n.completed()) {
+                        continue;
+                    }
+                    Resume r = new Resume(n.id(), n.title(), n.order(), t.id(), t.title(), lv.id(), lv.code(), lv.title(),
+                            t.completedLessons(), t.totalLessons(), n.maxPositionSec(), n.durationSec());
+                    first = first == null ? r : first;
+                    if (n.lastWatchedAt() != null && (recentAt == null || n.lastWatchedAt().isAfter(recentAt))) {
+                        recent = r;
+                        recentAt = n.lastWatchedAt();
+                    }
+                }
+            }
+        }
+        return recent != null ? recent : first;
     }
 
     private static String status(boolean locked, int completed, List<LessonNode> nodes) {

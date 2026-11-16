@@ -1,5 +1,6 @@
 package com.pps.smartenglish.home.dto;
 
+import com.pps.smartenglish.catalog.domain.TopicSkill;
 import java.time.Instant;
 import java.util.List;
 
@@ -8,28 +9,32 @@ public final class HomeDtos {
 
     private HomeDtos() {}
 
-    /** status: ACTIVE hoặc EXPIRED (theo expiresAt). lastActivityAt null khi chưa học gì. */
+    /**
+     * status: ACTIVE, EXPIRED (theo expiresAt) hoặc TRIAL (chưa mua, có tiến độ ở topic học thử, D-61).
+     * lastActivityAt null khi chưa học gì. completedLessons/totalLessons: bài PUBLISHED của khóa (D-46).
+     */
     public record MyCourse(Long courseId, String slug, String title, String targetType, String status, Instant expiresAt,
-                           Instant lastActivityAt) {}
+                           Instant lastActivityAt, int completedLessons, int totalLessons) {}
 
     public record Roadmap(List<LevelNode> levels, Resume resume) {}
 
     public record LevelNode(Long id, String code, String title, List<TopicNode> topics) {}
 
     /** status: DONE, IN_PROGRESS, NOT_STARTED hoặc LOCKED. */
-    public record TopicNode(Long id, String title, boolean isFreeTrial, boolean locked, int completedLessons, int totalLessons,
+    public record TopicNode(Long id, String title, boolean isFreeTrial, TopicSkill skill, boolean locked, int completedLessons, int totalLessons,
                             long xpEarned, String status, List<LessonNode> lessons, List<BankNode> banks) {}
 
-    /** order: thứ tự 1-based trong topic. */
+    /** order: thứ tự 1-based trong topic. lastWatchedAt null khi chưa có tiến độ (D-59). */
     public record LessonNode(Long id, String title, String type, Integer durationSec, int order, boolean completed,
-                             int watchedSec) {}
+                             int watchedSec, int maxPositionSec, Instant lastWatchedAt) {}
 
     /** lessonId null: bộ gắn với cả topic. */
     public record BankNode(Long id, String title, Long lessonId, long questionCount) {}
 
-    /** Bài chưa hoàn thành đầu tiên trong phần học viên được học. */
+    /** D-59: bài chưa xong xem gần nhất; không có thì bài chưa xong đầu tiên. positionSec: vị trí đã dừng. */
     public record Resume(Long lessonId, String lessonTitle, int lessonOrder, Long topicId, String topicTitle, Long levelId,
-                         String levelCode, String levelTitle, int completedInTopic, int totalInTopic) {}
+                         String levelCode, String levelTitle, int completedInTopic, int totalInTopic, int positionSec,
+                         Integer durationSec) {}
 
     public enum TaskKind { VIDEO, EXERCISE, WRITING }
 
