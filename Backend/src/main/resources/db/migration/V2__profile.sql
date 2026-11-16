@@ -14,7 +14,7 @@ CREATE TABLE user_profiles (
 CREATE TABLE user_goals (
     id           bigserial PRIMARY KEY,
     user_id      bigint       NOT NULL REFERENCES users (id),
-    course_id    bigint, -- chưa có FK: bảng course chưa tồn tại
+    course_id    bigint, -- chưa có FK
     target_type  varchar(100) NOT NULL,
     target_value varchar(100) NOT NULL,
     target_date  date,

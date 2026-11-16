@@ -5,14 +5,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.pps.smartenglish.support.ApiTestBase;
-import java.sql.DriverManager;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 
-/** D-37, FR-ADM-04: ma trận quyền mặc định (V27) và việc bỏ role STAFF. */
+/** D-37, FR-ADM-04: ma trận quyền mặc định (V1) và việc bỏ role STAFF. */
 class RbacDefaultMatrixTest extends ApiTestBase {
 
     private static final String PASSWORD = "Password123!";
@@ -68,36 +66,5 @@ class RbacDefaultMatrixTest extends ApiTestBase {
         assertEquals(403, code("EDITOR", "/api/admin/orders"));
         assertEquals(403, code("TEACHER", "/api/admin/orders"));
         assertEquals(403, code("STUDENT", "/api/admin/orders"));
-    }
-
-    /** V27 trên dữ liệu thật: người giữ STAFF được chuyển sang SUPPORT, người đã có cả hai không bị trùng, STAFF biến mất. */
-    @Test
-    void staffUsersMoveToSupportWithoutDuplicates() throws Exception {
-        String url = "jdbc:h2:mem:v27check;MODE=PostgreSQL;DB_CLOSE_DELAY=-1";
-        Flyway.configure().dataSource(url, "sa", "").locations("classpath:db/migration").target("26").load().migrate();
-        try (var c = DriverManager.getConnection(url, "sa", ""); var st = c.createStatement()) {
-            st.execute("insert into users (email, status) values ('a@x.com', 'ACTIVE'), ('b@x.com', 'ACTIVE')");
-            for (String email : List.of("a@x.com", "b@x.com")) {
-                st.execute("insert into user_roles (user_id, role_id) select u.id, r.id from users u, roles r "
-                        + "where u.email = '" + email + "' and r.code = 'STAFF'");
-            }
-            st.execute("insert into user_roles (user_id, role_id) select u.id, r.id from users u, roles r "
-                    + "where u.email = 'b@x.com' and r.code = 'SUPPORT'");
-
-            Flyway.configure().dataSource(url, "sa", "").locations("classpath:db/migration").load().migrate();
-
-            try (var rs = st.executeQuery("select u.email, count(*) from user_roles ur join users u on u.id = ur.user_id "
-                    + "join roles r on r.id = ur.role_id where r.code = 'SUPPORT' and u.email in ('a@x.com', 'b@x.com') "
-                    + "group by u.email order by u.email")) {
-                rs.next();
-                assertEquals(1, rs.getInt(2));
-                rs.next();
-                assertEquals(1, rs.getInt(2));
-            }
-            try (var rs = st.executeQuery("select count(*) from roles where code = 'STAFF'")) {
-                rs.next();
-                assertEquals(0, rs.getInt(1));
-            }
-        }
     }
 }
