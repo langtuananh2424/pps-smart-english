@@ -99,4 +99,43 @@ class AuditLogTest extends ApiTestBase {
         call(get(AUDIT).param("from", "2026-02-01").param("to", "2026-01-01"), admin, null)
                 .andExpect(status().isBadRequest());
     }
+
+    private ResultActions createCourse(Account admin, String reasonHeader) throws Exception {
+        var req = MockMvcRequestBuilders.post(CMS + "/courses");
+        if (reasonHeader != null) {
+            req.header("X-Audit-Reason", reasonHeader);
+        }
+        return call(req, admin, Map.of("slug", "rs-" + UUID.randomUUID(), "title", "Khóa", "targetType", "IELTS"));
+    }
+
+    private JsonNode lastLogOf(Account admin, long courseId) throws Exception {
+        return readBody(call(get(AUDIT).param("targetType", "COURSE").param("targetId", String.valueOf(courseId)), admin, null)
+                .andExpect(status().isOk())).get("data").get(0);
+    }
+
+    @Test
+    void reasonHeaderIsStoredTrimmedAndReturned() throws Exception {
+        var admin = withRole("ADMIN");
+        long id = readBody(createCourse(admin, "  Sửa theo yêu cầu #12  ").andExpect(status().isCreated())).get("id").asLong();
+        assertEquals("Sửa theo yêu cầu #12", lastLogOf(admin, id).get("reason").asText());
+        long blank = readBody(createCourse(admin, "   ").andExpect(status().isCreated())).get("id").asLong();
+        assertTrue(lastLogOf(admin, blank).get("reason").isNull());
+    }
+
+    @Test
+    void missingReasonHeaderStoresNull() throws Exception {
+        var admin = withRole("ADMIN");
+        long id = readBody(createCourse(admin, null).andExpect(status().isCreated())).get("id").asLong();
+        assertTrue(lastLogOf(admin, id).get("reason").isNull());
+    }
+
+    @Test
+    void reasonOver500CharsIsRejectedAndChangeRolledBack() throws Exception {
+        var admin = withRole("ADMIN");
+        int before = count("select count(*) from courses");
+        createCourse(admin, "x".repeat(500)).andExpect(status().isCreated());
+        createCourse(admin, "x".repeat(501)).andExpect(status().isBadRequest())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.error.code").value("validation_failed"));
+        assertEquals(before + 1, count("select count(*) from courses"));
+    }
 }

@@ -2,12 +2,15 @@ package com.pps.smartenglish.shared.audit;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.security.CurrentUser;
 import java.time.Clock;
 import java.time.Instant;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -16,6 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 public class AuditRecorder {
+
+    /** Lý do thao tác do client gửi kèm (FR-ADM-05); tùy chọn. */
+    public static final String REASON_HEADER = "X-Audit-Reason";
+    static final int REASON_MAX = 500;
 
     private final AuditLogRepository logs;
     private final ObjectMapper mapper;
@@ -35,7 +42,23 @@ public class AuditRecorder {
             throw new IllegalStateException("Thiếu người thao tác cho nhật ký: " + action);
         }
         logs.save(new AuditLog(CurrentUser.id(auth), action, targetType, String.valueOf(targetId), toJson(before),
-                toJson(after), null, Instant.now(clock)));
+                toJson(after), currentReason(), Instant.now(clock)));
+    }
+
+    /** Lý do của request hiện tại; ngoài HTTP request (job) hoặc không có header thì null. Quá 500 ký tự thì 400. */
+    private static String currentReason() {
+        if (!(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attrs)) {
+            return null;
+        }
+        String reason = attrs.getRequest().getHeader(REASON_HEADER);
+        if (reason == null || reason.isBlank()) {
+            return null;
+        }
+        reason = reason.strip();
+        if (reason.length() > REASON_MAX) {
+            throw ApiException.validation(REASON_HEADER, "Lý do tối đa " + REASON_MAX + " ký tự");
+        }
+        return reason;
     }
 
     private JsonNode toJson(Object value) {
