@@ -1,20 +1,44 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../auth/AuthContext'
+import { AiSuggestCard } from '../features/home/AiSuggestCard'
+import { CamBubble } from '../features/home/CamBubble'
+import { HomeHeader } from '../features/home/HomeHeader'
+import { ResumeCard } from '../features/home/ResumeCard'
+import { RoadmapCard } from '../features/home/RoadmapCard'
+import { TodayTasks } from '../features/home/TodayTasks'
+import { WeekCard } from '../features/home/WeekCard'
 import { api } from '../lib/api'
 
+// Mobile xếp dọc theo `order`; từ xl chia hai cột (nội dung + cột phải) như Figma desktop.
 export function HomePage() {
   const { user } = useAuth()
   const me = useQuery({ queryKey: ['me'], queryFn: () => api<{ displayName: string }>('/me') })
   const name = me.data?.displayName ?? user?.displayName ?? ''
   return (
-    <>
-      <header>
-        <h1 className="text-2xl font-black leading-[30px] text-ink">Xin chào, {name}!</h1>
-        <p className="font-semibold text-ink-secondary">Cùng chinh phục tiếng Anh mỗi ngày nhé.</p>
-      </header>
-      <p className="mt-10 rounded-lg border-2 border-dashed border-line-dashed bg-page p-8 text-center font-bold text-ink-secondary">
-        Chưa có nội dung học hôm nay.
-      </p>
-    </>
+    <div className="flex flex-col gap-4 xl:gap-6">
+      <HomeHeader name={name} />
+      <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1fr)_384px] xl:items-start xl:gap-6">
+        <div className="contents xl:flex xl:flex-col xl:gap-6">
+          <div className="order-1 xl:order-none">
+            <ResumeCard />
+          </div>
+          <div className="order-3 empty:hidden xl:order-none">
+            <RoadmapCard />
+          </div>
+          <div className="order-4 xl:order-none">
+            <WeekCard />
+          </div>
+        </div>
+        <div className="contents xl:flex xl:flex-col xl:gap-6">
+          <div className="order-2 empty:hidden xl:order-none">
+            <TodayTasks />
+          </div>
+          <div className="order-5 empty:hidden xl:order-none">
+            <AiSuggestCard />
+          </div>
+        </div>
+      </div>
+      <CamBubble />
+    </div>
   )
 }
