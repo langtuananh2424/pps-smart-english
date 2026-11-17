@@ -24,6 +24,8 @@ public class MyCourseService {
     private static final String TRIAL = "TRIAL";
     private static final String EXPIRED = "EXPIRED";
 
+    private static final long[] ZERO = {0, 0};
+
     private final HomeReadRepository reads;
     private final Clock clock;
 
@@ -49,12 +51,19 @@ public class MyCourseService {
         }
         Map<Long, Long> total = counts(reads.visibleLessonCounts(ids));
         Map<Long, Long> completed = counts(reads.completedLessonCounts(userId, ids));
+        Map<Long, long[]> answers = new HashMap<>();
+        reads.answerStats(userId, ids).forEach(r -> {
+            long[] sum = answers.computeIfAbsent(r.courseId(), k -> new long[2]);
+            sum[0] += r.total();
+            sum[1] += r.correct();
+        });
         Instant now = Instant.now(clock);
         // sort ổn định: hòa (hoặc cùng null) giữ thứ tự id khóa từ truy vấn
         return rows.stream()
                 .map(r -> new MyCourse(r.courseId(), r.slug(), r.title(), r.targetType(), statusOf(r, now), r.expiresAt(),
                         last.get(r.courseId()), completed.getOrDefault(r.courseId(), 0L).intValue(),
-                        total.getOrDefault(r.courseId(), 0L).intValue()))
+                        total.getOrDefault(r.courseId(), 0L).intValue(),
+                        (int) answers.getOrDefault(r.courseId(), ZERO)[0], (int) answers.getOrDefault(r.courseId(), ZERO)[1]))
                 .sorted(Comparator.comparing(MyCourse::lastActivityAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
     }

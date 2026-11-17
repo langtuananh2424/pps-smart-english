@@ -1,10 +1,12 @@
 package com.pps.smartenglish.home.controller;
 
 import com.pps.smartenglish.home.dto.HomeDtos.CamMessages;
+import com.pps.smartenglish.home.dto.HomeDtos.ExerciseStats;
 import com.pps.smartenglish.home.dto.HomeDtos.MyCourse;
 import com.pps.smartenglish.home.dto.HomeDtos.Roadmap;
 import com.pps.smartenglish.home.dto.HomeDtos.Today;
 import com.pps.smartenglish.home.service.CamService;
+import com.pps.smartenglish.home.service.ExerciseStatsService;
 import com.pps.smartenglish.home.service.MyCourseService;
 import com.pps.smartenglish.home.service.RoadmapService;
 import com.pps.smartenglish.home.service.TodayService;
@@ -30,12 +32,15 @@ class HomeController {
     private final RoadmapService roadmaps;
     private final TodayService today;
     private final CamService cam;
+    private final ExerciseStatsService stats;
 
-    HomeController(MyCourseService courses, RoadmapService roadmaps, TodayService today, CamService cam) {
+    HomeController(MyCourseService courses, RoadmapService roadmaps, TodayService today, CamService cam,
+                   ExerciseStatsService stats) {
         this.courses = courses;
         this.roadmaps = roadmaps;
         this.today = today;
         this.cam = cam;
+        this.stats = stats;
     }
 
     @GetMapping("/courses")
@@ -46,6 +51,11 @@ class HomeController {
     @GetMapping("/courses/{courseId}/roadmap")
     Roadmap roadmap(@PathVariable String courseId, Authentication auth) {
         return roadmaps.of(CurrentUser.id(auth), PathId.parse(courseId, NO_COURSE, NO_COURSE_MSG));
+    }
+
+    @GetMapping("/courses/{courseId}/exercise-stats")
+    ExerciseStats exerciseStats(@PathVariable String courseId, Authentication auth) {
+        return stats.of(CurrentUser.id(auth), PathId.parse(courseId, NO_COURSE, NO_COURSE_MSG));
     }
 
     @GetMapping("/today")

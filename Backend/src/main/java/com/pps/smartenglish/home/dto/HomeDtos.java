@@ -1,6 +1,8 @@
 package com.pps.smartenglish.home.dto;
 
 import com.pps.smartenglish.catalog.domain.TopicSkill;
+import com.pps.smartenglish.exercise.domain.QuestionType;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -14,7 +16,8 @@ public final class HomeDtos {
      * lastActivityAt null khi chưa học gì. completedLessons/totalLessons: bài PUBLISHED của khóa (D-46).
      */
     public record MyCourse(Long courseId, String slug, String title, String targetType, String status, Instant expiresAt,
-                           Instant lastActivityAt, int completedLessons, int totalLessons) {}
+                           Instant lastActivityAt, int completedLessons, int totalLessons,
+                           int answeredQuestions, int correctQuestions) {}
 
     public record Roadmap(List<LevelNode> levels, Resume resume) {}
 
@@ -35,6 +38,17 @@ public final class HomeDtos {
     public record Resume(Long lessonId, String lessonTitle, int lessonOrder, Long topicId, String topicTitle, Long levelId,
                          String levelCode, String levelTitle, int completedInTopic, int totalInTopic, int positionSec,
                          Integer durationSec) {}
+
+    /** D-62, D-63. accuracy là phần trăm nguyên, null khi chưa làm câu nào. */
+    public record ExerciseStats(int answered, int correct, Integer accuracy, int typesPracticed, List<TypeStat> byType,
+                                Weakest weakest, Band band) {}
+
+    public record TypeStat(QuestionType type, long questionCount, long answered, long correct, Integer accuracy) {}
+
+    public record Weakest(QuestionType type, int accuracy, long answered) {}
+
+    /** source: PLACEMENT (EXAM chưa có: bài thi khóa chưa lưu band). */
+    public record Band(BigDecimal value, String source, Instant at) {}
 
     public enum TaskKind { VIDEO, EXERCISE, WRITING }
 

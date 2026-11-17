@@ -72,6 +72,9 @@ app:
   cam:
     # Cam nhắc khóa sắp hết hạn khi còn từng này ngày (D-53)
     expiring-days: 7
+  exercise-stats:
+    # số câu đã nộp tối thiểu của một dạng để được xét "nên luyện" (D-62)
+    weak-min-answered: 10
   retention:
     # múi giờ tính "ngày có học" cho mọi người dùng (Q-18)
     zone: Asia/Ho_Chi_Minh

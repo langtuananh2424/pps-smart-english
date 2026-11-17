@@ -4,6 +4,7 @@ import com.pps.smartenglish.commerce.domain.Enrollment;
 import com.pps.smartenglish.home.dto.ActivityRow;
 import com.pps.smartenglish.home.dto.CountRow;
 import com.pps.smartenglish.home.dto.CourseRow;
+import com.pps.smartenglish.home.dto.TypeStatRow;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -82,4 +83,26 @@ public interface HomeReadRepository extends Repository<Enrollment, Long> {
             group by lv.courseId
             """)
     List<ActivityRow> lastAttemptActivity(@Param("userId") Long userId, @Param("courseIds") Collection<Long> courseIds);
+
+    /** D-62: câu đã nộp và câu đúng theo khóa, trong bộ PRACTICE của khóa, mọi lượt đã nộp. */
+    @Query("""
+            select new com.pps.smartenglish.home.dto.TypeStatRow(lv.courseId, q.type, count(a), count(case when a.correct = true then 1 end))
+            from StudentAnswer a, StudentAttempt t, Question q, QuestionBank b, Topic tp, CourseLevel lv
+            where t.id = a.attemptId and t.userId = :userId and t.submittedAt is not null and q.id = a.questionId
+              and b.id = q.bankId and b.mode = 'PRACTICE' and b.purpose = 'COURSE' and tp.id = b.topicId
+              and lv.id = tp.levelId and lv.courseId in :courseIds
+            group by lv.courseId, q.type
+            """)
+    List<TypeStatRow> answerStats(@Param("userId") Long userId, @Param("courseIds") Collection<Long> courseIds);
+
+    /** Số câu đang hiển thị (bộ, topic, level đều PUBLISHED) theo dạng; cột correct luôn 0. */
+    @Query("""
+            select new com.pps.smartenglish.home.dto.TypeStatRow(lv.courseId, q.type, count(q), 0L)
+            from Question q, QuestionBank b, Topic tp, CourseLevel lv
+            where b.id = q.bankId and b.mode = 'PRACTICE' and b.purpose = 'COURSE' and b.status = 'PUBLISHED'
+              and tp.id = b.topicId and tp.status = 'PUBLISHED' and lv.id = tp.levelId and lv.status = 'PUBLISHED'
+              and lv.courseId = :courseId
+            group by lv.courseId, q.type
+            """)
+    List<TypeStatRow> publishedQuestionCounts(@Param("courseId") Long courseId);
 }
