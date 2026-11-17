@@ -54,6 +54,17 @@ class ProfileTest extends ApiTestBase {
     }
 
     @Test
+    void patchSelfLevelKeepsQaAnswersInSync() throws Exception {
+        Account a = register(newEmail(), "mat-khau-1");
+        call(put("/api/me/qa"), a, Map.of("selfLevel", "CO_BAN", "goals", List.of("WORK"), "targetBand", 6.5,
+                "weeklyHours", "H3_5", "skills", List.of("SPEAKING"))).andExpect(status().isOk());
+        call(patch("/api/me"), a, Map.of("selfLevel", "KHA")).andExpect(status().isOk());
+        send(get("/api/me/qa"), a.accessToken()).andExpect(status().isOk())
+                .andExpect(jsonPath("$.selfLevel").value("KHA")).andExpect(jsonPath("$.targetBand").value(6.5))
+                .andExpect(jsonPath("$.updatedAt", notNullValue()));
+    }
+
+    @Test
     void patchRejectsBadValuesAndIgnoresProtectedFields() throws Exception {
         Account a = register(newEmail(), "mat-khau-1");
         call(patch("/api/me"), a, Map.of("displayName", "   ")).andExpect(status().isBadRequest());

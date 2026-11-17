@@ -1,7 +1,9 @@
 package com.pps.smartenglish.profile.service;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pps.smartenglish.auth.dto.AccountInfo;
 import com.pps.smartenglish.auth.service.AccountService;
+import com.pps.smartenglish.profile.domain.SelfLevel;
 import com.pps.smartenglish.profile.domain.UserGoal;
 import com.pps.smartenglish.profile.domain.UserProfile;
 import com.pps.smartenglish.profile.dto.GoalInput;
@@ -58,8 +60,16 @@ public class ProfileService {
         }
         if (req.selfLevel() != null) {
             p.setSelfLevel(req.selfLevel());
+            syncQaLevel(p, req.selfLevel());
         }
         return me(userId);
+    }
+
+    /** Giữ selfLevel trong qa_answers khớp user_profiles.self_level; copy mới để Hibernate thấy thay đổi. */
+    private static void syncQaLevel(UserProfile p, SelfLevel level) {
+        if (p.getQaAnswers() instanceof ObjectNode qa) {
+            p.setQa(qa.deepCopy().put("selfLevel", level.name()), p.getQaUpdatedAt());
+        }
     }
 
     @Transactional(readOnly = true)
