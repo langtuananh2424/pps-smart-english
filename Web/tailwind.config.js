@@ -16,7 +16,7 @@ export default {
         reward: { bg: '#fff4d6', fg: '#854d0e', star: '#ffb020' },
         ai: { bg: '#f1ebff', DEFAULT: '#6d28d9', edge: '#4c1d95' },
         success: { bg: '#e7f8ee', DEFAULT: '#16a34a', fg: '#15803d' },
-        danger: { bg: '#fee2e2', DEFAULT: '#dc2626', edge: '#b91c1c' },
+        danger: { bg: '#fee2e2', DEFAULT: '#dc2626', edge: '#b91c1c', fg: '#a61c26' },
       },
       fontFamily: { sans: ['"Nunito Variable"', 'system-ui', 'sans-serif'] },
       borderRadius: { sm: '12px', md: '16px', lg: '24px', xl: '32px' },

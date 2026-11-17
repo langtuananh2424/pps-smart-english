@@ -89,3 +89,6 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const postJson = <T>(path: string, body: unknown) =>
   api<T>(path, { method: 'POST', body: JSON.stringify(body) })
+
+// Không tự refresh khi 401: dùng cho yêu cầu lúc đóng trang.
+export const sendKeepalive = (path: string, init: RequestInit) => send(path, { ...init, keepalive: true })
