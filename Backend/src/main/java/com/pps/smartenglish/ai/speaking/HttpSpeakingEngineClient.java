@@ -45,7 +45,9 @@ class HttpSpeakingEngineClient implements SpeakingEngineClient {
         this.slots = new Semaphore(Math.max(1, props.maxConcurrent()), true);
         this.waitForSlot = props.readTimeout();
         this.mapper = mapper;
-        var factory = new JdkClientHttpRequestFactory(HttpClient.newBuilder().connectTimeout(props.connectTimeout()).build());
+        // Engine chạy uvicorn: request kèm "Upgrade: h2c" (mặc định của JDK) bị mất body và trả 422.
+        var factory = new JdkClientHttpRequestFactory(HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1).connectTimeout(props.connectTimeout()).build());
         factory.setReadTimeout(props.readTimeout());
         this.http = RestClient.builder().requestFactory(factory).build();
     }
