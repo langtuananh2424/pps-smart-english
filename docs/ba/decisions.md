@@ -78,6 +78,10 @@ Mã: `D-xx` quyết định đã chốt, `BQ-xx` câu hỏi BA còn mở (khác 
 | D-69 | (2026-11-17) **Tên yếu tố ngữ pháp** dùng thuật ngữ tiếng Anh chuẩn (Relative clause, Inversion, Passive voice...), lưu ở bảng `grammar_elements` cùng màu nhãn theo Figma; web đọc qua API, không ghi cứng. | FR-EX-01, D-44 | Bảng yếu tố ngữ pháp, màn làm bài |
 | D-70 | (2026-11-17) **Câu hỏi có thêm câu hướng dẫn ngắn** (`instruction`, tùy chọn, ví dụ "Chọn từ nối thích hợp.") và dạng điền từ có thêm tên từng chỗ trống (tùy chọn). Không có thì web hiện tên dạng câu và "Chỗ trống n". | FR-EX-01 | CMS câu hỏi, màn làm bài |
 | D-71 | (2026-11-17) **Màn kết quả** tạm chỉ hiện điểm, chưa có trạng thái Đạt/Chưa đạt; chờ chủ dự án cập nhật Figma. | FR-EX-03 | Màn làm bài |
+| D-72 | (2026-11-17) **Email trong hồ sơ** chỉ hiển thị, không sửa; đổi email để sau khi có yêu cầu. | FR-AUTH-03 | Màn Hồ sơ |
+| D-73 | (2026-11-17) **Dòng "Khóa học" trong Mục tiêu học tập** là khóa đang học (cùng quy tắc Trang chủ: đang học, không có thì khóa học thử); chưa có khóa thì hiện "Chưa đăng ký" kèm link Khóa học. | FR-AUTH-03, D-61 | Màn Hồ sơ |
+| D-74 | (2026-11-17) **"Chỉnh sửa mục tiêu"** mở lại Q&A gợi ý khóa với câu trả lời cũ điền sẵn; lưu là ghi đè (D-55). Chưa có màn sửa band riêng. | FR-GOAL-02, D-55 | Màn Hồ sơ |
+| D-75 | (2026-11-17) **Nút "Đơn hàng"** ở Hồ sơ dẫn tới `/don-hang`; danh sách đơn của học viên (API và giao diện) làm cùng màn 13 Thanh toán và đơn hàng. | FR-PAY | Màn Hồ sơ |
 | D-44 | (2026-11-14) **GRAMMAR_IDENTIFY** (nhận diện cấu trúc): học viên chọn cụm liền nhau trong câu và gắn một trong 8 yếu tố ngữ pháp. (a) Đề hiện số cụm cần tìm. (b) Cụm lồng nhau hiển thị bằng gạch chân nhiều lớp theo màu yếu tố, tối đa 3 lớp, kèm danh sách chip "cụm → nhãn". (c) **Chấm từng phần**: điểm câu = số cụm đúng ÷ max(số cụm đáp án, số cụm học viên chọn); câu "đúng" khi đạt 100%. (d) Không hỗ trợ cụm ngắt quãng trong MVP; người soạn đánh dấu phần lõi liền nhau. **GRAMMAR_BUILD** (xếp khối) vẫn chấm cả câu. Ứng với màn Figma nào: chủ dự án tự thiết kế. | FR-EX-02 | Điểm bài làm phải nhận số lẻ; trả số cụm cho học viên |
 
 ## 2. Danh mục khóa MVP (D-01, D-02)
