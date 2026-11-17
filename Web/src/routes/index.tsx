@@ -3,6 +3,8 @@ import { PublicOnly, RequireAuth } from '../auth/guards'
 import { ConfirmPage } from '../features/checkout/ConfirmPage'
 import { OrderPage } from '../features/checkout/OrderPage'
 import { OrdersPage } from '../features/checkout/OrdersPage'
+import { GoalPage } from '../features/goals/GoalPage'
+import { StreakPage } from '../features/goals/StreakPage'
 import { CoursesPage } from '../features/courses/CoursesPage'
 import { CoursePage } from '../features/lectures/CoursePage'
 import { LessonPage } from '../features/lectures/LessonPage'
@@ -62,7 +64,8 @@ export const routes: RouteObject[] = [
               { path: '/bai-tap', element: <ExercisePickerPage /> },
               { path: '/bai-tap/khoa/:courseId', element: <ExerciseListPage /> },
               { path: '/ho-so', element: <ProfilePage /> },
-              { path: '/chuoi-hoc', element: todo('Chuỗi học') },
+              { path: '/chuoi-hoc', element: <StreakPage /> },
+              { path: '/muc-tieu', element: <GoalPage /> },
               { path: '/thanh-toan', element: <ConfirmPage /> },
               { path: '/don-hang', element: <OrdersPage /> },
               { path: '/don-hang/:code', element: <OrderPage /> },

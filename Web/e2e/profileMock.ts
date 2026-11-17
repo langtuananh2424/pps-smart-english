@@ -24,6 +24,7 @@ export async function mockProfile(page: Page) {
     if (pathname === '/api/me') return route.fulfill(ok(current))
     if (pathname === '/api/me/stats') return route.fulfill(ok(stats))
     if (pathname === '/api/me/courses') return route.fulfill(ok([course]))
+    if (pathname === '/api/me/goals') return route.fulfill(ok([]))
     if (pathname === '/api/me/qa') return route.fulfill(ok(qa))
     return route.fulfill({ status: 404, contentType: 'application/json', body: '{"error":{"code":"x","message":"x"}}' })
   })

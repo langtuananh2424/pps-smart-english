@@ -1,10 +1,10 @@
 import { Link } from 'react-router'
 import cam from '../../assets/profile/cam-huy-hieu.png'
 import { Skeleton } from '../home/BlockState'
-import { useMeStats, useMyCourses } from '../home/api'
-import { currentCourse } from '../home/format'
-import { useMyQa } from '../qa/api'
+import { useMeStats } from '../home/api'
+import { formatDate, useGoalTarget } from '../goals/api'
 import { levelLabel, type Me } from './api'
+import { GoalCourse } from './GoalCourse'
 
 const outline = 'flex h-12 items-center justify-center rounded-sm border border-line bg-surface px-4 text-[15px] font-extrabold text-brand-strong'
 const card = 'flex min-w-0 flex-1 flex-col gap-2.5 rounded-[22px] border border-line bg-surface p-4 lg:rounded-lg lg:p-6'
@@ -27,25 +27,19 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 function GoalCard({ me }: { me: Me }) {
-  const courses = useMyCourses()
-  const qa = useMyQa()
-  const c = currentCourse(courses.data)
-  const active = c && c.status !== 'EXPIRED' ? c : undefined // D-73: đang học hoặc học thử
+  const target = useGoalTarget() // D-80: cùng nguồn với màn /muc-tieu
   return (
     <section aria-labelledby="goal-title" className={card}>
       <h2 id="goal-title" className="text-xl font-black leading-[27px] text-ink">Mục tiêu học tập</h2>
       <dl className="flex flex-col gap-2.5">
-        <Row label="Khóa học">
-          {courses.isPending ? <Skeleton className="h-5 w-40" /> : courses.isError ? DASH : active ? active.title : (
-            <>Chưa đăng ký · <Link to="/khoa-hoc" className="font-extrabold text-brand-strong underline">Xem khóa học</Link></>
-          )}
-        </Row>
+        <Row label="Khóa học"><GoalCourse /></Row>
         <Row label="Band mục tiêu">
-          {qa.isPending ? <Skeleton className="h-5 w-24" /> : qa.isError ? DASH : qa.data ? `IELTS ${qa.data.targetBand.toFixed(1)}` : 'Chưa đặt'}
+          {target.isPending ? <Skeleton className="h-5 w-24" /> : target.isError ? DASH : target.band != null ? `IELTS ${target.band.toFixed(1)}` : 'Chưa đặt'}
         </Row>
+        {target.date && <Row label="Ngày mục tiêu">{formatDate(target.date)}</Row>}
         <Row label="Trình độ tự đánh giá">{levelLabel(me.selfLevel) ?? 'Chưa chọn'}</Row>
       </dl>
-      <Link to="/goi-y-khoa" className={`${outline} lg:self-start`}>Chỉnh sửa mục tiêu</Link>
+      <Link to="/muc-tieu" className={`${outline} lg:self-start`}>Chỉnh sửa mục tiêu</Link>
     </section>
   )
 }

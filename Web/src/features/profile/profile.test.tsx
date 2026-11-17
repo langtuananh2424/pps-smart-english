@@ -15,6 +15,7 @@ const base = {
   '/api/me/stats': () => json(200, stats),
   '/api/me/courses': () => json(200, [course]),
   '/api/me/qa': () => json(200, qa),
+  '/api/me/goals': () => json(200, []),
 }
 
 beforeEach(() => setAccessToken(null))
@@ -36,7 +37,7 @@ test('tổng quan hiện đủ dữ liệu và link đích', async () => {
   expect(screen.getByText('Trung cấp')).toBeInTheDocument()
   expect(await screen.findByText('1.240')).toBeInTheDocument()
   expect(screen.getByText('12 ngày')).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: 'Chỉnh sửa mục tiêu' })).toHaveAttribute('href', '/goi-y-khoa')
+  expect(screen.getByRole('link', { name: 'Chỉnh sửa mục tiêu' })).toHaveAttribute('href', '/muc-tieu')
   expect(screen.getByRole('link', { name: 'Xem chuỗi học' })).toHaveAttribute('href', '/chuoi-hoc')
   expect(screen.getByRole('link', { name: 'Đơn hàng' })).toHaveAttribute('href', '/don-hang')
 })
@@ -87,4 +88,12 @@ test('tên trống bị chặn; lỗi validation server hiện dưới ô; Hủy
   expect(await screen.findByText('Tên không hợp lệ')).toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Hủy' }))
   expect(await screen.findByRole('heading', { name: 'Hồ sơ', level: 1 })).toBeInTheDocument()
+})
+
+test('band hồ sơ ưu tiên mục tiêu IELTS, kèm ngày mục tiêu', async () => {
+  const goal = { id: 1, courseId: null, targetType: 'IELTS', targetValue: '6.5', targetDate: '2027-03-01' }
+  mockApi({ ...base, '/api/me/goals': () => json(200, [goal]) })
+  renderAt('/ho-so')
+  expect(await screen.findByText('IELTS 6.5')).toBeInTheDocument()
+  expect(screen.getByText('01/03/2027')).toBeInTheDocument()
 })

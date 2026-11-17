@@ -18,7 +18,7 @@ for (const vp of viewports) {
     await expect(page.getByText('IELTS 7.0')).toBeVisible()
     await expect(page.getByText('1.240')).toBeVisible()
     await expect(page.getByText('12 ngày')).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Chỉnh sửa mục tiêu' })).toHaveAttribute('href', '/goi-y-khoa')
+    await expect(page.getByRole('link', { name: 'Chỉnh sửa mục tiêu' })).toHaveAttribute('href', '/muc-tieu')
     if (shots) await page.screenshot({ path: `${shots}/overview-${vp.name}.png`, fullPage: true })
 
     await page.getByRole('button', { name: 'Chỉnh sửa hồ sơ' }).click()
@@ -36,7 +36,7 @@ for (const vp of viewports) {
   })
 }
 
-test('Đơn hàng và Xem chuỗi học dẫn tới màn chờ', async ({ page }) => {
+test('Đơn hàng dẫn tới màn chờ; Xem chuỗi học dẫn tới màn chuỗi học', async ({ page }) => {
   await mockProfile(page)
   await page.goto('/ho-so')
   await page.getByRole('link', { name: 'Đơn hàng' }).click()
