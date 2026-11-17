@@ -21,6 +21,8 @@ export interface MyCourse {
   lastActivityAt: string | null
   completedLessons: number
   totalLessons: number
+  answeredQuestions: number
+  correctQuestions: number
 }
 
 export type TopicStatus = 'DONE' | 'IN_PROGRESS' | 'NOT_STARTED' | 'LOCKED'

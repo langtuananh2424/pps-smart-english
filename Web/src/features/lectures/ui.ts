@@ -9,3 +9,9 @@ export const chipTone = {
   plain: 'bg-muted text-ink-secondary',
 } as const
 export const chip = 'inline-flex self-start rounded-full px-2.5 py-[3px] text-xs font-extrabold leading-4'
+// Nhãn trạng thái bài giảng (D-59) dùng ở danh sách bài và màn Bài tập.
+export const statusBadge = {
+  DONE: 'bg-success-bg text-success-fg',
+  WATCHING: 'bg-subtle text-brand-strong',
+  NEW: 'bg-muted text-ink-secondary',
+} as const

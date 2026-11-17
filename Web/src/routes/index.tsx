@@ -4,6 +4,8 @@ import { CoursesPage } from '../features/courses/CoursesPage'
 import { CoursePage } from '../features/lectures/CoursePage'
 import { LessonPage } from '../features/lectures/LessonPage'
 import { PickerPage } from '../features/lectures/PickerPage'
+import { ExerciseListPage } from '../features/exercises/ListPage'
+import { ExercisePickerPage } from '../features/exercises/PickerPage'
 import { QaPage } from '../features/qa/QaPage'
 import { AdaptiveShell } from '../layout/AdaptiveShell'
 import { AppShell } from '../layout/AppShell'
@@ -53,7 +55,8 @@ export const routes: RouteObject[] = [
               { path: '/', element: <HomePage /> },
               { path: '/bai-giang', element: <PickerPage /> },
               { path: '/bai-giang/khoa/:courseId', element: <CoursePage /> },
-              { path: '/bai-tap', element: todo('Bài tập') },
+              { path: '/bai-tap', element: <ExercisePickerPage /> },
+              { path: '/bai-tap/khoa/:courseId', element: <ExerciseListPage /> },
               { path: '/ho-so', element: <ProfilePage /> },
               // Màn đích của trang chủ, chưa dựng.
               { path: '/bai-tap/:bankId', element: todo('Bài tập') },

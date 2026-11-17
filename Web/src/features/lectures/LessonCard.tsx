@@ -4,15 +4,10 @@ import artLg from '../../assets/lectures/thumb-art-lg.svg'
 import play from '../../assets/lectures/thumb-play.svg'
 import playLg from '../../assets/lectures/thumb-play-lg.svg'
 import type { RoadmapBank, RoadmapLesson } from '../home/types'
-import { chip, btnNeutral } from './ui'
+import { chip, btnNeutral, statusBadge } from './ui'
 import { formatClock, lessonStatus, percentOf, remainingSec, statusLabel, type LessonStatus } from './status'
 
 const frame: Record<LessonStatus, string> = { DONE: 'bg-success-bg', WATCHING: 'bg-brand-soft', NEW: 'bg-surface' }
-const badge: Record<LessonStatus, string> = {
-  DONE: 'bg-success-bg text-success-fg',
-  WATCHING: 'bg-subtle text-brand-strong',
-  NEW: 'bg-muted text-ink-secondary',
-}
 
 // Thumbnail giữ chỗ (chưa có ảnh bài giảng trong dữ liệu): nền vàng, nút phát, thời lượng, thanh tiến độ.
 export function LessonThumb({ durationSec, positionSec, big, className = '' }: { durationSec: number | null; positionSec?: number | null; big?: boolean; className?: string }) {
@@ -46,7 +41,7 @@ export function LessonCard({ lesson, bank }: { lesson: RoadmapLesson; bank?: Roa
     <div className={`relative flex items-center gap-3 rounded-lg border border-line p-2.5 shadow-edge-card lg:gap-3.5 ${frame[status]}`}>
       <LessonThumb durationSec={lesson.durationSec} positionSec={lesson.maxPositionSec} className="h-[52px] w-[86px] max-lg:self-center lg:h-24 lg:w-[168px]" />
       <div className="flex min-w-0 flex-1 flex-col items-start gap-1 lg:gap-1.5">
-        <span className={`${chip} ${badge[status]}`}>{label}</span>
+        <span className={`${chip} ${statusBadge[status]}`}>{label}</span>
         <h3 className="text-base font-black leading-[21px] text-ink">
           {/* Liên kết phủ cả thẻ; nút bài tập nằm trên lớp phủ. */}
           <Link to={href} className="after:absolute after:inset-0 after:rounded-lg">

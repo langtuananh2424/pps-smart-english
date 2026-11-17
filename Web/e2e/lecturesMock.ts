@@ -10,10 +10,10 @@ const topic = (id: number, title: string, skill: string, extra = {}) => ({
 })
 
 export const courses = [
-  { courseId: 1, slug: 'ielts-inter', title: 'IELTS Intermediate · 5.0 → 7.0', targetType: 'IELTS', status: 'ACTIVE', expiresAt: null, lastActivityAt: null, completedLessons: 12, totalLessons: 31 },
-  { courseId: 2, slug: 'giao-tiep', title: 'Giao tiếp phản xạ', targetType: 'Giao tiếp', status: 'ACTIVE', expiresAt: null, lastActivityAt: null, completedLessons: 4, totalLessons: 9 },
-  { courseId: 3, slug: 'foundation', title: 'IELTS Foundation · Mất gốc → 4.5', targetType: 'IELTS', status: 'ACTIVE', expiresAt: null, lastActivityAt: null, completedLessons: 20, totalLessons: 20 },
-  { courseId: 4, slug: 'cu', title: 'Khóa đã hết hạn', targetType: 'IELTS', status: 'EXPIRED', expiresAt: null, lastActivityAt: null, completedLessons: 5, totalLessons: 5 },
+  { courseId: 1, slug: 'ielts-inter', title: 'IELTS Intermediate · 5.0 → 7.0', targetType: 'IELTS', status: 'ACTIVE', expiresAt: null, lastActivityAt: null, completedLessons: 12, totalLessons: 31, answeredQuestions: 312, correctQuestions: 225 },
+  { courseId: 2, slug: 'giao-tiep', title: 'Giao tiếp phản xạ', targetType: 'Giao tiếp', status: 'ACTIVE', expiresAt: null, lastActivityAt: null, completedLessons: 4, totalLessons: 9, answeredQuestions: 0, correctQuestions: 0 },
+  { courseId: 3, slug: 'foundation', title: 'IELTS Foundation · Mất gốc → 4.5', targetType: 'IELTS', status: 'ACTIVE', expiresAt: null, lastActivityAt: null, completedLessons: 20, totalLessons: 20, answeredQuestions: 40, correctQuestions: 30 },
+  { courseId: 4, slug: 'cu', title: 'Khóa đã hết hạn', targetType: 'IELTS', status: 'EXPIRED', expiresAt: null, lastActivityAt: null, completedLessons: 5, totalLessons: 5, answeredQuestions: 0, correctQuestions: 0 },
 ]
 
 const writing = topic(10, 'Writing Task 2', 'WRITING', {
