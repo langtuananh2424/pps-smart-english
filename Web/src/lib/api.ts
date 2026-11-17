@@ -92,3 +92,6 @@ export const postJson = <T>(path: string, body: unknown) =>
 
 // Không tự refresh khi 401: dùng cho yêu cầu lúc đóng trang.
 export const sendKeepalive = (path: string, init: RequestInit) => send(path, { ...init, keepalive: true })
+
+// Gọi thô kèm Bearer cho luồng SSE (EventSource không gửi được header); người gọi tự xử lý lỗi và 401.
+export const rawFetch = send

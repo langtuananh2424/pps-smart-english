@@ -13,6 +13,7 @@ import { ExerciseListPage } from '../features/exercises/ListPage'
 import { ExercisePickerPage } from '../features/exercises/PickerPage'
 import { ProfilePage } from '../features/profile/ProfilePage'
 import { PracticePage } from '../features/practice/PracticePage'
+import { WritingPage } from '../features/writing/WritingPage'
 import { QaPage } from '../features/qa/QaPage'
 import { AdaptiveShell } from '../layout/AdaptiveShell'
 import { AppShell } from '../layout/AppShell'
@@ -70,7 +71,6 @@ export const routes: RouteObject[] = [
               { path: '/don-hang', element: <OrdersPage /> },
               { path: '/don-hang/:code', element: <OrderPage /> },
               // Màn đích của trang chủ, chưa dựng.
-              { path: '/viet/:questionId', element: todo('Viết phát triển ý') },
               { path: '/thong-bao', element: todo('Thông báo') },
               { path: '/tro-ly-ai', element: todo('Trợ lý AI') },
               { path: '/kiem-tra-dau-vao', element: todo('Kiểm tra đầu vào') },
@@ -81,7 +81,10 @@ export const routes: RouteObject[] = [
       // Màn làm bài tập trung, có header riêng nên nằm ngoài AppShell.
       {
         element: <RequireAuth />,
-        children: [{ path: '/bai-tap/:bankId', element: <PracticePage /> }],
+        children: [
+          { path: '/bai-tap/:bankId', element: <PracticePage /> },
+          { path: '/viet/:questionId', element: <WritingPage /> },
+        ],
       },
       { path: '*', element: <NotFoundPage /> },
     ],

@@ -19,7 +19,7 @@ const elements = [
   { code: 'RELATIVE_CLAUSE', name: 'Relative clause', colorHex: '#255a78' },
   { code: 'PASSIVE', name: 'Passive voice', colorHex: null },
 ]
-const withClient = (ui: React.ReactElement) => <QueryClientProvider client={makeQueryClient()}>{ui}</QueryClientProvider>
+const withClient = (ui: React.ReactElement) => <MemoryRouter><QueryClientProvider client={makeQueryClient()}>{ui}</QueryClientProvider></MemoryRouter>
 
 function mount(question: Question, initial?: Answer) {
   mockApi({ '/api/grammar-elements': () => json(200, elements) })
@@ -83,9 +83,14 @@ describe('renderer tạo đúng answer', () => {
     expect(out.at(-1)).toEqual({ order: ['b1'] })
   })
   test('WRITING không có đáp án và không tính câu chưa làm', () => {
-    mount(q('WRITING', {}))
-    expect(screen.getByText(/màn Viết\/Nói/)).toBeInTheDocument()
+    mount(q('WRITING', {}, { id: 42 }))
+    expect(screen.getByRole('link', { name: 'Làm ở màn Viết' })).toHaveAttribute('href', '/viet/42')
     expect(isAnswered('WRITING', { text: 'x' })).toBe(false)
+  })
+  test('SPEAKING giữ thẻ "sắp có", không có link', () => {
+    mount(q('SPEAKING', {}))
+    expect(screen.getByText(/màn Viết\/Nói/)).toBeInTheDocument()
+    expect(screen.queryByRole('link')).toBeNull()
   })
 })
 
