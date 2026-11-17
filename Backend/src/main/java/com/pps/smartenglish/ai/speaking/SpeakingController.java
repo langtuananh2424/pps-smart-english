@@ -2,6 +2,7 @@ package com.pps.smartenglish.ai.speaking;
 
 import com.pps.smartenglish.ai.speaking.SpeakingDtos.CompleteResponse;
 import com.pps.smartenglish.ai.speaking.SpeakingDtos.CreateRequest;
+import com.pps.smartenglish.ai.speaking.SpeakingDtos.QuestionView;
 import com.pps.smartenglish.ai.speaking.SpeakingDtos.SubmissionView;
 import com.pps.smartenglish.ai.speaking.SpeakingDtos.UploadPermit;
 import com.pps.smartenglish.shared.error.ApiException;
@@ -27,6 +28,11 @@ class SpeakingController {
 
     SpeakingController(SpeakingService speaking) {
         this.speaking = speaking;
+    }
+
+    @GetMapping("/api/speaking/questions/{id}")
+    QuestionView question(Authentication auth, @PathVariable String id) {
+        return speaking.question(CurrentUser.id(auth), PathId.parse(id, "question_not_found", "Không tìm thấy câu hỏi"));
     }
 
     @PostMapping("/api/speaking/submissions")

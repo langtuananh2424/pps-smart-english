@@ -100,6 +100,17 @@ class SpeakingFlowTest extends AiTestSupport {
     }
 
     @Test
+    void questionEndpointReturnsPromptAndUsesSameGate() throws Exception {
+        var u = student(2);
+        long q = speakingQuestion(bank(true), 2, null);
+        getJson("/api/speaking/questions/" + q, u).andExpect(status().isOk()).andExpect(jsonPath("$.part").value(2))
+                .andExpect(jsonPath("$.prompt").value("Describe a trip.")).andExpect(jsonPath("$.cueCard[0]").value("where"))
+                .andExpect(jsonPath("$.maxSeconds").value(180));
+        getJson("/api/speaking/questions/" + speakingQuestion(bank(false), 1, null), u).andExpect(status().isForbidden());
+        getJson("/api/speaking/questions/999999", u).andExpect(status().isNotFound());
+    }
+
+    @Test
     void permitCarriesPolicyAndRefusesLockedBankNoQuotaAndWrongType() throws Exception {
         var u = student(2);
         long bank = bank(true);

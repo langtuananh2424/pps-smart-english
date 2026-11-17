@@ -4,6 +4,7 @@ import com.pps.smartenglish.ai.domain.AiTask;
 import com.pps.smartenglish.ai.service.AiGuard;
 import com.pps.smartenglish.ai.service.AiQuotaService;
 import com.pps.smartenglish.ai.speaking.SpeakingDtos.CompleteResponse;
+import com.pps.smartenglish.ai.speaking.SpeakingDtos.QuestionView;
 import com.pps.smartenglish.ai.speaking.SpeakingDtos.SubmissionView;
 import com.pps.smartenglish.ai.speaking.SpeakingDtos.UploadPermit;
 import com.pps.smartenglish.commerce.service.EmailVerification;
@@ -97,6 +98,12 @@ public class SpeakingService {
         var audio = inspect(s);
         enqueuer.enqueue(s, q, audio.size(), audio.duration());
         return response(load(userId, id));
+    }
+
+    /** Cùng cổng quyền với create: câu của bộ thi khóa hoặc bộ bị khóa không xem được đề (D-82). */
+    public QuestionView question(long userId, long questionId) {
+        var q = questions.find(questionId, userId);
+        return new QuestionView(q.id(), q.part(), q.prompt(), q.cueCard(), q.maxSeconds());
     }
 
     public SubmissionView view(long userId, long id) {
