@@ -116,7 +116,7 @@ describe('màn hình', () => {
     expect(within(a).getByRole('link', { name: 'Làm bài tập →' })).toHaveAttribute('href', '/bai-tap/khoa/1')
     const b = screen.getByRole('heading', { name: 'Giao tiếp' }).closest('article')!
     expect(within(b).queryByText(/Độ chính xác/)).toBeNull()
-    expect(within(screen.getByRole('heading', { name: 'Cũ' }).closest('article')!).getByRole('link', { name: 'Gia hạn' })).toHaveAttribute('href', '/khoa-hoc/k-3')
+    expect(within(screen.getByRole('heading', { name: 'Cũ' }).closest('article')!).getByRole('link', { name: 'Gia hạn' })).toHaveAttribute('href', '/thanh-toan?khoa=k-3')
   })
 
   const lesson = (id: number, title: string, order: number, extra = {}) => ({ id, title, type: 'VIDEO', durationSec: 600, order, completed: false, watchedSec: 0, maxPositionSec: 0, lastWatchedAt: null, ...extra })

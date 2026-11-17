@@ -22,7 +22,7 @@ function Notice({ title, body, children }: { title: string; body: string; childr
 function LockedNotice({ slug }: { slug?: string }) {
   return (
     <Notice title="Bài giảng chưa mở khóa" body="Bạn chưa có quyền xem bài này. Mua hoặc gia hạn khóa học để tiếp tục.">
-      <Link to={slug ? `/khoa-hoc/${slug}` : '/khoa-hoc'} className={btnPrimary}>
+      <Link to={slug ? `/thanh-toan?khoa=${slug}` : '/khoa-hoc'} className={btnPrimary}>
         Mua khóa học
       </Link>
       <Link to="/bai-giang" className={btnNeutral}>

@@ -94,7 +94,7 @@ export function SuggestionBlock({ answers, suggestions: s, error, onRetry, trial
               >
                 Học thử miễn phí →
               </button>
-              <Link to={`/khoa-hoc/${primary.slug}`} className="flex min-h-12 items-center justify-center rounded-sm bg-brand-strong px-4 text-[15px] font-extrabold text-white">
+              <Link to={`/thanh-toan?khoa=${primary.slug}`} className="flex min-h-12 items-center justify-center rounded-sm bg-brand-strong px-4 text-[15px] font-extrabold text-white">
                 Mua gói học
               </Link>
               {s.path.length > 0 && (

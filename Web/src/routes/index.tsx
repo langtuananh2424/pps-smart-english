@@ -1,5 +1,8 @@
 import type { RouteObject } from 'react-router'
 import { PublicOnly, RequireAuth } from '../auth/guards'
+import { ConfirmPage } from '../features/checkout/ConfirmPage'
+import { OrderPage } from '../features/checkout/OrderPage'
+import { OrdersPage } from '../features/checkout/OrdersPage'
 import { CoursesPage } from '../features/courses/CoursesPage'
 import { CoursePage } from '../features/lectures/CoursePage'
 import { LessonPage } from '../features/lectures/LessonPage'
@@ -60,7 +63,9 @@ export const routes: RouteObject[] = [
               { path: '/bai-tap/khoa/:courseId', element: <ExerciseListPage /> },
               { path: '/ho-so', element: <ProfilePage /> },
               { path: '/chuoi-hoc', element: todo('Chuỗi học') },
-              { path: '/don-hang', element: todo('Đơn hàng') },
+              { path: '/thanh-toan', element: <ConfirmPage /> },
+              { path: '/don-hang', element: <OrdersPage /> },
+              { path: '/don-hang/:code', element: <OrderPage /> },
               // Màn đích của trang chủ, chưa dựng.
               { path: '/viet/:questionId', element: todo('Viết phát triển ý') },
               { path: '/thong-bao', element: todo('Thông báo') },

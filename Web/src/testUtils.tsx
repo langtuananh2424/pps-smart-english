@@ -11,14 +11,14 @@ export const apiError = (status: number, message: string, details?: unknown) =>
   json(status, { error: { code: 'X', message, details } })
 export const auth = { accessToken: 't', expiresIn: 900, user: { id: 1, displayName: 'Lan', role: 'STUDENT' } }
 
-type Handlers = Record<string, (body: unknown) => Response>
+type Handlers = Record<string, (body: unknown, init?: RequestInit) => Response>
 
 // Giả backend theo đường dẫn; mặc định chưa có phiên (refresh 401). Trả mảng lời gọi để test đếm.
 export function mockApi(handlers: Handlers) {
   const calls: string[] = []
   vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
     calls.push(url)
-    if (handlers[url]) return handlers[url](init?.body ? JSON.parse(String(init.body)) : undefined)
+    if (handlers[url]) return handlers[url](init?.body ? JSON.parse(String(init.body)) : undefined, init)
     if (url === '/api/auth/refresh') return apiError(401, 'no')
     return json(404)
   })

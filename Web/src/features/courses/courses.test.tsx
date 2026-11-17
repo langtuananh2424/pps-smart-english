@@ -61,7 +61,7 @@ test('có Q&A: khối gợi ý có chip, khóa chính, lộ trình; thẻ khóa 
   expect(within(block).getByRole('heading', { name: 'Academic English 1' })).toBeInTheDocument()
   expect(within(block).getByText('Từ ~3.0 lên 7.0, đúng mục tiêu của bạn.')).toBeInTheDocument()
   expect(within(block).getByText('Lộ trình tiếp theo: Academic English 2 → Pre IELTS')).toBeInTheDocument()
-  expect(within(block).getByRole('link', { name: 'Mua gói học' })).toHaveAttribute('href', '/khoa-hoc/ae1')
+  expect(within(block).getByRole('link', { name: 'Mua gói học' })).toHaveAttribute('href', '/thanh-toan?khoa=ae1')
   expect(screen.getAllByText('Phù hợp với bạn')).toHaveLength(3)
 })
 
@@ -107,7 +107,7 @@ test('nhãn/nút theo trạng thái ghi danh và lọc 3 chip', async () => {
   expect(await screen.findByRole('link', { name: 'Học tiếp' })).toHaveAttribute('href', '/bai-giang/55')
   expect(screen.getByRole('progressbar', { name: /Academic English 1/ })).toHaveAttribute('aria-valuenow', '40')
   expect(screen.getByText('Hết hạn')).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: 'Gia hạn' })).toHaveAttribute('href', '/khoa-hoc/ae2')
+  expect(screen.getByRole('link', { name: 'Gia hạn' })).toHaveAttribute('href', '/thanh-toan?khoa=ae2')
   expect(screen.getByText('Học thử miễn phí 3 bài')).toBeInTheDocument() // Pre IELTS
   expect(screen.getByRole('link', { name: 'Xem khóa học' })).toHaveAttribute('href', '/khoa-hoc/found')
 

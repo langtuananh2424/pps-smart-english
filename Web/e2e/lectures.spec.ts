@@ -5,12 +5,12 @@ test('chọn khóa → hệ thống bài giảng → xem bài; khóa hết hạn
   await mockLectures(page)
   await page.goto('/bai-giang')
   await expect(page.getByRole('heading', { name: 'Bài giảng', level: 1 })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Gia hạn' })).toHaveAttribute('href', '/khoa-hoc/cu')
+  await expect(page.getByRole('link', { name: 'Gia hạn' })).toHaveAttribute('href', '/thanh-toan?khoa=cu')
 
   await page.getByRole('link', { name: 'Xem bài giảng →' }).first().click()
   await expect(page).toHaveURL(/\/bai-giang\/khoa\/1$/)
   await expect(page.getByRole('region', { name: 'Học tiếp' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Mua khóa học' })).toHaveAttribute('href', '/khoa-hoc/ielts-inter')
+  await expect(page.getByRole('link', { name: 'Mua khóa học' })).toHaveAttribute('href', '/thanh-toan?khoa=ielts-inter')
 
   await page.getByRole('link', { name: 'Xem tiếp' }).click()
   await expect(page).toHaveURL(/\/bai-giang\/103$/)

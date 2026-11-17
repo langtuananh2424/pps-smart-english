@@ -140,7 +140,7 @@ describe('màn hình', () => {
     renderAt('/bai-giang')
     expect(await screen.findByRole('heading', { name: 'Giao tiếp' })).toBeInTheDocument()
     const expired = screen.getByRole('heading', { name: 'Cũ' }).closest('article')!
-    expect(within(expired).getByRole('link', { name: 'Gia hạn' })).toHaveAttribute('href', '/khoa-hoc/khoa-2')
+    expect(within(expired).getByRole('link', { name: 'Gia hạn' })).toHaveAttribute('href', '/thanh-toan?khoa=khoa-2')
     expect(within(expired).queryByRole('link', { name: /Xem bài giảng/ })).toBeNull()
     const trial = screen.getByRole('heading', { name: 'Thử' }).closest('article')!
     expect(within(trial).getByText('Học thử')).toBeInTheDocument()
@@ -174,7 +174,7 @@ describe('màn hình', () => {
     expect(within(hero).getAllByText(/còn 09:00/).length).toBeGreaterThan(0)
     const skills = screen.getByRole('group', { name: 'Lọc theo kỹ năng' })
     expect(within(skills).getAllByRole('button').map((b) => b.textContent)).toEqual(['Mọi kỹ năng', 'Writing', 'Speaking'])
-    expect(screen.getByRole('link', { name: 'Mua khóa học' })).toHaveAttribute('href', '/khoa-hoc/khoa-1')
+    expect(screen.getByRole('link', { name: 'Mua khóa học' })).toHaveAttribute('href', '/thanh-toan?khoa=khoa-1')
     // topic đang học mở sẵn, thẻ bài có nút bài tập khớp lessonId
     expect(screen.getByRole('link', { name: 'Làm bài tập →' })).toHaveAttribute('href', '/bai-tap/7')
     expect(screen.getAllByText('Đã xem').length).toBeGreaterThan(0)

@@ -30,7 +30,7 @@ export function CourseTile({ c, index, action }: { c: MyCourse; index: number; a
   const percent = percentOf(c.completedLessons, c.totalLessons)
   const frame = expired || done ? 'bg-surface' : frames[index % frames.length]
   const thumb = done ? 'bg-success-bg' : 'bg-subtle'
-  const slug = `/khoa-hoc/${c.slug}`
+  const buy = `/thanh-toan?khoa=${c.slug}`
   return (
     <article className={`flex gap-3.5 rounded-lg border border-line-subtle p-3.5 shadow-edge-card lg:flex-col lg:gap-3 lg:p-5 ${frame}`}>
       <div className={`grid size-[68px] shrink-0 place-items-center rounded-md px-1 text-center text-xs font-extrabold leading-4 text-brand-strong lg:size-auto lg:h-[104px] lg:justify-items-start lg:px-4 lg:text-2xl lg:font-black lg:leading-[30px] ${thumb}`}>
@@ -57,7 +57,7 @@ export function CourseTile({ c, index, action }: { c: MyCourse; index: number; a
         )}
         {act.note && !expired && <p className="text-xs font-extrabold leading-4 text-ink-muted">{act.note}</p>}
         {expired ? (
-          <Link to={slug} className={`${btnNeutral} lg:w-full`}>
+          <Link to={buy} className={`${btnNeutral} lg:w-full`}>
             Gia hạn
           </Link>
         ) : (

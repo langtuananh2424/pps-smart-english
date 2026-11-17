@@ -6,7 +6,7 @@ test('chọn khóa → hệ thống bài tập: Cam, bài thi khóa khóa, bài 
   await page.goto('/bai-tap')
   await expect(page.getByRole('heading', { name: 'Bài tập', level: 1 })).toBeVisible()
   await expect(page.getByText('Độ chính xác · 72%')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Gia hạn' })).toHaveAttribute('href', '/khoa-hoc/cu')
+  await expect(page.getByRole('link', { name: 'Gia hạn' })).toHaveAttribute('href', '/thanh-toan?khoa=cu')
 
   await page.getByRole('link', { name: 'Làm bài tập →' }).first().click()
   await expect(page).toHaveURL(/\/bai-tap\/khoa\/1$/)

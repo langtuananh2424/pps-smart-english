@@ -42,7 +42,7 @@ function EnrolledCard({ course, mine }: { course: CourseSummary; mine: MyCourse 
       active: true,
       action: { label: 'Học tiếp', to: resume ? `/bai-giang/${resume.lessonId}` : detail },
     }
-  } else view = { badge: { text: 'Hết hạn', tone: 'plain' }, action: { label: 'Gia hạn', to: detail } }
+  } else view = { badge: { text: 'Hết hạn', tone: 'plain' }, action: { label: 'Gia hạn', to: `/thanh-toan?khoa=${course.slug}` } }
   return <CourseCardView course={course} view={view} />
 }
 

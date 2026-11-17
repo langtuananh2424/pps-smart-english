@@ -84,7 +84,7 @@ export function TopicSection({ topic, lessons, open, onToggle, courseSlug }: Pro
         {locked ? (
           <>
             <div className="flex min-w-0 flex-1 items-center gap-3.5">{head}</div>
-            <Link to={`/khoa-hoc/${courseSlug}`} className={`${btnNeutral} gap-2`}>
+            <Link to={`/thanh-toan?khoa=${courseSlug}`} className={`${btnNeutral} gap-2`}>
               <Icon src={lock} size={16} />
               Mua khóa học
             </Link>
