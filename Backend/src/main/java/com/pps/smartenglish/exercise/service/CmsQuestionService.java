@@ -86,6 +86,7 @@ public class CmsQuestionService {
         var entity = new Question(bankId, type, req.prompt().strip(), draft.payload(), draft.answerKey(), req.explanation(),
                 req.sortOrder() == null ? 0 : req.sortOrder());
         entity.setSkill(req.skill());
+        entity.setInstruction(blankToNull(req.instruction()));
         var question = writes.save(questions, entity, "conflict", "Không lưu được câu hỏi");
         saveChoices(question.getId(), draft.choices());
         saveTags(question.getId(), tagIds);
@@ -129,6 +130,9 @@ public class CmsQuestionService {
         }
         if (req.prompt() != null) {
             q.setPrompt(req.prompt().strip());
+        }
+        if (req.instruction() != null) {
+            q.setInstruction(blankToNull(req.instruction())); // chuỗi rỗng = xóa
         }
         if (req.explanation() != null) {
             q.setExplanation(req.explanation());
@@ -271,5 +275,9 @@ public class CmsQuestionService {
         Comparator<ChoiceDraft> byLabel = Comparator.comparing(c -> c.label().strip());
         return wanted.stream().map(c -> new ChoiceDraft(c.label().strip(), c.content(), c.correct(), c.explanation())).sorted(byLabel)
                 .toList().equals(draftsOf(current).stream().sorted(byLabel).toList());
+    }
+
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s.strip();
     }
 }

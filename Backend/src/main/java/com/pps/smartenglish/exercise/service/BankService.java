@@ -40,12 +40,13 @@ public class BankService {
         var bank = gate.require(bankId, userId);
         var set = loader.load(bankId);
         var hintsByQuestion = hintsOf(bank.mode(), set.questions());
-        return new BankResponse(bank.id(), bank.title(), bank.lessonId(), bank.trial(), questionViews(set, hintsByQuestion));
+        return new BankResponse(bank.id(), bank.title(), bank.lessonId(), bank.trial(), bank.mode(),
+                bank.timeLimitSec(), questionViews(set, hintsByQuestion));
     }
 
     /** Đề cho người làm bài: không đáp án. Dùng chung với kiểm tra đầu vào (module placement). */
     public static List<QuestionView> questionViews(QuestionSet set, Map<Long, List<HintView>> hintsByQuestion) {
-        return set.questions().stream().map(q -> new QuestionView(q.getId(), q.getType().name(), q.getPrompt(),
+        return set.questions().stream().map(q -> new QuestionView(q.getId(), q.getType().name(), q.getInstruction(), q.getPrompt(),
                 payloadFor(q),
                 q.getType() == QuestionType.CONNECTIVE_MCQ
                         ? set.choicesOf(q).stream().map(c -> new ChoiceView(c.getId(), c.getLabel(), c.getContent())).toList()

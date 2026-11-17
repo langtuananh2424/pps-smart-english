@@ -76,14 +76,14 @@ public class AttemptService {
 
     /** Mới nhất trước; con trỏ là id của phần tử cuối trang, mã hóa mờ. */
     @Transactional(readOnly = true)
-    public CursorPage<AttemptSummary> mine(long userId, Integer limit, String cursor) {
+    public CursorPage<AttemptSummary> mine(long userId, Integer limit, String cursor, Long bankId, boolean openOnly) {
         int size = limit == null ? DEFAULT_LIMIT : limit;
         if (size < 1) {
             throw ApiException.validation("limit", "Phải từ 1 trở lên");
         }
         size = Math.min(size, MAX_LIMIT);
         long before = Cursors.decode(cursor);
-        List<StudentAttempt> rows = attempts.findPage(userId, before, PageRequest.of(0, size + 1));
+        List<StudentAttempt> rows = attempts.findPage(userId, before, bankId, openOnly, PageRequest.of(0, size + 1));
         boolean more = rows.size() > size;
         List<StudentAttempt> page = more ? rows.subList(0, size) : rows;
         var data = page.stream().map(a -> new AttemptSummary(a.getId(), a.getBankId(), a.getStartedAt(),

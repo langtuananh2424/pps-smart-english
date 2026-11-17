@@ -66,12 +66,25 @@ class AttemptController {
 
     @GetMapping("/api/me/attempts")
     CursorPage<AttemptSummary> mine(Authentication auth, @RequestParam(required = false) String limit,
-                                    @RequestParam(required = false) String cursor) {
-        return attempts.mine(CurrentUser.id(auth), parseLimit(limit), cursor);
+                                    @RequestParam(required = false) String cursor,
+                                    @RequestParam(required = false) String bankId,
+                                    @RequestParam(required = false, defaultValue = "false") boolean open) {
+        return attempts.mine(CurrentUser.id(auth), parseLimit(limit), cursor, parseBankId(bankId), open);
     }
 
     private static Long attemptId(String raw) {
         return PathId.parse(raw, "attempt_not_found", "Không tìm thấy lượt làm bài");
+    }
+
+    private static Long parseBankId(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(raw);
+        } catch (NumberFormatException e) {
+            throw ApiException.validation("bankId", "Phải là số nguyên");
+        }
     }
 
     private static Integer parseLimit(String raw) {

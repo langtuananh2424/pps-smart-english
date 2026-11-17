@@ -113,14 +113,14 @@ Hậu tố 1 là lỗi nhẹ, người đọc vẫn hiểu ngay. Hậu tố 2 l�
 
 | Mã | Yếu tố |
 |---|---|
-| `RELATIVE_CLAUSE` | Mệnh đề quan hệ |
-| `INVERSION` | Đảo ngữ |
-| `PASSIVE` | Câu bị động |
-| `DUMMY_SUBJECT` | Chủ ngữ giả |
-| `PARTICIPLE_CLAUSE` | Mệnh đề phân từ |
-| `NOUN_CLAUSE` | Mệnh đề danh ngữ |
-| `SEEM_LIKELY_TEND` | Cấu trúc seem, likely, tend |
-| `OTHER_COMMON` | Cấu trúc thông dụng khác |
+| `RELATIVE_CLAUSE` | Relative clause |
+| `INVERSION` | Inversion |
+| `PASSIVE` | Passive voice |
+| `DUMMY_SUBJECT` | Dummy subject |
+| `PARTICIPLE_CLAUSE` | Participle clause |
+| `NOUN_CLAUSE` | Noun clause |
+| `SEEM_LIKELY_TEND` | Seem / be likely / tend to |
+| `OTHER_COMMON` | Other common structures |
 
 Trạng thái: `USED_WELL` (dùng đúng), `USED_WRONG` (dùng sai), `SUGGESTED` (chưa dùng, nên dùng). Gợi ý nâng cấp phù hợp mục tiêu khóa, tối đa 5 mục, không đổi ý của học viên.
 

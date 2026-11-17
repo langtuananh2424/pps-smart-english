@@ -458,4 +458,59 @@ class CmsQuestionTest extends ApiTestBase {
                 .andExpect(jsonPath("$.questions[0].choices[1].isCorrect").value(true))
                 .andExpect(jsonPath("$.questions[1].type").value("GRAMMAR_BUILD")).andExpect(jsonPath("$.questions[1].answerKey.order", hasSize(3)));
     }
+
+    // ---- D-69, D-70 ----
+
+    @Test
+    void studentsReadGrammarElementsInOrderWithEnglishNamesAndColors() throws Exception {
+        var student = register(newEmail(), PASSWORD);
+        mvc.perform(get("/api/grammar-elements")).andExpect(status().isUnauthorized());
+        send(get("/api/grammar-elements"), student.accessToken()).andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(8)))
+                .andExpect(jsonPath("$[0].code").value("RELATIVE_CLAUSE")).andExpect(jsonPath("$[0].name").value("Relative clause"))
+                .andExpect(jsonPath("$[0].colorHex").value("#255a78")).andExpect(jsonPath("$[1].name").value("Inversion"))
+                .andExpect(jsonPath("$[6].name").value("Seem / be likely / tend to")).andExpect(jsonPath("$[7].code").value("OTHER_COMMON"))
+                .andExpect(jsonPath("$[0].id").doesNotExist());
+    }
+
+    @Test
+    void instructionIsOptionalLimitedTo300AndReachesCmsAndStudents() throws Exception {
+        var admin = withRole("ADMIN");
+        var student = register(newEmail(), PASSWORD);
+        long bank = bank(admin, place().topic);
+        var body = mcq();
+        body.put("instruction", "  Chọn từ nối thích hợp.  ");
+        long id = idOf(question(admin, bank, body).andExpect(status().isCreated()).andExpect(jsonPath("$.instruction").value("Chọn từ nối thích hợp.")));
+        var tooLong = mcq();
+        tooLong.put("instruction", "x".repeat(301));
+        rejected(admin, bank, tooLong, "instruction");
+        question(admin, bank, mcq()).andExpect(status().isCreated()).andExpect(jsonPath("$.instruction").doesNotExist());
+
+        call(patch(CMS + "/questions/" + id), admin, Map.of("instruction", "Mới")).andExpect(status().isOk()).andExpect(jsonPath("$.instruction").value("Mới"));
+        call(post(CMS + "/banks/" + bank + "/publish"), admin, null).andExpect(status().isOk());
+        send(get("/api/banks/" + bank), student.accessToken()).andExpect(status().isOk())
+                .andExpect(jsonPath("$.questions[0].instruction").value("Mới")).andExpect(jsonPath("$.questions[1].instruction").doesNotExist());
+        call(patch(CMS + "/questions/" + id), admin, Map.of("instruction", " ")).andExpect(status().isOk()).andExpect(jsonPath("$.instruction").doesNotExist());
+    }
+
+    @Test
+    void clozeLabelsAreOptionalButMustNameRealBlanksWithShortText() throws Exception {
+        var admin = withRole("ADMIN");
+        var student = register(newEmail(), PASSWORD);
+        long bank = bank(admin, place().topic);
+        var key = Map.of("blanks", Map.of("b1", List.of("tea"), "b2", List.of("milk")));
+        java.util.function.Function<Object, Map<String, Object>> withLabels = labels -> q("CONNECTIVE_CLOZE", Map.of(
+                "payload", Map.of("text", "I like {b1} and {b2}.", "blanks", List.of("b1", "b2"), "labels", labels), "answerKey", key));
+
+        question(admin, bank, withLabels.apply(Map.of("b1", "Đồ uống nóng", "b2", "Đồ uống lạnh"))).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.payload.labels.b1").value("Đồ uống nóng"));
+        rejected(admin, bank, withLabels.apply(Map.of("b3", "Không có")), "payload.labels.b3");
+        rejected(admin, bank, withLabels.apply(Map.of("b1", " ")), "payload.labels.b1");
+        rejected(admin, bank, withLabels.apply(Map.of("b1", "x".repeat(101))), "payload.labels.b1");
+        rejected(admin, bank, withLabels.apply(List.of("b1")), "payload.labels");
+        question(admin, bank, cloze()).andExpect(status().isCreated()); // không có labels vẫn hợp lệ
+
+        call(post(CMS + "/banks/" + bank + "/publish"), admin, null).andExpect(status().isOk());
+        send(get("/api/banks/" + bank), student.accessToken()).andExpect(status().isOk())
+                .andExpect(jsonPath("$.questions[0].payload.labels.b2").value("Đồ uống lạnh"));
+    }
 }

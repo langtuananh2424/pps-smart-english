@@ -53,6 +53,6 @@ class QuestionDetails {
                 choiceMap.getOrDefault(q.getId(), List.of()).stream()
                         .map(c -> new ChoiceView(c.getId(), c.getLabel(), c.getContent(), c.isCorrect(), c.getExplanation())).toList(),
                 q.getExplanation(), q.getSortOrder(), codeMap.getOrDefault(q.getId(), List.of()), q.getAnswerVersion(),
-                required.contains(q.getId()), q.getSkill())).toList();
+                required.contains(q.getId()), q.getSkill(), q.getInstruction())).toList();
     }
 }

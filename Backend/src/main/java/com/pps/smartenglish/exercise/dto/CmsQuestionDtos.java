@@ -45,7 +45,8 @@ public final class CmsQuestionDtos {
             @Size(max = 5000) String explanation,
             @Min(0) Integer sortOrder,
             @Size(max = 8) List<String> grammarElementCodes,
-            @Pattern(regexp = SKILL, message = "Chỉ nhận LISTENING, READING hoặc GRAMMAR") String skill) {}
+            @Pattern(regexp = SKILL, message = "Chỉ nhận LISTENING, READING hoặc GRAMMAR") String skill,
+            @Size(max = 300) String instruction) {}
 
     public record PatchQuestion(
             String type,
@@ -56,7 +57,8 @@ public final class CmsQuestionDtos {
             @Size(max = 5000) String explanation,
             @Min(0) Integer sortOrder,
             @Size(max = 8) List<String> grammarElementCodes,
-            @Pattern(regexp = SKILL, message = "Chỉ nhận LISTENING, READING hoặc GRAMMAR") String skill) {}
+            @Pattern(regexp = SKILL, message = "Chỉ nhận LISTENING, READING hoặc GRAMMAR") String skill,
+            @Size(max = 300) String instruction) {}
 
     // ---- phản hồi ----
 
@@ -68,7 +70,7 @@ public final class CmsQuestionDtos {
     /** answerVersion tăng mỗi lần đáp án thật sự đổi; regradeRequired: có bài nộp, dạng chấm lại được, chưa có run ở phiên bản này. */
     public record QuestionDetail(Long id, Long bankId, String type, String prompt, JsonNode payload, JsonNode answerKey,
                                  List<ChoiceView> choices, String explanation, int sortOrder, List<String> grammarElementCodes,
-                                 int answerVersion, boolean regradeRequired, String skill) {}
+                                 int answerVersion, boolean regradeRequired, String skill, String instruction) {}
 
     public record BankDetail(BankView bank, List<QuestionDetail> questions) {}
 

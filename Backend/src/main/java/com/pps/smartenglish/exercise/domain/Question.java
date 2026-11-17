@@ -30,6 +30,9 @@ public class Question extends Auditable {
     private String type;
     private String prompt;
 
+    /** Câu hướng dẫn ngắn (D-70), tùy chọn; không có thì web hiện tên dạng câu. */
+    private String instruction;
+
     @JdbcTypeCode(SqlTypes.JSON)
     private JsonNode payload;
 
@@ -66,6 +69,8 @@ public class Question extends Auditable {
     public Long getBankId() { return bankId; }
     public QuestionType getType() { return QuestionType.valueOf(type); }
     public String getPrompt() { return prompt; }
+    public String getInstruction() { return instruction; }
+    public void setInstruction(String instruction) { this.instruction = instruction; }
     public JsonNode getPayload() { return payload; }
     public JsonNode getAnswerKey() { return answerKey; }
     public String getExplanation() { return explanation; }

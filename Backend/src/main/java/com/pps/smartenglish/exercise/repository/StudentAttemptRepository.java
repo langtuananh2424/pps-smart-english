@@ -16,8 +16,11 @@ public interface StudentAttemptRepository extends JpaRepository<StudentAttempt, 
     /** Luôn kèm userId: attempt của người khác coi như không tồn tại. */
     Optional<StudentAttempt> findByIdAndUserId(Long id, Long userId);
 
-    @Query("select a from StudentAttempt a where a.userId = :userId and a.id < :before order by a.id desc")
-    List<StudentAttempt> findPage(@Param("userId") Long userId, @Param("before") Long before, Pageable page);
+    /** bankId null = mọi bộ; openOnly = chỉ lượt chưa nộp. */
+    @Query("select a from StudentAttempt a where a.userId = :userId and a.id < :before "
+            + "and (:bankId is null or a.bankId = :bankId) and (:openOnly = false or a.submittedAt is null) order by a.id desc")
+    List<StudentAttempt> findPage(@Param("userId") Long userId, @Param("before") Long before,
+                                  @Param("bankId") Long bankId, @Param("openOnly") boolean openOnly, Pageable page);
 
     /** Nộp bài nguyên tử: chỉ một trong các request đồng thời thấy submitted_at IS NULL; 0 dòng = đã nộp rồi. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)

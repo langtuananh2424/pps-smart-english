@@ -394,6 +394,38 @@ class ExerciseTest extends ApiTestBase {
     }
 
     @Test
+    void myAttemptsFilterByBankAndOpen() throws Exception {
+        var b1 = fullBank(true, false);
+        var b2 = fullBank(true, false);
+        var u = register(newEmail(), PASSWORD);
+        long done1 = startAttempt(b1.id, u.accessToken());
+        submit(done1, u.accessToken(), correctAnswers(b1)).andExpect(status().isOk());
+        long open1 = startAttempt(b1.id, u.accessToken());
+        long open2 = startAttempt(b2.id, u.accessToken());
+        startAttempt(b1.id, register(newEmail(), PASSWORD).accessToken()); // lượt người khác không lọt vào
+        getAuth("/api/me/attempts", u.accessToken()).andExpect(status().isOk()).andExpect(jsonPath("$.data", hasSize(3)));
+        getAuth("/api/me/attempts?bankId=" + b1.id, u.accessToken())
+                .andExpect(jsonPath("$.data", hasSize(2))).andExpect(jsonPath("$.data[0].id").value(open1));
+        getAuth("/api/me/attempts?open=true", u.accessToken())
+                .andExpect(jsonPath("$.data", hasSize(2))).andExpect(jsonPath("$.data[0].id").value(open2));
+        getAuth("/api/me/attempts?bankId=" + b1.id + "&open=true", u.accessToken())
+                .andExpect(jsonPath("$.data", hasSize(1))).andExpect(jsonPath("$.data[0].id").value(open1));
+        getAuth("/api/me/attempts?open=false&bankId=" + b2.id, u.accessToken()).andExpect(jsonPath("$.data", hasSize(1)));
+        getAuth("/api/me/attempts?bankId=abc", u.accessToken()).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("validation_failed"));
+    }
+
+    @Test
+    void bankExposesModeAndTimeLimit() throws Exception {
+        var bank = fullBank(true, false);
+        var u = register(newEmail(), PASSWORD);
+        getAuth("/api/banks/" + bank.id, u.accessToken()).andExpect(jsonPath("$.mode").value("PRACTICE"))
+                .andExpect(jsonPath("$.timeLimitSec").value(nullValue()));
+        jdbc.update("update question_banks set time_limit_sec = 900 where id = ?", bank.id);
+        getAuth("/api/banks/" + bank.id, u.accessToken()).andExpect(jsonPath("$.timeLimitSec").value(900));
+    }
+
+    @Test
     void everyEndpointRequiresToken() throws Exception {
         mvc.perform(get("/api/banks/1")).andExpect(status().isUnauthorized());
         postAuth("/api/banks/1/attempts", null, Map.of()).andExpect(status().isUnauthorized());

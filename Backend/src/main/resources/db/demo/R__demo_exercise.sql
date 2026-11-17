@@ -24,8 +24,8 @@ BEGIN
         RETURNING id INTO bid;
 
         -- 1. Trắc nghiệm: đáp án nằm ở question_choices
-        INSERT INTO questions (bank_id, type, prompt, explanation, sort_order)
-        VALUES (bid, 'CONNECTIVE_MCQ', 'She was very tired; ____, she finished the report.',
+        INSERT INTO questions (bank_id, type, instruction, prompt, explanation, sort_order)
+        VALUES (bid, 'CONNECTIVE_MCQ', 'Chọn từ nối thích hợp.', 'She was very tired; ____, she finished the report.',
                 '"Nevertheless" diễn tả sự đối lập: mệt nhưng vẫn hoàn thành.', 1)
         RETURNING id INTO qid;
         INSERT INTO question_choices (question_id, label, content, is_correct, explanation) VALUES
@@ -43,9 +43,9 @@ BEGIN
                 '"so" nối kết quả, "because" nối lý do, "but" nối ý đối lập.', 2);
 
         -- 3. Điền từ nối vào đoạn
-        INSERT INTO questions (bank_id, type, prompt, payload, answer_key, explanation, sort_order)
-        VALUES (bid, 'CONNECTIVE_CLOZE', 'Điền từ nối thích hợp vào mỗi chỗ trống.',
-                '{"text":"Many people prefer cities {b1} they offer more jobs. {b2}, living costs are high.","blanks":["b1","b2"]}',
+        INSERT INTO questions (bank_id, type, instruction, prompt, payload, answer_key, explanation, sort_order)
+        VALUES (bid, 'CONNECTIVE_CLOZE', 'Gõ từ nối vào từng ô trong đoạn.', 'Điền từ nối thích hợp vào mỗi chỗ trống.',
+                '{"text":"Many people prefer cities {b1} they offer more jobs. {b2}, living costs are high.","blanks":["b1","b2"],"labels":{"b1":"Từ nối chỉ nguyên nhân","b2":"Từ nối chỉ sự đối lập"}}',
                 '{"blanks":{"b1":["because","since"],"b2":["however","nevertheless"]}}',
                 'Chỗ 1 nêu lý do (because/since); chỗ 2 nêu ý đối lập (however/nevertheless).', 3);
 
@@ -57,8 +57,8 @@ BEGIN
                 4);
 
         -- 5. Nhận diện cấu trúc (end là chỉ số token cuối, tính cả)
-        INSERT INTO questions (bank_id, type, prompt, payload, answer_key, explanation, sort_order)
-        VALUES (bid, 'GRAMMAR_IDENTIFY', 'Chọn cụm từ là mệnh đề quan hệ trong câu.',
+        INSERT INTO questions (bank_id, type, instruction, prompt, payload, answer_key, explanation, sort_order)
+        VALUES (bid, 'GRAMMAR_IDENTIFY', 'Chạm từ đầu rồi từ cuối của cụm.', 'Chọn cụm từ là mệnh đề quan hệ trong câu.',
                 '{"tokens":["The","book","that","I","bought","yesterday","was","expensive","."]}',
                 '{"spans":[{"start":2,"end":5,"element":"RELATIVE_CLAUSE"}]}',
                 '"that I bought yesterday" bổ nghĩa cho "The book" nên là mệnh đề quan hệ.', 5)

@@ -5,10 +5,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 
 /** Không có trường nào mang đáp án: không answerKey, is_correct hay explanation. */
-public record BankResponse(Long id, String title, Long lessonId, boolean isTrial, List<QuestionView> questions) {
+public record BankResponse(Long id, String title, Long lessonId, boolean isTrial, String mode,
+                         Integer timeLimitSec, List<QuestionView> questions) {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record QuestionView(Long id, String type, String prompt, JsonNode payload, List<ChoiceView> choices,
+    public record QuestionView(Long id, String type, String instruction, String prompt, JsonNode payload, List<ChoiceView> choices,
                         List<HintView> hints) {}
 
     public record ChoiceView(Long id, String label, String content) {}
