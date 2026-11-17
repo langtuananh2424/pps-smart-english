@@ -10,6 +10,9 @@ import com.pps.smartenglish.commerce.dto.OrderView;
 import com.pps.smartenglish.commerce.payment.PaymentGateway;
 import com.pps.smartenglish.commerce.payment.PaymentGateway.LinkRequest;
 import com.pps.smartenglish.commerce.payment.PaymentGatewayRegistry;
+import com.pps.smartenglish.commerce.dto.OrderView.CourseRef;
+import com.pps.smartenglish.commerce.dto.OrderView.ItemView;
+import com.pps.smartenglish.commerce.repository.EnrollmentRepository;
 import com.pps.smartenglish.commerce.repository.OrderItemRepository;
 import com.pps.smartenglish.commerce.repository.OrderRepository;
 import com.pps.smartenglish.commerce.repository.ProductRepository;
@@ -19,8 +22,12 @@ import com.pps.smartenglish.shared.idempotency.IdempotencyService.Outcome;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -38,12 +45,15 @@ public class OrderService {
     private final PaymentGatewayRegistry gateways;
     private final IdempotencyService idempotency;
     private final OrderCodeGenerator codes;
+    private final EnrollmentRepository enrollments;
     private final Clock clock;
     private final Duration ttl;
+    private final boolean simulatable;
 
     OrderService(EmailVerification emailVerification, ProductRepository products, OrderRepository orders, OrderItemRepository items,
-                 PaymentGatewayRegistry gateways, IdempotencyService idempotency, OrderCodeGenerator codes, Clock clock,
-                 @Value("${app.commerce.order-ttl-minutes:30}") long ttlMinutes) {
+                 PaymentGatewayRegistry gateways, IdempotencyService idempotency, OrderCodeGenerator codes,
+                 EnrollmentRepository enrollments, Clock clock, @Value("${app.commerce.order-ttl-minutes:30}") long ttlMinutes,
+                 @Value("${app.payment.fake-enabled:false}") boolean simulatable) {
         this.emailVerification = emailVerification;
         this.products = products;
         this.orders = orders;
@@ -51,7 +61,9 @@ public class OrderService {
         this.gateways = gateways;
         this.idempotency = idempotency;
         this.codes = codes;
+        this.enrollments = enrollments;
         this.clock = clock;
+        this.simulatable = simulatable;
         this.ttl = Duration.ofMinutes(ttlMinutes);
     }
 
@@ -77,20 +89,43 @@ public class OrderService {
         return view(order);
     }
 
-    /** Chạy trong transaction của IdempotencyService: đơn, các dòng và link thanh toán cùng thành công hoặc cùng hủy. */
+    /**
+     * Chạy trong transaction của IdempotencyService: đơn, các dòng và link thanh toán cùng thành công hoặc cùng hủy.
+     * Khóa dòng user trước khi tìm đơn chờ để hai request đồng thời (khác Idempotency-Key) không tạo hai đơn (D-77).
+     */
     private OrderCreated place(long userId, List<Long> ids, PaymentGateway gateway) {
+        enrollments.lockUser(userId);
+        var reusable = findReusable(userId, new HashSet<>(ids));
+        if (reusable != null) {
+            return new OrderCreated(reusable.getCode(), reusable.getStatus(), reusable.getTotalVnd(),
+                    new PaymentInfo(reusable.getQrContent(), reusable.getExpiresAt(), simulatable));
+        }
         List<Product> chosen = products.findWithLevels(ids);
         if (chosen.size() != ids.size() || chosen.stream().anyMatch(p -> !p.isActive())) {
             throw ApiException.validation("productIds", "Sản phẩm không tồn tại hoặc đã ngừng bán");
         }
         long total = chosen.stream().mapToLong(Product::getPriceVnd).sum();
-        Instant expiresAt = Instant.now(clock).plus(ttl);
+        // cắt về micro giây như cột DB để lần mở lại đơn trả đúng giá trị cũ
+        Instant expiresAt = Instant.now(clock).plus(ttl).truncatedTo(ChronoUnit.MICROS);
         var order = orders.save(new ShopOrder(userId, uniqueCode(), total, expiresAt));
         items.saveAll(chosen.stream().map(p -> new OrderItem(order.getId(), p.getId(), p.getPriceVnd())).toList());
         var link = gateway.createPaymentLink(
-                new LinkRequest(order.getCode(), total, "Thanh toan " + order.getCode(), expiresAt));
+                new LinkRequest(order.getCode(), total, transferContent(order.getCode()), expiresAt));
         order.attachPayment(gateway.providerCode(), link.qrContent());
-        return new OrderCreated(order.getCode(), order.getStatus(), total, new PaymentInfo(link.qrContent(), expiresAt));
+        return new OrderCreated(order.getCode(), order.getStatus(), total, new PaymentInfo(link.qrContent(), expiresAt, simulatable));
+    }
+
+    private ShopOrder findReusable(long userId, Set<Long> productIds) {
+        for (var o : orders.findLivePending(userId, Instant.now(clock))) {
+            if (items.findByOrderId(o.getId()).stream().map(OrderItem::getProductId).collect(Collectors.toSet()).equals(productIds)) {
+                return o;
+            }
+        }
+        return null;
+    }
+
+    private static String transferContent(String code) {
+        return "Thanh toan " + code;
     }
 
     /** Nhờ unique(orders.code) làm lưới an toàn cuối; vòng lặp này chỉ để khỏi vấp va chạm hiếm. */
@@ -105,8 +140,20 @@ public class OrderService {
     /** Dùng chung cho GET /orders/{code} và endpoint giả lập thanh toán. */
     @Transactional(readOnly = true)
     public OrderView view(ShopOrder order) {
-        boolean pending = ShopOrder.PENDING.equals(order.getStatus());
-        return new OrderView(order.getCode(), order.getStatus(), order.getTotalVnd(), order.getPaidAt(), order.getExpiresAt(),
-                items.findViews(order.getId()), pending ? new PaymentInfo(order.getQrContent(), order.getExpiresAt()) : null);
+        String status = order.effectiveStatus(Instant.now(clock));
+        boolean pending = ShopOrder.PENDING.equals(status);
+        return new OrderView(order.getCode(), status, order.getTotalVnd(), order.getPaidAt(), order.getExpiresAt(),
+                withCourses(items.findViews(order.getId())),
+                pending ? new PaymentInfo(order.getQrContent(), order.getExpiresAt(), simulatable) : null,
+                pending ? transferContent(order.getCode()) : null);
+    }
+
+    /** Gắn khóa học của từng gói (product, level, course); gói lượt AI không có khóa. */
+    private List<ItemView> withCourses(List<ItemView> views) {
+        Map<Long, CourseRef> byProduct = new HashMap<>();
+        for (Object[] r : items.findCourses(views.stream().map(ItemView::productId).toList())) {
+            byProduct.putIfAbsent((Long) r[0], new CourseRef((Long) r[1], (String) r[2], (String) r[3]));
+        }
+        return views.stream().map(v -> v.withCourse(byProduct.get(v.productId()))).toList();
     }
 }

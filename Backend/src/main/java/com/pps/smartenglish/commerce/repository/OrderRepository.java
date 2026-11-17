@@ -4,6 +4,7 @@ import com.pps.smartenglish.commerce.domain.ShopOrder;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +19,14 @@ public interface OrderRepository extends JpaRepository<ShopOrder, Long> {
     Optional<ShopOrder> findByCodeAndUserId(String code, Long userId);
 
     boolean existsByCode(String code);
+
+    /** Trang đơn của một người, mới nhất trước (keyset theo id). */
+    @Query("select o from ShopOrder o where o.userId = :userId and o.id < :before order by o.id desc")
+    List<ShopOrder> pageByUser(@Param("userId") Long userId, @Param("before") long before, Pageable page);
+
+    /** Đơn chờ thanh toán còn hạn của một người, dùng lại theo D-77. */
+    @Query("select o from ShopOrder o where o.userId = :userId and o.status = 'PENDING' and o.expiresAt > :now order by o.id desc")
+    List<ShopOrder> findLivePending(@Param("userId") Long userId, @Param("now") Instant now);
 
     /**
      * Kích hoạt nguyên tử theo trạng thái cũ: webhook trùng hoặc đồng thời chỉ một lần thấy 1 dòng bị sửa.

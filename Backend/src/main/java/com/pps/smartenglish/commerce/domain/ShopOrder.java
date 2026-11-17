@@ -62,6 +62,11 @@ public class ShopOrder extends Auditable {
         this.qrContent = qrContent;
     }
 
+    /** Đơn PENDING quá hạn coi như EXPIRED ngay, không chờ OrderExpiryJob. */
+    public String effectiveStatus(Instant now) {
+        return PENDING.equals(status) && !expiresAt.isAfter(now) ? EXPIRED : status;
+    }
+
     public Long getId() { return id; }
     public Long getUserId() { return userId; }
     public String getCode() { return code; }

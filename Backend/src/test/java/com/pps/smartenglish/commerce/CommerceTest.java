@@ -510,9 +510,11 @@ class CommerceTest extends ApiTestBase {
         var c = content();
         long a = product("LEVEL", 1000, 30, 0, "ACTIVE", c.levelId);
         var u = buyer();
+        long b = product("LEVEL", 1000, 30, 0, "ACTIVE", c.levelId);
+        long d = product("LEVEL", 1000, 30, 0, "ACTIVE", c.levelId);
         String overdue = orderCode(u, a);
-        String fresh = orderCode(u, a);
-        String paid = orderCode(u, a);
+        String fresh = orderCode(u, b); // gói khác nhau: cùng gói sẽ dùng lại đơn chờ (D-77)
+        String paid = orderCode(u, d);
         pay(paid, 1000);
         jdbc.update("update orders set expires_at = ? where code in (?, ?)", OffsetDateTime.parse("2000-01-01T00:00:00Z"), overdue, paid);
         expiryJob.expire();
