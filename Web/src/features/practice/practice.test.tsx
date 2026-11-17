@@ -87,10 +87,9 @@ describe('renderer tạo đúng answer', () => {
     expect(screen.getByRole('link', { name: 'Làm ở màn Viết' })).toHaveAttribute('href', '/viet/42')
     expect(isAnswered('WRITING', { text: 'x' })).toBe(false)
   })
-  test('SPEAKING giữ thẻ "sắp có", không có link', () => {
-    mount(q('SPEAKING', {}))
-    expect(screen.getByText(/màn Viết\/Nói/)).toBeInTheDocument()
-    expect(screen.queryByRole('link')).toBeNull()
+  test('SPEAKING dẫn tới màn Nói', () => {
+    mount(q('SPEAKING', {}, { id: 43 }))
+    expect(screen.getByRole('link', { name: 'Làm ở màn Nói' })).toHaveAttribute('href', '/noi/43')
   })
 })
 

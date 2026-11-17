@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { setAccessToken } from '../../lib/api'
 import { apiError, auth, json, renderAt } from '../../testUtils'
 import { splitMarked } from './marked'
-import { JobTimeout, parseSse, waitForJob } from './sse'
+import { JobTimeout, parseSse, waitForJob } from '../../lib/sse'
 
 const sse = (events: [string, unknown][]) =>
   new Response(events.map(([e, d]) => `event: ${e}\ndata: ${JSON.stringify(d)}\n\n`).join(''), { status: 200, headers: { 'Content-Type': 'text/event-stream' } })

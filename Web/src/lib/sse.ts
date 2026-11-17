@@ -1,5 +1,6 @@
-import { api, ApiError, rawFetch } from '../../lib/api'
-import type { JobView } from './types'
+import { api, ApiError, rawFetch } from './api'
+
+export interface JobView<R = unknown> { id: number; kind: string; status: 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED'; result?: R; error?: string; quotaRefunded: boolean }
 
 export interface SseEvent { event: string; data: string }
 

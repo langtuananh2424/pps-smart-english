@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { pillNeutral } from '../practice/questions/ui'
-import { JobTimeout, waitForJob } from './sse'
+import { JobTimeout, waitForJob } from '../../lib/sse'
 import type { JobView } from './types'
 
 type State = 'waiting' | 'timeout'

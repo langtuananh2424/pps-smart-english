@@ -39,5 +39,5 @@ export interface Created { sessionId: number; question: RootQuestion }
 export interface AnswerAccepted { jobId: number | null; sessionStatus: SessionStatus }
 export interface SubmitAccepted { jobId: number; status: string; quotaRemaining: number }
 
-export interface JobView<R = unknown> { id: number; kind: string; status: 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED'; result?: R; error?: string; quotaRefunded: boolean }
+export type { JobView } from '../../lib/sse'
 export interface Followup { question: string; done: boolean }

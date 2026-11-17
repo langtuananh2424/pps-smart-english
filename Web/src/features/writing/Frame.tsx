@@ -4,11 +4,11 @@ import type { RootQuestion } from './types'
 
 const noop = () => {}
 
-// Khung màn Viết (Figma 10.26): thanh đầu, hai cột đề | trả lời (xếp dọc trên mobile), thanh thao tác dưới.
-export function Frame({ left, children, actions }: { left?: ReactNode; children: ReactNode; actions?: ReactNode }) {
+// Khung màn Viết (Figma 10.26), dùng chung cho màn Nói: thanh đầu, hai cột đề | trả lời (xếp dọc trên mobile), thanh thao tác dưới.
+export function Frame({ left, children, actions, title = 'Viết tự luận' }: { left?: ReactNode; children: ReactNode; actions?: ReactNode; title?: string }) {
   return (
     <div className="min-h-dvh bg-page pb-[88px]">
-      <PlayHeader title="Viết tự luận" secondsLeft={null} draft="idle" canPause={false} paused={false} onPause={noop} />
+      <PlayHeader title={title} secondsLeft={null} draft="idle" canPause={false} paused={false} onPause={noop} />
       <main className={`mx-auto grid max-w-[1384px] items-start gap-5 px-4 py-3 md:px-7 ${left ? 'lg:grid-cols-2' : 'max-w-[900px]'}`}>
         {left}
         <div className="flex flex-col gap-4">{children}</div>

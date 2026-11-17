@@ -13,6 +13,7 @@ import { ExerciseListPage } from '../features/exercises/ListPage'
 import { ExercisePickerPage } from '../features/exercises/PickerPage'
 import { ProfilePage } from '../features/profile/ProfilePage'
 import { PracticePage } from '../features/practice/PracticePage'
+import { SpeakingPage } from '../features/speaking/SpeakingPage'
 import { WritingPage } from '../features/writing/WritingPage'
 import { QaPage } from '../features/qa/QaPage'
 import { AdaptiveShell } from '../layout/AdaptiveShell'
@@ -84,6 +85,7 @@ export const routes: RouteObject[] = [
         children: [
           { path: '/bai-tap/:bankId', element: <PracticePage /> },
           { path: '/viet/:questionId', element: <WritingPage /> },
+          { path: '/noi/:questionId', element: <SpeakingPage /> },
         ],
       },
       { path: '*', element: <NotFoundPage /> },
