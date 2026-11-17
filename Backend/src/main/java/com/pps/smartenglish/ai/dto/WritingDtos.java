@@ -1,9 +1,12 @@
 package com.pps.smartenglish.ai.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.time.Instant;
+import java.util.List;
 
 /** Request/response của luồng viết. Giới hạn 5000 ký tự là trần chi phí token (FR-AI-01). */
 public final class WritingDtos {
@@ -30,4 +33,15 @@ public final class WritingDtos {
     public record DraftAccepted(Long jobId) {}
 
     public record SubmitAccepted(Long jobId, String status, int quotaRemaining) {}
+
+    /** role: CAM (câu hỏi của Cam) hoặc STUDENT. */
+    public record TurnView(String role, String text) {}
+
+    /** pendingJobId: job Scaffolding đang chạy; grade: kết quả chấm, chỉ có khi job WRITING_GRADE đã DONE. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record SessionView(Long sessionId, String status, RootQuestion question, List<TurnView> turns, Long pendingJobId,
+                              String draft, String finalText, Long gradeJobId, JsonNode grade, Instant createdAt) {}
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record SessionSummary(Long sessionId, Long questionId, String status, Integer scorePercent, Instant createdAt) {}
 }

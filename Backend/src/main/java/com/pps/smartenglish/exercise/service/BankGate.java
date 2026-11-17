@@ -1,5 +1,6 @@
 package com.pps.smartenglish.exercise.service;
 
+import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.dto.BankInfo;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
 import com.pps.smartenglish.shared.error.ApiException;
@@ -26,5 +27,14 @@ class BankGate {
             throw new ApiException(HttpStatus.FORBIDDEN, "bank_locked", "Bạn chưa có quyền làm bộ câu hỏi này");
         }
         return bank;
+    }
+
+    /** D-82: Viết/Nói luyện tập không nhận câu của bộ thi khóa (làm cùng luồng thi). */
+    BankInfo requirePracticable(Long bankId, Long userId) {
+        // Kiểm mode trước quyền: bộ thi chưa mở sẽ bị bank_locked che mất lý do thật.
+        if (banks.findInfo(bankId).filter(b -> QuestionBank.EXAM.equals(b.mode())).isPresent()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "exam_question_not_practicable", "Câu này thuộc bài thi, không luyện tập riêng được");
+        }
+        return require(bankId, userId);
     }
 }

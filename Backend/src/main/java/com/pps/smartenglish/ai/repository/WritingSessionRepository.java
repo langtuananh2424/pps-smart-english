@@ -2,7 +2,9 @@ package com.pps.smartenglish.ai.repository;
 
 import com.pps.smartenglish.ai.domain.WritingSession;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -13,6 +15,10 @@ public interface WritingSessionRepository extends JpaRepository<WritingSession, 
 
     /** Luôn kèm userId: session của người khác coi như không tồn tại. */
     Optional<WritingSession> findByIdAndUserId(Long id, Long userId);
+
+    List<WritingSession> findByUserIdAndIdLessThanOrderByIdDesc(Long userId, Long before, Pageable page);
+
+    List<WritingSession> findByUserIdAndQuestionIdAndIdLessThanOrderByIdDesc(Long userId, Long questionId, Long before, Pageable page);
 
     /** [questionId, lần nộp gần nhất] của các câu người dùng đã nộp (updated_at được đặt lúc nộp). */
     @Query("select s.questionId, max(s.updatedAt) from WritingSession s where s.userId = :userId and s.status = 'SUBMITTED' "

@@ -32,7 +32,7 @@ class WritingQuestionProvider implements WritingQuestionSource {
         if (q.getType() != QuestionType.WRITING) {
             throw ApiException.validation("questionId", "Không phải câu hỏi viết");
         }
-        gate.require(q.getBankId(), userId);
+        gate.requirePracticable(q.getBankId(), userId);
         var payload = q.getPayload();
         String task = payload != null && payload.path("task").isTextual() && !payload.path("task").asText().isBlank()
                 ? payload.path("task").asText() : q.getPrompt();

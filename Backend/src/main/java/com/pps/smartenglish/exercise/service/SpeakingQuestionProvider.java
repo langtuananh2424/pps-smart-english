@@ -38,7 +38,7 @@ class SpeakingQuestionProvider implements SpeakingQuestionSource {
         if (q.getType() != QuestionType.SPEAKING) {
             throw ApiException.validation("questionId", "Không phải câu hỏi nói");
         }
-        gate.require(q.getBankId(), userId);
+        gate.requirePracticable(q.getBankId(), userId);
         JsonNode p = q.getPayload();
         int part = p.path("part").asInt();
         int max = p.path("maxSeconds").isIntegralNumber() ? p.path("maxSeconds").asInt() : part == 2 ? PART2_SECONDS : SHORT_PART_SECONDS;

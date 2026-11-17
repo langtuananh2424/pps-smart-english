@@ -36,6 +36,11 @@ public interface AiJobRepository extends JpaRepository<AiJob, Long> {
             + "and j.kind in ('SCAFFOLD_FOLLOWUP', 'SCAFFOLD_DRAFT')")
     boolean existsScaffoldInFlight(@Param("sessionId") Long sessionId);
 
+    /** Id job Scaffolding đang chạy của session (tối đa một, do requireIdle). */
+    @Query("select j.id from AiJob j where j.sessionId = :sessionId and j.status in ('PENDING', 'RUNNING') "
+            + "and j.kind in ('SCAFFOLD_FOLLOWUP', 'SCAFFOLD_DRAFT') order by j.id desc")
+    List<Long> findScaffoldInFlightIds(@Param("sessionId") Long sessionId);
+
     /**
      * Khóa các job đến hạn mà không chờ worker khác (SKIP LOCKED). Gồm cả job RUNNING quá locked_until
      * (worker trước chết giữa chừng): giao hàng "ít nhất một lần".
