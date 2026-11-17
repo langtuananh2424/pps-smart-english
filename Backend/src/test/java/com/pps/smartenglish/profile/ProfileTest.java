@@ -114,4 +114,43 @@ class ProfileTest extends ApiTestBase {
         call(put("/api/me/goals"), a, Map.of("goals", List.of(goal("T", "x".repeat(101))))).andExpect(status().isBadRequest());
         call(put("/api/me/goals"), a, Map.of()).andExpect(status().isBadRequest());
     }
+
+    @Test
+    void putIeltsGoalUpsertsOnlyIeltsRowAndSyncsQaBand() throws Exception {
+        Account a = register(newEmail(), "mat-khau-1");
+        String date = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).plusDays(30).toString();
+        // chưa có dòng nào: tạo mới; chưa có Q&A thì không tạo Q&A
+        call(put("/api/me/goals/ielts"), a, Map.of("targetBand", 6.5, "targetDate", date)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.targetType").value("IELTS")).andExpect(jsonPath("$.targetValue").value("6.5"))
+                .andExpect(jsonPath("$.targetDate").value(date));
+        send(get("/api/me/qa"), a.accessToken()).andExpect(status().isNoContent());
+
+        // có mục tiêu khác + Q&A: giữ mục tiêu khác, cập nhật band trong Q&A, xóa ngày khi không gửi
+        call(put("/api/me/goals"), a, Map.of("goals", List.of(goal("JOB", "Giao tiếp"), goal("IELTS", "5.0")))).andExpect(status().isOk());
+        call(put("/api/me/qa"), a, Map.of("selfLevel", "CO_BAN", "goals", List.of("WORK"), "targetBand", 5.0,
+                "weeklyHours", "H3_5", "skills", List.of("SPEAKING"))).andExpect(status().isOk());
+        call(put("/api/me/goals"), a, Map.of("goals", List.of(goal("JOB", "Giao tiếp"), goal("IELTS", "5.0")))).andExpect(status().isOk());
+        call(put("/api/me/goals/ielts"), a, Map.of("targetBand", 7)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.targetValue").value("7.0")).andExpect(jsonPath("$.targetDate").doesNotExist());
+        send(get("/api/me/goals"), a.accessToken()).andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].targetType").value("JOB")).andExpect(jsonPath("$[1].targetValue").value("7.0"));
+        send(get("/api/me/qa"), a.accessToken()).andExpect(jsonPath("$.targetBand").value(7.0))
+                .andExpect(jsonPath("$.selfLevel").value("CO_BAN"));
+    }
+
+    @Test
+    void putIeltsGoalValidates() throws Exception {
+        Account a = register(newEmail(), "mat-khau-1");
+        java.time.LocalDate today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        for (Object band : new Object[] {3.5, 8.5, 6.2}) {
+            call(put("/api/me/goals/ielts"), a, Map.of("targetBand", band)).andExpect(status().isBadRequest());
+        }
+        call(put("/api/me/goals/ielts"), a, Map.of()).andExpect(status().isBadRequest());
+        for (java.time.LocalDate d : List.of(today, today.minusDays(1))) {
+            call(put("/api/me/goals/ielts"), a, Map.of("targetBand", 6.5, "targetDate", d.toString()))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error.code").value("validation_failed"))
+                    .andExpect(jsonPath("$.error.details.targetDate").exists());
+        }
+        send(get("/api/me/goals"), a.accessToken()).andExpect(jsonPath("$", hasSize(0)));
+    }
 }

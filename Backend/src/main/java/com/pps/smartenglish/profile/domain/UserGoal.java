@@ -42,6 +42,11 @@ public class UserGoal extends Auditable {
         this.targetDate = targetDate;
     }
 
+    public void update(String targetValue, LocalDate targetDate) {
+        this.targetValue = targetValue;
+        this.targetDate = targetDate;
+    }
+
     public Long getId() {
         return id;
     }

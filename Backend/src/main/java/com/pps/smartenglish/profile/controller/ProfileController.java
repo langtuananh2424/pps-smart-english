@@ -3,6 +3,7 @@ package com.pps.smartenglish.profile.controller;
 import com.pps.smartenglish.profile.dto.GoalResponse;
 import com.pps.smartenglish.profile.dto.MeResponse;
 import com.pps.smartenglish.profile.dto.ReplaceGoalsRequest;
+import com.pps.smartenglish.profile.dto.UpdateIeltsGoalRequest;
 import com.pps.smartenglish.profile.dto.UpdateMeRequest;
 import com.pps.smartenglish.profile.service.ProfileService;
 import com.pps.smartenglish.shared.security.CurrentUser;
@@ -44,5 +45,10 @@ class ProfileController {
     @PutMapping("/goals")
     List<GoalResponse> replaceGoals(Authentication auth, @Valid @RequestBody ReplaceGoalsRequest req) {
         return service.replaceGoals(CurrentUser.id(auth), req.goals());
+    }
+
+    @PutMapping("/goals/ielts")
+    GoalResponse updateIeltsGoal(Authentication auth, @Valid @RequestBody UpdateIeltsGoalRequest req) {
+        return service.updateIeltsGoal(CurrentUser.id(auth), req);
     }
 }
