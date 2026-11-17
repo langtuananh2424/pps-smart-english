@@ -9,6 +9,7 @@ interface AuthState {
   register: (email: string, password: string, displayName: string) => Promise<void>
   loginWithGoogle: (idToken: string) => Promise<void>
   logout: () => Promise<void>
+  setDisplayName: (name: string) => void
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -47,7 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
-  const value = useMemo(() => ({ user, loading, login, register, loginWithGoogle, logout }), [user, loading, login, register, loginWithGoogle, logout])
+  // Đổi tên ở Hồ sơ: header và sidebar đọc từ phiên nên cập nhật tại đây.
+  const setDisplayName = useCallback((displayName: string) => setUser((u) => (u ? { ...u, displayName } : u)), [])
+
+  const value = useMemo(
+    () => ({ user, loading, login, register, loginWithGoogle, logout, setDisplayName }),
+    [user, loading, login, register, loginWithGoogle, logout, setDisplayName],
+  )
   return <AuthContext value={value}>{children}</AuthContext>
 }
 

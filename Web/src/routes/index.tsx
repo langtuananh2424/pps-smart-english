@@ -6,6 +6,7 @@ import { LessonPage } from '../features/lectures/LessonPage'
 import { PickerPage } from '../features/lectures/PickerPage'
 import { ExerciseListPage } from '../features/exercises/ListPage'
 import { ExercisePickerPage } from '../features/exercises/PickerPage'
+import { ProfilePage } from '../features/profile/ProfilePage'
 import { PracticePage } from '../features/practice/PracticePage'
 import { QaPage } from '../features/qa/QaPage'
 import { AdaptiveShell } from '../layout/AdaptiveShell'
@@ -16,7 +17,6 @@ import { LoginPage } from './LoginPage'
 import { ForgotPasswordPage, ResetPasswordPage, VerifyEmailPage } from './RecoveryPages'
 import { RegisterPage } from './RegisterPage'
 import { PlaceholderPage } from './PlaceholderPage'
-import { ProfilePage } from './ProfilePage'
 
 const todo = (title: string) => <PlaceholderPage title={title} />
 
@@ -59,6 +59,8 @@ export const routes: RouteObject[] = [
               { path: '/bai-tap', element: <ExercisePickerPage /> },
               { path: '/bai-tap/khoa/:courseId', element: <ExerciseListPage /> },
               { path: '/ho-so', element: <ProfilePage /> },
+              { path: '/chuoi-hoc', element: todo('Chuỗi học') },
+              { path: '/don-hang', element: todo('Đơn hàng') },
               // Màn đích của trang chủ, chưa dựng.
               { path: '/viet/:questionId', element: todo('Viết phát triển ý') },
               { path: '/thong-bao', element: todo('Thông báo') },
