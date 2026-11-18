@@ -17,7 +17,7 @@ function Tab({ on, onClick, children }: { on: boolean; onClick: () => void; chil
       type="button"
       aria-pressed={on}
       onClick={onClick}
-      className={`min-h-10 shrink-0 rounded-full border-2 px-3.5 text-sm font-extrabold ${on ? 'border-brand bg-[#fff8f1] text-brand-strong' : 'border-line bg-surface text-ink-secondary'}`}
+      className={`min-h-11 shrink-0 rounded-full border-2 px-3.5 text-sm font-extrabold ${on ? 'border-brand bg-[#fff8f1] text-brand-strong' : 'border-line bg-surface text-ink-secondary'}`}
     >
       {children}
     </button>

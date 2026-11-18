@@ -22,7 +22,7 @@ export function PlayHeader({ title, secondsLeft, draft, canPause, paused, onPaus
   return (
     <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between gap-3 border-b border-line bg-surface px-4 md:h-[72px] md:px-7">
       <div className="flex min-w-0 items-center gap-2 md:gap-3.5">
-        <Link to={back.to} aria-label={back.label} className="grid size-11 shrink-0 place-items-center rounded-[10px] border border-line bg-input text-[13px] font-extrabold text-brand-strong">
+        <Link to={back.to} aria-label={back.label} className="grid size-11 shrink-0 place-items-center rounded-[10px] border border-line bg-input text-2xl font-extrabold leading-none text-brand-strong">
           ‹
         </Link>
         <img src={logo} alt="PPS Smart English" className="h-[22px] w-auto md:h-[29px]" />
