@@ -29,6 +29,16 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("update Notification n set n.readAt = :now where n.id = :id and n.userId = :userId and n.readAt is null")
     int markRead(@Param("id") Long id, @Param("userId") Long userId, @Param("now") Instant now);
 
+    /** Đánh dấu mọi thông báo chưa đọc của một người (D-93); trả số dòng đổi. */
+    @Transactional
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update Notification n set n.readAt = :now where n.userId = :userId and n.readAt is null")
+    int markAllRead(@Param("userId") Long userId, @Param("now") Instant now);
+
+    /** Câu hỏi của phiên viết đã nộp bằng job này; web mở /viet/:questionId để xem kết quả. */
+    @Query(value = "select question_id from writing_sessions where grade_job_id = :jobId", nativeQuery = true)
+    Optional<Long> findWritingQuestionId(@Param("jobId") Long jobId);
+
     /** Ghi sent_at khi có ít nhất một lần push SENT; giữ lần đầu. */
     @Transactional
     @Modifying(flushAutomatically = true, clearAutomatically = true)

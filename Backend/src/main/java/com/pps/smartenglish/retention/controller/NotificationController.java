@@ -35,6 +35,11 @@ class NotificationController {
         return Map.of("count", notifications.unreadCount(CurrentUser.id(auth)));
     }
 
+    @PostMapping("/read-all")
+    Map<String, Integer> readAll(Authentication auth) {
+        return Map.of("count", notifications.markAllRead(CurrentUser.id(auth)));
+    }
+
     @PostMapping("/{id}/read")
     NotificationView read(Authentication auth, @PathVariable String id) {
         return notifications.markRead(CurrentUser.id(auth),

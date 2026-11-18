@@ -61,8 +61,10 @@ public class NotificationService {
 
     /** Bài viết chấm xong (dedupe theo job). Nội dung bài viết không bao giờ nằm trong thông báo. */
     public void writingGraded(long userId, long jobId) {
+        // đường dẫn web tính một chỗ này; push và danh sách dùng chung payload.url (D-92)
+        String url = notifications.findWritingQuestionId(jobId).map(q -> "/viet/" + q).orElse("/bai-tap");
         notifyOnce(userId, Notification.Type.WRITING_GRADED, "Bài viết đã chấm xong", "Mở để xem điểm và nhận xét.",
-                "/ai/jobs/" + jobId, "WRITING_GRADED:" + jobId, WRITING_TTL);
+                url, "WRITING_GRADED:" + jobId, WRITING_TTL);
     }
 
     @Transactional(readOnly = true)
@@ -87,6 +89,12 @@ public class NotificationService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "notification_not_found", "Không tìm thấy thông báo"));
         notifications.markRead(id, userId, Instant.now(clock));
         return view(notifications.findByIdAndUserId(id, userId).orElseThrow());
+    }
+
+    /** Chỉ dòng của chính mình; trả số thông báo vừa đổi. */
+    @Transactional
+    public int markAllRead(long userId) {
+        return notifications.markAllRead(userId, Instant.now(clock));
     }
 
     private static NotificationView view(Notification n) {

@@ -148,7 +148,7 @@ class NotificationPushTest extends AiTestSupport {
         JsonNode payload = json.readTree(sent.payload());
         assertEquals("Bài viết đã chấm xong", payload.get("title").asText());
         assertEquals("Mở để xem điểm và nhận xét.", payload.get("body").asText());
-        assertEquals("/ai/jobs/" + jobId, payload.get("url").asText());
+        assertEquals("/viet/" + count("select question_id from writing_sessions where id = ?", session), payload.get("url").asText());
         assertFalse(sent.payload().contains("online learning"), sent.payload());
         assertEquals(Duration.ofDays(1), sent.ttl());
         Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> count(
@@ -269,6 +269,23 @@ class NotificationPushTest extends AiTestSupport {
         postJson("/api/me/notifications/999999999/read", u, Map.of()).andExpect(status().isNotFound());
         postJson("/api/me/notifications/" + target + "/read", null, Map.of()).andExpect(status().isUnauthorized());
         mvc.perform(MockMvcRequestBuilders.get("/api/me/notifications")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void readAllMarksOnlyOwnUnreadAndZeroesUnreadCount() throws Exception {
+        var u = student(0);
+        var other = student(0);
+        for (int i = 0; i < 3; i++) {
+            notifications.notifyOnce(u.id(), Notification.Type.STREAK_REMINDER, "t", "b", "/", "RA:" + i, Duration.ofHours(1));
+        }
+        notifications.notifyOnce(other.id(), Notification.Type.STREAK_REMINDER, "t", "b", "/", "RA:x", Duration.ofHours(1));
+
+        postJson("/api/me/notifications/read-all", u, Map.of()).andExpect(status().isOk()).andExpect(jsonPath("$.count").value(3));
+
+        getJson("/api/me/notifications/unread-count", u).andExpect(jsonPath("$.count").value(0));
+        getJson("/api/me/notifications/unread-count", other).andExpect(jsonPath("$.count").value(1));
+        postJson("/api/me/notifications/read-all", u, Map.of()).andExpect(jsonPath("$.count").value(0)); // gọi lại không đổi gì
+        postJson("/api/me/notifications/read-all", null, Map.of()).andExpect(status().isUnauthorized());
     }
 
     private void setStreak(Account u, int current, LocalDate last) {
