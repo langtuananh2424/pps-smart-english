@@ -5,9 +5,6 @@ import type { CamMessage, MeStats, MyCourse, Quota, Roadmap, Today } from './typ
 // Mỗi khối một query riêng để lỗi một API không kéo theo cả trang.
 export const useMeStats = () => useQuery({ queryKey: ['me', 'stats'], queryFn: () => api<MeStats>('/me/stats') })
 
-export const useUnreadCount = () =>
-  useQuery({ queryKey: ['me', 'unread'], queryFn: () => api<{ count: number }>('/me/notifications/unread-count') })
-
 export const useMyCourses = (enabled = true) =>
   useQuery({ queryKey: ['me', 'courses'], queryFn: () => api<MyCourse[]>('/me/courses'), enabled })
 
