@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { useMyCourses } from '../home/api'
 import { formatBand } from '../courses/format'
 import { percent } from '../exercises/format'
 import { pillNeutral, pillPrimary } from '../practice/questions/ui'
@@ -9,8 +10,10 @@ import type { PlacementResult } from './types'
 // D-90: band tổng, từng kỹ năng (đúng/tổng, %, band) và khóa gợi ý; không hiện đáp án từng câu.
 export function ResultCard({ result, notice }: { result: PlacementResult; notice?: string }) {
   const course = result.recommendedCourse
+  // Đã có khóa này ở trạng thái ACTIVE thì vào học, không bán lại; TRIAL/EXPIRED giữ nút mua.
+  const owned = useMyCourses().data?.some((c) => c.courseId === course?.courseId && c.status === 'ACTIVE')
   return (
-    <section aria-label="Kết quả kiểm tra đầu vào" className="mx-auto flex max-w-xl flex-col gap-4">
+    <section aria-label="Kết quả kiểm tra đầu vào" className="mx-auto flex w-full max-w-xl flex-col gap-4">
       {notice && <p role="status" className="rounded-md bg-subtle px-4 py-3 text-sm font-bold text-brand-ink">{notice}</p>}
       <div className="flex flex-col items-center gap-1 rounded-lg border border-line-subtle bg-surface p-6 text-center shadow-edge-card">
         <p className="text-[13px] font-extrabold text-brand-strong">KẾT QUẢ KIỂM TRA ĐẦU VÀO</p>
@@ -35,7 +38,11 @@ export function ResultCard({ result, notice }: { result: PlacementResult; notice
             <h2 className="text-xl font-black leading-6 text-ink">{course.title}</h2>
             <p className="text-sm font-semibold text-ink-secondary">Phù hợp với band {formatBand(result.overallBand)} của bạn.</p>
             <div className="flex flex-wrap gap-3">
-              <Link to={`/thanh-toan?khoa=${course.slug}`} className={pillPrimary}>Mua gói học</Link>
+              {owned ? (
+                <Link to={`/bai-giang/khoa/${course.courseId}`} className={pillPrimary}>Vào học</Link>
+              ) : (
+                <Link to={`/thanh-toan?khoa=${course.slug}`} className={pillPrimary}>Mua gói học</Link>
+              )}
               <Link to="/khoa-hoc" className={pillNeutral}>Xem các khóa</Link>
             </div>
           </>

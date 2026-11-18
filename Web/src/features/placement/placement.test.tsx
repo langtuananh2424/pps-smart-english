@@ -1,4 +1,4 @@
-import { act, renderHook, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, renderHook, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { setAccessToken } from '../../lib/api'
 import { auth, json, mockApi, renderAt } from '../../testUtils'
@@ -155,6 +155,19 @@ describe('màn Kiểm tra đầu vào', () => {
     expect(screen.getByRole('link', { name: 'Mua gói học' })).toHaveAttribute('href', '/thanh-toan?khoa=pre-ielts')
     expect(screen.queryByText(/đáp án/i)).not.toBeInTheDocument()
     expect(localStorage.length).toBe(0)
+  })
+
+  test('kết quả: khóa gợi ý đã ACTIVE thì "Vào học", TRIAL thì vẫn "Mua gói học"', async () => {
+    const mine = (status: string) => ({ courseId: 3, slug: 'pre-ielts', title: 'Pre IELTS', targetType: 'IELTS', status, expiresAt: null, lastActivityAt: null })
+    mockApi({ '/api/auth/refresh': () => json(200, auth), '/api/me/placement': () => json(200, { result }), '/api/me/courses': () => json(200, [mine('ACTIVE')]) })
+    const first = renderAt('/kiem-tra-dau-vao')
+    expect(await screen.findByRole('link', { name: 'Vào học' })).toHaveAttribute('href', '/bai-giang/khoa/3')
+    expect(screen.queryByRole('link', { name: 'Mua gói học' })).not.toBeInTheDocument()
+    first.dispose()
+    cleanup()
+    mockApi({ '/api/auth/refresh': () => json(200, auth), '/api/me/placement': () => json(200, { result }), '/api/me/courses': () => json(200, [mine('TRIAL')]) })
+    renderAt('/kiem-tra-dau-vao')
+    expect(await screen.findByRole('link', { name: 'Mua gói học' })).toBeInTheDocument()
   })
 
   test('claim 409: báo đã hết lượt, kèm kết quả cũ của tài khoản', async () => {
