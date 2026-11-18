@@ -4,7 +4,7 @@ import { pillNeutral } from './questions/ui'
 import type { DraftStatus } from './useDraft'
 import { formatClock } from './useCountdown'
 
-const draftText: Record<DraftStatus, string> = { idle: '', saving: 'Đang lưu…', saved: 'Đã lưu', failed: 'Lưu thất bại' }
+const draftText: Record<DraftStatus, string> = { idle: '', saving: 'Đang lưu…', saved: 'Đã lưu', failed: 'Lưu thất bại', offline: 'Đang lưu trên máy' }
 
 interface Props {
   title: string
@@ -13,14 +13,16 @@ interface Props {
   canPause: boolean
   paused: boolean
   onPause: () => void
+  // Mặc định về danh sách bài tập; màn khác (kiểm tra đầu vào) đặt đích riêng.
+  back?: { to: string; label: string }
 }
 
 // Thanh đầu bài (Figma 10.39): quay lại, logo, tên bộ; bên phải đồng hồ và nút tạm dừng.
-export function PlayHeader({ title, secondsLeft, draft, canPause, paused, onPause }: Props) {
+export function PlayHeader({ title, secondsLeft, draft, canPause, paused, onPause, back = { to: '/bai-tap', label: 'Về danh sách bài tập' } }: Props) {
   return (
     <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between gap-3 border-b border-line bg-surface px-4 md:h-[72px] md:px-7">
       <div className="flex min-w-0 items-center gap-2 md:gap-3.5">
-        <Link to="/bai-tap" aria-label="Về danh sách bài tập" className="grid size-11 shrink-0 place-items-center rounded-[10px] border border-line bg-input text-[13px] font-extrabold text-brand-strong">
+        <Link to={back.to} aria-label={back.label} className="grid size-11 shrink-0 place-items-center rounded-[10px] border border-line bg-input text-[13px] font-extrabold text-brand-strong">
           ‹
         </Link>
         <img src={logo} alt="PPS Smart English" className="h-[22px] w-auto md:h-[29px]" />

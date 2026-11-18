@@ -13,6 +13,7 @@ import { ExerciseListPage } from '../features/exercises/ListPage'
 import { ExercisePickerPage } from '../features/exercises/PickerPage'
 import { ProfilePage } from '../features/profile/ProfilePage'
 import { PracticePage } from '../features/practice/PracticePage'
+import { PlacementPage } from '../features/placement/PlacementPage'
 import { SpeakingPage } from '../features/speaking/SpeakingPage'
 import { WritingPage } from '../features/writing/WritingPage'
 import { QaPage } from '../features/qa/QaPage'
@@ -74,7 +75,6 @@ export const routes: RouteObject[] = [
               // Màn đích của trang chủ, chưa dựng.
               { path: '/thong-bao', element: todo('Thông báo') },
               { path: '/tro-ly-ai', element: todo('Trợ lý AI') },
-              { path: '/kiem-tra-dau-vao', element: todo('Kiểm tra đầu vào') },
             ],
           },
         ],
@@ -88,6 +88,8 @@ export const routes: RouteObject[] = [
           { path: '/noi/:questionId', element: <SpeakingPage /> },
         ],
       },
+      // Công khai: khách làm được (D-39); nằm ngoài AppShell như màn làm bài.
+      { path: '/kiem-tra-dau-vao', element: <PlacementPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

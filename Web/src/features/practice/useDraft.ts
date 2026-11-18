@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { saveDraft, saveDraftOnLeave } from './api'
 import type { Answers } from './types'
 
-export type DraftStatus = 'idle' | 'saving' | 'saved' | 'failed'
+export type DraftStatus = 'idle' | 'saving' | 'saved' | 'failed' | 'offline'
 export const DRAFT_DELAY_MS = 2000
 
 // Tự lưu nháp sau 2 giây không đổi, và lúc rời trang. Lỗi lưu không chặn làm bài.
