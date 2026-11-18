@@ -159,6 +159,22 @@ describe('màn Viết', () => {
     await waitFor(() => expect(calls).toContain('POST /api/writing/sessions'))
   })
 
+  test('Viết lại gặp 503 hoặc mất mạng: báo lỗi ngay trên màn kết quả, bấm lại được', async () => {
+    let n = 0
+    wire({
+      ...latest('SUBMITTED'),
+      '/api/writing/sessions/3': () => json(200, session({ status: 'SUBMITTED', finalText: 'Mine', gradeJobId: 9, grade })),
+      '/api/writing/sessions': () => (++n === 1 ? apiError(503, 'bận') : json(201, { sessionId: 4, question: session().question })),
+      '/api/writing/sessions/4': () => json(200, session({ sessionId: 4, turns: [{ role: 'CAM', text: 'Online learning?' }] })),
+    })
+    renderAt('/viet/8')
+    await userEvent.click(await screen.findByRole('button', { name: 'Viết lại' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Hệ thống đang bận')
+    expect(screen.getByText('Mine')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Viết lại' }))
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+  })
+
   test('402 hiện thẻ hết lượt kèm tên gói', async () => {
     wire({
       ...latest(null),

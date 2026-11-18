@@ -38,7 +38,7 @@ export function WritingPage() {
   if (blocking && (blocking.status === 402 || blocking.status === 403 || blocking.status === 404)) return <BlockingError error={error} />
 
   const sessionId = started ?? latest.data?.sessionId ?? null
-  if (sessionId != null) return <Session key={sessionId} sessionId={sessionId} onRewrite={() => void start()} />
+  if (sessionId != null) return <Session key={sessionId} sessionId={sessionId} onRewrite={() => void start()} rewrite={{ busy: starting, error: error != null ? inlineMessage(error) : null }} />
   return (
     <div className="min-h-dvh bg-page px-4">
       <section className="mx-auto mt-10 flex max-w-lg flex-col items-center gap-4 rounded-lg border border-line-subtle bg-surface p-6 text-center shadow-edge-card sm:p-8">

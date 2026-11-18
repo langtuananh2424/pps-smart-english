@@ -19,17 +19,20 @@ const STATUS: Record<ElementStatus, [string, string]> = {
 }
 
 // Kết quả Viết luyện tập (D-81): điểm % theo backend, không quy đổi band. Bố cục đối chiếu theo Figma 294:15245.
-export function WritingResult({ s, onRewrite }: { s: SessionView; onRewrite: () => void }) {
+export interface RewriteState { busy: boolean; error: string | null }
+
+export function WritingResult({ s, onRewrite, rewrite }: { s: SessionView; onRewrite: () => void; rewrite?: RewriteState }) {
   const g = s.grade as WritingGrade
   const navigate = useNavigate()
   const actions = (
     <>
-      <button type="button" onClick={onRewrite} className={pillNeutral}>Viết lại</button>
+      <button type="button" onClick={onRewrite} disabled={rewrite?.busy} className={pillNeutral}>{rewrite?.busy ? 'Đang tạo…' : 'Viết lại'}</button>
       <button type="button" onClick={() => navigate(-1)} className={`${pillPrimary} w-[220px]`}>Hoàn thành →</button>
     </>
   )
   return (
     <Frame left={<PromptCard question={s.question} />} actions={actions}>
+      {rewrite?.error && <p role="alert" className="rounded-md bg-danger-bg p-3 text-sm font-bold text-danger-fg">{rewrite.error}</p>}
       <section aria-label="Điểm" className={`${card} items-center text-center`}>
         <img src={cam} alt="" width={96} height={96} />
         <p className="text-5xl font-black text-brand-strong">{Math.round(g.scorePercent)}<span className="text-2xl text-ink-muted">%</span></p>

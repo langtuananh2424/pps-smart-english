@@ -6,7 +6,7 @@ import { fetchSession, requestDraft, sendAnswer, submitWriting } from './api'
 import { BlockingError, inlineMessage, QuotaCard } from './errors'
 import { area, card, Frame, PromptCard } from './Frame'
 import { JobWaiter } from './JobWaiter'
-import { WritingResult } from './WritingResult'
+import { WritingResult, type RewriteState } from './WritingResult'
 import { ApiError } from '../../lib/api'
 import type { JobView, SessionView } from './types'
 import { clearStoredText, useStoredText, wordCount } from './useStoredText'
@@ -15,14 +15,14 @@ interface Wait { jobId: number; label: string }
 const LABEL = { followup: 'Cam đang đọc…', draft: 'Cam đang soạn bản nháp…', grade: 'Đang chấm bài, vài phút nữa có kết quả…' }
 
 // Một phiên viết: phát triển ý → bản nháp → chờ chấm → kết quả (FR-AI-01, FR-AI-02). Server là nguồn sự thật, mỗi bước xong thì nạp lại phiên.
-export function Session({ sessionId, onRewrite }: { sessionId: number; onRewrite: () => void }) {
+export function Session({ sessionId, onRewrite, rewrite }: { sessionId: number; onRewrite: () => void; rewrite?: RewriteState }) {
   const q = useQuery({ queryKey: ['writing', 'session', sessionId], queryFn: () => fetchSession(sessionId), retry: false, staleTime: 0, gcTime: 0 })
   if (q.isError) return <BlockingError error={q.error} onRetry={() => void q.refetch()} />
   if (!q.data) return <p role="status" className="p-10 text-center font-bold text-ink-secondary">Đang tải…</p>
-  return <Steps s={q.data} reload={async () => void (await q.refetch())} onRewrite={onRewrite} />
+  return <Steps s={q.data} reload={async () => void (await q.refetch())} onRewrite={onRewrite} rewrite={rewrite} />
 }
 
-function Steps({ s, reload, onRewrite }: { s: SessionView; reload: () => Promise<void>; onRewrite: () => void }) {
+function Steps({ s, reload, onRewrite, rewrite }: { s: SessionView; reload: () => Promise<void>; onRewrite: () => void; rewrite?: RewriteState }) {
   const id = s.sessionId
   const [view, setView] = useState<'qa' | 'draft'>(s.status === 'READY' && s.draft ? 'draft' : 'qa')
   const [local, setLocal] = useState<Wait | null>(null)
@@ -57,7 +57,7 @@ function Steps({ s, reload, onRewrite }: { s: SessionView; reload: () => Promise
     void reload()
   }
 
-  if (s.status === 'SUBMITTED' && s.grade) return <WritingResult s={s} onRewrite={onRewrite} />
+  if (s.status === 'SUBMITTED' && s.grade) return <WritingResult s={s} onRewrite={onRewrite} rewrite={rewrite} />
   if (quota) return <Frame left={<PromptCard question={s.question} />}><QuotaCard error={quota} /></Frame>
 
   const waiter = wait && <JobWaiter key={wait.jobId} jobId={wait.jobId} label={wait.label} onDone={done} />
