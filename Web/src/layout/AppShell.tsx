@@ -1,13 +1,14 @@
-import { NavLink, Outlet, useMatch } from 'react-router'
+import { NavLink, Outlet, useLocation, useMatch } from 'react-router'
 import logo from '../assets/logo-pps.png'
 import { VerifyEmailBanner } from '../auth/VerifyEmailBanner'
 import { Icon } from '../components/Icon'
-import { navItems } from './navItems'
+import { inPath, navItems } from './navItems'
 
 // Desktop: sidebar trái; mobile: thanh tab dưới cùng.
 export function AppShell() {
   // Q&A gợi ý khóa (Figma mobile) không có thanh tab dưới.
   const qa = !!useMatch('/goi-y-khoa')
+  const { pathname } = useLocation()
   return (
     <div className="min-h-dvh bg-page md:flex md:p-4">
       <nav
@@ -17,13 +18,13 @@ export function AppShell() {
         <img src={logo} alt="PPS Smart English" className="hidden h-11 w-auto self-center md:block" />
         <ul className="flex flex-1 justify-around md:flex-col md:justify-start md:gap-2">
           {navItems.map((item) => (
-            <li key={item.to}>
+            <li key={item.to} className="flex-1 md:flex-none">
               <NavLink
                 to={item.to}
                 end={item.to === '/'}
                 className={({ isActive }) =>
                   `flex min-h-12 flex-col items-center justify-center gap-1 rounded-[28px] px-1 py-2 text-xs font-extrabold leading-4 md:py-3 ${
-                    isActive ? 'bg-brand-soft text-brand-strong' : 'text-ink-secondary hover:bg-subtle'
+                    isActive || item.also?.some((b) => inPath(pathname, b)) ? 'bg-brand-soft text-brand-strong' : 'text-ink-secondary hover:bg-subtle'
                   }`
                 }
               >
