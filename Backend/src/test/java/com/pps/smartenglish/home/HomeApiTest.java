@@ -373,8 +373,10 @@ class HomeApiTest extends AiTestSupport {
 
     @Test
     void statsWeekDaysCoverOnlyCurrentWeekMondayToSunday() throws Exception {
-        clock.set(Instant.parse("2026-11-18T05:00:00Z")); // thứ Tư 18/11 12:00 giờ VN
+        // Tạo tài khoản trước khi chỉnh đồng hồ: token cấp theo đồng hồ giả sẽ hết hạn với bộ giải mã JWT dùng giờ thật.
         var u = student(0);
+        var fresh = student(0);
+        clock.set(Instant.parse("2026-11-18T05:00:00Z")); // thứ Tư 18/11 12:00 giờ VN
         for (String d : new String[] {"2026-11-15", "2026-11-16", "2026-11-18", "2026-11-22", "2026-11-23"}) {
             jdbc.update("insert into activity_days (user_id, activity_date) values (?, ?)", u.id(), LocalDate.parse(d));
         }
@@ -384,7 +386,6 @@ class HomeApiTest extends AiTestSupport {
         assertEquals("2026-11-18", days.get(1).asText());
         assertEquals("2026-11-22", days.get(2).asText());
 
-        var fresh = student(0);
         assertEquals(0, body("/api/me/stats", fresh).get("weekDays").size());
         assertEquals(0, body("/api/me/stats", fresh).get("xp").asInt()); // trường cũ vẫn còn
     }
