@@ -1,6 +1,7 @@
 package com.pps.smartenglish.auth.service;
 
 import com.pps.smartenglish.auth.domain.User;
+import com.pps.smartenglish.auth.dto.ConsentInput;
 import com.pps.smartenglish.auth.domain.UserIdentity;
 import com.pps.smartenglish.auth.repository.UserIdentityRepository;
 import com.pps.smartenglish.auth.repository.UserRepository;
@@ -22,33 +23,35 @@ public class OAuthService {
     private final UserRepository users;
     private final UserIdentityRepository identities;
     private final AccountFactory accounts;
+    private final ConsentPolicy consents;
     private final SessionService sessions;
     private final TransactionTemplate tx;
     private final Clock clock;
 
     OAuthService(List<IdentityTokenVerifier> verifiers, UserRepository users, UserIdentityRepository identities,
-                 AccountFactory accounts, SessionService sessions, TransactionTemplate tx, Clock clock) {
+                 AccountFactory accounts, ConsentPolicy consents, SessionService sessions, TransactionTemplate tx, Clock clock) {
         this.verifiers = verifiers;
         this.users = users;
         this.identities = identities;
         this.accounts = accounts;
+        this.consents = consents;
         this.sessions = sessions;
         this.tx = tx;
         this.clock = clock;
     }
 
-    public LoginResult login(String provider, String idToken, String deviceLabel) {
+    public LoginResult login(String provider, String idToken, ConsentInput consent, String deviceLabel) {
         IdentityTokenVerifier verifier = verifiers.stream().filter(v -> provider.equals(v.provider())).findFirst()
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "not_found", "Không hỗ trợ nhà cung cấp này"));
         ExternalIdentity g = verifier.verify(idToken);
-        User user = tx.execute(status -> resolveUser(provider, g));
+        User user = tx.execute(status -> resolveUser(provider, g, consent));
         if (user.getStatus() == User.Status.LOCKED) {
             throw new ApiException(HttpStatus.FORBIDDEN, "account_locked", "Tài khoản đã bị khóa");
         }
         return sessions.open(user, deviceLabel);
     }
 
-    private User resolveUser(String provider, ExternalIdentity g) {
+    private User resolveUser(String provider, ExternalIdentity g, ConsentInput consent) {
         var existing = identities.findByProviderAndProviderSubject(provider, g.subject());
         if (existing.isPresent()) {
             return users.findById(existing.get().getUserId()).orElseThrow();
@@ -57,7 +60,7 @@ public class OAuthService {
         Instant now = clock.instant();
         User user = users.findByEmail(email).orElse(null);
         if (user == null) {
-            user = accounts.createStudent(email, null, now, displayName(g, email));
+            user = accounts.createStudent(email, null, now, displayName(g, email), consents.require(consent));
         } else if (user.getEmailVerifiedAt() == null) {
             // Chặn kẻ đăng ký trước bằng email của người khác: bỏ mật khẩu và mọi phiên cũ trước khi nối.
             user.setPasswordHash(null);

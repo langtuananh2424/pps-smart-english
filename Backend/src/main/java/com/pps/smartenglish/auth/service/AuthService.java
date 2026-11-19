@@ -26,6 +26,7 @@ public class AuthService {
     private final UserRepository users;
     private final PasswordEncoder encoder;
     private final AccountFactory accounts;
+    private final ConsentPolicy consents;
     private final EmailTokenService emailTokens;
     private final SessionService sessions;
     private final RateLimiter limiter;
@@ -33,12 +34,13 @@ public class AuthService {
     /** So khớp với hash giả khi email không tồn tại để thời gian phản hồi không lộ ra. */
     private final String dummyHash;
 
-    AuthService(UserRepository users, PasswordEncoder encoder, AccountFactory accounts,
+    AuthService(UserRepository users, PasswordEncoder encoder, AccountFactory accounts, ConsentPolicy consents,
                 EmailTokenService emailTokens, SessionService sessions, RateLimiter limiter,
                 TransactionTemplate tx) {
         this.users = users;
         this.encoder = encoder;
         this.accounts = accounts;
+        this.consents = consents;
         this.emailTokens = emailTokens;
         this.sessions = sessions;
         this.limiter = limiter;
@@ -49,6 +51,7 @@ public class AuthService {
     public LoginResult register(RegisterRequest req, String ip, String deviceLabel) {
         limiter.requireHit("rl:register:ip:" + ip, REGISTER_PER_IP_PER_HOUR, Duration.ofHours(1), "register:ip:" + ip);
         PasswordRules.check(req.password(), "password");
+        ConsentPolicy.Consent consent = consents.require(req.consent());
         String hash = encoder.encode(req.password());
         User user;
         try {
@@ -56,7 +59,7 @@ public class AuthService {
                 if (users.existsByEmail(req.email())) {
                     throw emailTaken();
                 }
-                User u = accounts.createStudent(req.email(), hash, null, req.displayName());
+                User u = accounts.createStudent(req.email(), hash, null, req.displayName(), consent);
                 emailTokens.issueAndSend(u.getId(), u.getEmail(), Purpose.VERIFY); // thư gửi sau commit
                 return u;
             });

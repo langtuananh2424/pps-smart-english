@@ -72,7 +72,7 @@ public abstract class ApiTestBase {
     }
 
     protected Account register(String email, String password) throws Exception {
-        var res = post("/api/auth/register", java.util.Map.of("email", email, "password", password, "displayName", "Học viên"),
+        var res = post("/api/auth/register", java.util.Map.of("email", email, "password", password, "displayName", "Học viên", "dateOfBirth", "2000-01-01", "termsAccepted", true),
                 newIp()).andReturn().getResponse();
         return account(email, res.getStatus(), res.getContentAsString(), res.getCookie("refresh_token"));
     }

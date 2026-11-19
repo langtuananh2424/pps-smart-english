@@ -28,7 +28,7 @@ class GoogleLoginTest extends ApiTestBase {
 
     private String google(String subject, String email, String name) throws Exception {
         when(verifier.verify("tok")).thenReturn(new ExternalIdentity(subject, email, name));
-        return post("/api/auth/oauth/google", Map.of("idToken", "tok"), newIp()).andExpect(status().isOk())
+        return post("/api/auth/oauth/google", Map.of("idToken", "tok", "dateOfBirth", "2000-01-01", "termsAccepted", true), newIp()).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
     }
 

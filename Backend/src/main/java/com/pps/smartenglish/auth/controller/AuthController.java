@@ -59,7 +59,7 @@ class AuthController {
 
     @PostMapping("/oauth/google")
     ResponseEntity<AuthResponse> google(@Valid @RequestBody GoogleLoginRequest req, HttpServletRequest http) {
-        return RefreshCookies.session(HttpStatus.OK, oauth.login("GOOGLE", req.idToken(), deviceLabel(http)));
+        return RefreshCookies.session(HttpStatus.OK, oauth.login("GOOGLE", req.idToken(), req.consent(), deviceLabel(http)));
     }
 
     @PostMapping("/refresh")

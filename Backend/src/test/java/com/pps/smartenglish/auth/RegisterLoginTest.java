@@ -20,7 +20,7 @@ class RegisterLoginTest extends ApiTestBase {
     void registerCreatesUserProfileAndQuotaAndNormalizesEmail() throws Exception {
         String email = newEmail();
         var res = post("/api/auth/register", Map.of("email", "  " + email.toUpperCase() + " ", "password", PASSWORD,
-                "displayName", "An"), newIp())
+                "displayName", "An", "dateOfBirth", "2000-01-01", "termsAccepted", true), newIp())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.accessToken", notNullValue()))
                 .andExpect(jsonPath("$.expiresIn").value(900))
@@ -46,14 +46,14 @@ class RegisterLoginTest extends ApiTestBase {
     void duplicateEmailIsConflict() throws Exception {
         String email = newEmail();
         register(email, PASSWORD);
-        post("/api/auth/register", Map.of("email", email, "password", PASSWORD, "displayName", "B"), newIp())
+        post("/api/auth/register", Map.of("email", email, "password", PASSWORD, "displayName", "B", "dateOfBirth", "2000-01-01", "termsAccepted", true), newIp())
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("conflict"));
     }
 
     @Test
     void invalidInputGivesValidationEnvelopeWithRequestId() throws Exception {
-        post("/api/auth/register", Map.of("email", "khong-phai-email", "password", "ngan", "displayName", " "), newIp())
+        post("/api/auth/register", Map.of("email", "khong-phai-email", "password", "ngan", "displayName", " ", "dateOfBirth", "2000-01-01", "termsAccepted", true), newIp())
                 .andExpect(status().isBadRequest())
                 .andExpect(header().exists("X-Request-Id"))
                 .andExpect(jsonPath("$.error.code").value("validation_failed"))
@@ -67,7 +67,7 @@ class RegisterLoginTest extends ApiTestBase {
     @Test
     void passwordOver72BytesIsRejected() throws Exception {
         // 40 ký tự "ệ" = 120 byte UTF-8 nhưng chỉ 40 ký tự
-        post("/api/auth/register", Map.of("email", newEmail(), "password", "ệ".repeat(40), "displayName", "A"), newIp())
+        post("/api/auth/register", Map.of("email", newEmail(), "password", "ệ".repeat(40), "displayName", "A", "dateOfBirth", "2000-01-01", "termsAccepted", true), newIp())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.details.password", notNullValue()));
     }
@@ -154,13 +154,13 @@ class RegisterLoginTest extends ApiTestBase {
     void registerIsCappedPerIp() throws Exception {
         String ip = newIp();
         for (int i = 0; i < 15; i++) {
-            post("/api/auth/register", Map.of("email", newEmail(), "password", PASSWORD, "displayName", "A"), ip)
+            post("/api/auth/register", Map.of("email", newEmail(), "password", PASSWORD, "displayName", "A", "dateOfBirth", "2000-01-01", "termsAccepted", true), ip)
                     .andExpect(status().isCreated());
         }
-        post("/api/auth/register", Map.of("email", newEmail(), "password", PASSWORD, "displayName", "A"), ip)
+        post("/api/auth/register", Map.of("email", newEmail(), "password", PASSWORD, "displayName", "A", "dateOfBirth", "2000-01-01", "termsAccepted", true), ip)
                 .andExpect(status().isTooManyRequests()).andExpect(header().exists("Retry-After"))
                 .andExpect(jsonPath("$.error.code").value("rate_limited"));
-        post("/api/auth/register", Map.of("email", newEmail(), "password", PASSWORD, "displayName", "A"), newIp())
+        post("/api/auth/register", Map.of("email", newEmail(), "password", PASSWORD, "displayName", "A", "dateOfBirth", "2000-01-01", "termsAccepted", true), newIp())
                 .andExpect(status().isCreated());
     }
 

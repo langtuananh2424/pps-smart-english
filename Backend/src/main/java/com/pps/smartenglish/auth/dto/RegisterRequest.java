@@ -9,10 +9,15 @@ public record RegisterRequest(
         @NotBlank(message = "Email là bắt buộc") @Email(message = "Email không hợp lệ")
         @Size(max = 255, message = "Email tối đa 255 ký tự") String email,
         @NotBlank(message = "Mật khẩu là bắt buộc") @Size(min = 8, message = "Mật khẩu tối thiểu 8 ký tự") String password,
-        @NotBlank(message = "Tên hiển thị là bắt buộc") @Size(max = 100, message = "Tên hiển thị tối đa 100 ký tự") String displayName) {
+        @NotBlank(message = "Tên hiển thị là bắt buộc") @Size(max = 100, message = "Tên hiển thị tối đa 100 ký tự") String displayName,
+        java.time.LocalDate dateOfBirth, Boolean termsAccepted, Boolean guardianConsent) {
 
     public RegisterRequest {
         email = email == null ? null : email.trim().toLowerCase(Locale.ROOT);
         displayName = displayName == null ? null : displayName.trim();
+    }
+
+    public ConsentInput consent() {
+        return new ConsentInput(dateOfBirth, termsAccepted, guardianConsent);
     }
 }

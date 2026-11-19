@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "users")
@@ -35,12 +36,39 @@ public class User extends Auditable {
     @Column(nullable = false)
     private Status status = Status.ACTIVE;
 
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Column(name = "terms_version")
+    private String termsVersion;
+
+    @Column(name = "terms_accepted_at")
+    private Instant termsAcceptedAt;
+
     protected User() {}
 
     public User(String email, String passwordHash, Instant emailVerifiedAt) {
         this.email = email;
         this.passwordHash = passwordHash;
         this.emailVerifiedAt = emailVerifiedAt;
+    }
+
+    public void recordConsent(LocalDate dateOfBirth, String termsVersion, Instant at) {
+        this.dateOfBirth = dateOfBirth;
+        this.termsVersion = termsVersion;
+        this.termsAcceptedAt = at;
+    }
+
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public String getTermsVersion() {
+        return termsVersion;
+    }
+
+    public Instant getTermsAcceptedAt() {
+        return termsAcceptedAt;
     }
 
     public Long getId() {
