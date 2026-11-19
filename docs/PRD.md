@@ -1,4 +1,4 @@
-# **TÀI LIỆU YÊU CẦU SẢN PHẨM SƠ BỘ (PRD v0.2)**
+# **TÀI LIỆU YÊU CẦU SẢN PHẨM SƠ BỘ (PRD v0.4)**
 
 NỀN TẢNG BÁN KHÓA HỌC & HỆ THỐNG BÀI TẬP THÔNG MINH  
 *Dựa trên 24 Nguyên Tắc Vàng Khi Học Tiếng Anh — Chuyên gia Nguyễn Hữu Phúc*
@@ -9,15 +9,17 @@ NỀN TẢNG BÁN KHÓA HỌC & HỆ THỐNG BÀI TẬP THÔNG MINH
 * **Tác giả phương pháp học:** Chuyên gia Nghiên cứu Phát triển & Đào tạo Ngôn ngữ Anh hàng đầu Nguyễn Hữu Phúc.  
 * **Đơn vị phát triển:** Nhóm Kỹ thuật & Sản phẩm PPS.  
 * **Giai đoạn tài liệu:** Bản PRD sơ bộ (Draft v0.1) — Xác định khung nghiệp vụ, các module chức năng đã thống nhất, phương án kế thừa kiến trúc backend, danh mục câu hỏi chờ quyết định, và định hướng thiết kế giao diện (UI/UX).  
-* **Cập nhật v0.2 (2026-11-13):** Theo quyết định D-01..D-20 trong `docs/ba/decisions.md`, chủ dự án cho phép (BQ-14). Mã nhóm mục tiêu đổi sang FR-GOAL cho khớp SRS; FR-TEST dùng cho kiểm tra đầu vào. Đặc tả chi tiết: SRS v1.1.
+* **Cập nhật v0.2 (2026-11-13):** Theo quyết định D-01..D-20 trong `docs/ba/decisions.md`, chủ dự án cho phép (BQ-14). Mã nhóm mục tiêu đổi sang FR-GOAL cho khớp SRS; FR-TEST dùng cho kiểm tra đầu vào. Đặc tả chi tiết: SRS v1.1.  
+* **Cập nhật v0.3 (2026-11-19):** Chuyển hướng thành nền tảng bán khóa học kết hợp LMS theo D-97..D-124 trong `docs/ba/decisions.md`, chủ dự án cho phép: hai loại khóa (tự học, có lớp), nhiều chương trình, giáo viên và trợ giảng, giao bài, điểm danh, học tuần tự; làm web trước, app điện thoại sau. Đặc tả chi tiết: SRS v1.2.  
+* **Cập nhật v0.4 (2026-11-19):** Số khóa và các mức thời hạn bán do công ty quyết định, admin cấu hình, không cố định 6 hoặc 12 tháng (D-127, chủ dự án cho phép). Đặc tả chi tiết: SRS v1.4.
 
 # **2\. TẦM NHÌN SẢN PHẨM & GIÁ TRỊ CỐT LÕI (PRODUCT VISION)**
 
-Hệ thống là một ứng dụng bán lẻ (B2C) độc lập, cung cấp các khóa học tiếng Anh tự học kết hợp hệ thống bài tập thực hành sâu và phản hồi AI tức thì.
+Hệ thống là nền tảng B2C bán khóa học tiếng Anh trực tuyến, gồm hai loại khóa trên cùng một nền: **khóa tự học** (bài giảng, bài tập, luyện tập, kiểm tra, AI chấm) và **khóa có lớp** (khóa học + LMS: giáo viên, trợ giảng theo dõi, giao bài, dạy online, điểm danh). Khóa có lớp là sản phẩm chính (D-117).
 
 ## **2.1. Điểm khác biệt so với LMS trường học hiện tại (pps-education)**
 
-* **Đối tượng người dùng:** Người học đại chúng tự do đăng ký, mua khóa học và tự luyện tập (không phụ thuộc vào danh sách lớp hay thời khóa biểu trường liên kết).  
+* **Mô hình tổ chức:** pps-education phân cấp **trường → lớp** cho trường liên kết. PPS Smart English phân cấp **khóa học → lớp**: người học đại chúng tự đăng ký, mua khóa; khóa tự học không có lớp, khóa có lớp xếp học viên vào lớp có giáo viên. Chỉ phục vụ khóa online bán trên app/web; không quản lý trung tâm offline hiện có, không bán LMS cho đơn vị khác (D-104).  
 * **Trải nghiệm mua hàng & Onboarding:** Luồng đánh giá năng lực nhanh, định hướng mục tiêu cá nhân hóa, trải nghiệm học thử (Freemium), thanh toán trực tuyến thuận tiện.  
 * **Giao diện người dùng (UI/UX):** Hiện đại, tinh gọn, thân thiện với nhiều độ tuổi, áp dụng cơ chế Gamification (Streak, XP, Huy hiệu) để duy trì động lực.  
 * **Trợ lý AI đa năng:** Không chỉ chấm bài tự luận hay phát âm đơn thuần mà đóng vai trò người dẫn dắt (Scaffolding Mentor) giúp phát triển ý tưởng bài viết.
@@ -28,8 +30,9 @@ Hệ thống là một ứng dụng bán lẻ (B2C) độc lập, cung cấp cá
 * **8 Yếu tố ngữ pháp (8 Grammar Elements):** Nắm vững và áp dụng 8 cấu trúc vào bài viết IELTS để đạt điểm cao, qua bài tập nhận diện cấu trúc, sửa lỗi, xếp khối câu và viết lại câu.  
 * **Viết phát triển ý (Idea Development Writing with AI):** Giải quyết triệt để rào cản "bí ý" khi viết thông qua mô hình phỏng vấn dẫn dắt đa tầng (Scaffolding Q\&A), sau đó AI hỗ trợ sửa lỗi ngữ pháp và chấm điểm độ mạch lạc.  
 * **Kiến trúc module hóa mở rộng (Extensible Architecture):** Giai đoạn 1 (MVP) tập trung phát triển trước 3 nguyên tắc đầu tiên. Cơ sở dữ liệu và cấu trúc bài học/bài tập được thiết kế module hóa linh hoạt để sẵn sàng mở rộng tuần tự cho 21 nguyên tắc còn lại trong các giai đoạn tiếp theo mà không làm xáo trộn kiến trúc hệ thống.  
-* **Sản phẩm bán trong MVP:** 6 khóa IELTS online (Begin, Academic English 1, Academic English 2, Pre IELTS, IELTS Foundation, Super IELTS), mỗi khóa bán theo thời hạn 6 hoặc 12 tháng. Không bán bản offline, không bán combo, không hoàn tiền. Danh mục và giá tham khảo: `docs/ba/decisions.md` mục 2.  
-* **Kiểm tra đầu vào và bài thi khóa:** Có trong MVP. Kiểm tra đầu vào miễn phí để xác định level; mỗi khóa có bài thi riêng, mua khóa mới được thi.
+* **Sản phẩm bán:** khóa thuộc nhiều chương trình (IELTS, TOEIC…), admin tạo qua giao diện quản trị; mọi chương trình cùng mô hình, khác thang điểm và lộ trình (D-105). Mỗi khóa thuộc một trong hai loại: tự học hoặc có lớp (D-98), bán theo các mức thời hạn do công ty quyết định, admin cấu hình cho từng khóa (D-127). Khóa bán online; một số buổi của lớp có thể học offline (D-106, D-124). Không bán combo, không hoàn tiền. Chương trình làm trước: BQ-20. Danh mục 6 khóa IELTS và giá tham khảo: `docs/ba/decisions.md` mục 2.  
+* **Kiểm tra:** kiểm tra đầu vào miễn phí theo chương trình để xác định level; mỗi khóa có nhiều bài kiểm tra: theo chương và cuối khóa, mua khóa mới được làm (D-118).  
+* **Thứ tự làm:** web trước, app điện thoại sau (D-123). Thời điểm đưa vào sử dụng do cấp trên quyết định.
 
 # **3\. CHÂN DUNG NGƯỜI DÙNG MỤC TIÊU (USER PERSONAS)**
 
@@ -37,34 +40,45 @@ Hệ thống là một ứng dụng bán lẻ (B2C) độc lập, cung cấp cá
 * **Nhóm 2 — Người luyện thi chứng chỉ (IELTS 4.5 \-\> 6.5+, Cambridge):** Thường bị kẹt band điểm do hành văn rời rạc, thiếu từ nối học thuật, bí ý tưởng triển khai bài viết Writing Task 1 & Task 2\.  
 * **Nhóm 3 — Sinh viên & Người đi làm mất gốc:** Cần phương pháp học trực quan, ngắn gọn, có thể học linh hoạt mọi lúc mọi nơi trên điện thoại, có trợ lý AI sửa lỗi 24/7.
 
-MVP chỉ bán khóa IELTS nên tập trung vào Nhóm 2 và người học IELTS từ mất gốc (khóa Begin); Nhóm 1 và các mục tiêu Cambridge, Phổ thông, Giao tiếp để giai đoạn sau.
+* **Giáo viên, trợ giảng:** nhân viên hoặc cộng tác viên dạy khóa có lớp; trợ giảng kiêm gia sư kèm 1-1 (D-108, D-111). Cần xem nhanh tiến độ cả lớp, giao bài, điểm danh, sửa điểm AI.  
+* **Quản lý đào tạo (giáo vụ):** mở lớp, xếp học viên, phân công người dạy, theo dõi mọi lớp (D-109).
+
+Học viên có thể dưới 18 tuổi; khi đăng ký cần phụ huynh chấp thuận điều khoản (D-114). Không có tài khoản phụ huynh. Nhóm người học ưu tiên theo chương trình làm trước (BQ-20).
 
 # **4\. HÀNH TRÌNH TRẢI NGHIỆM NGƯỜI DÙNG (USER JOURNEYS)**
 
 ## **4.1. Luồng Khám phá & Đăng ký (Onboarding & Activation Flow)**
 
-Khách vãng lai vào App/Web \-\> Xem danh mục khóa học \-\> Làm Q&A tư vấn nhu cầu (mục tiêu, thời gian học, kỹ năng yếu) \-\> Đăng ký tài khoản (Google hoặc Email) \-\> Làm kiểm tra đầu vào miễn phí để biết level (hoặc tự chọn trình độ) \-\> Nhận gợi ý khóa theo level và nhu cầu \-\> Trải nghiệm học thử (Freemium: Bài giảng mẫu, không có lượt AI) \-\> Mua khóa học 6 hoặc 12 tháng / Thanh toán trực tuyến.
+Khách vãng lai vào App/Web \-\> Xem danh mục khóa học \-\> Làm Q&A tư vấn nhu cầu (mục tiêu, thời gian học, kỹ năng yếu) \-\> Đăng ký tài khoản (Google hoặc Email) \-\> Làm kiểm tra đầu vào miễn phí để biết level (hoặc tự chọn trình độ) \-\> Nhận gợi ý khóa theo level và nhu cầu \-\> Trải nghiệm học thử (Freemium: Bài giảng mẫu, không có lượt AI) \-\> Chọn mức thời hạn và mua khóa học / Thanh toán trực tuyến.
 
 ## **4.2. Luồng Học tập & Luyện tập Hàng ngày (Daily Learning Loop)**
 
-Vào màn hình Khóa học \-\> Chọn Level (A1, A2, B1...) \-\> Chọn Topic (Consumerism, Environment, Daily Life...) \-\> Xem Video Từ kết nối (Nghe câu chuyện, xem phụ đề song ngữ, giải nghĩa từ trọng tâm) \-\> Làm bài tập Ngân hàng câu hỏi (8 Yếu tố ngữ pháp & Từ nối) \-\> Thực hành "Viết phát triển ý": Trả lời câu hỏi gợi mở \-\> Hoàn thiện bài viết \-\> Nhận kết quả chấm điểm & sửa lỗi chi tiết từ AI \-\> Nhận điểm kinh nghiệm (XP), duy trì chuỗi ngày học (Streak).
+Vào màn hình Khóa học \-\> Chọn Level (A1, A2, B1...) \-\> Chọn Topic (Consumerism, Environment, Daily Life...) \-\> Xem Video Từ kết nối (Nghe câu chuyện, xem phụ đề song ngữ, giải nghĩa từ trọng tâm) \-\> Làm bài tập Ngân hàng câu hỏi (8 Yếu tố ngữ pháp & Từ nối) \-\> Thực hành "Viết phát triển ý": Trả lời câu hỏi gợi mở \-\> Hoàn thiện bài viết \-\> Nhận kết quả chấm điểm & sửa lỗi chi tiết từ AI \-\> Nhận điểm kinh nghiệm (XP), duy trì chuỗi ngày học (Streak). Khóa bật học tuần tự: xong unit trước mới mở unit sau (D-119, D-122).
+
+## **4.3. Luồng học trong lớp (Class Learning Flow)**
+
+Mua khóa có lớp (trên app/web, hoặc qua tư vấn viên và link kích hoạt) \-\> Học ngay phần tự học \-\> Giáo vụ xếp vào lớp \-\> Nhận thông báo lịch học (online có link, offline có giờ) \-\> Học theo buổi, làm bài được giao trước hạn \-\> Xem điểm AI ngay, nhận nhận xét của giáo viên sau \-\> Làm kiểm tra chương \-\> Hết lịch lớp, phần tự học còn đến hết thời hạn mua.
+
+## **4.4. Luồng giảng dạy (Teaching Flow)**
+
+Giáo viên vào danh sách lớp được phân công \-\> Xem tiến độ từng học viên \-\> Giao bài từ nội dung có sẵn của khóa, đặt hạn \-\> Dạy buổi học, điểm danh \-\> Sửa điểm, nhận xét bài nộp \-\> Mở sớm unit khi cần. Kế toán lấy báo cáo số buổi dạy của từng người.
 
 # **5\. ĐẶC TẢ YÊU CẦU CHỨC NĂNG (FUNCTIONAL REQUIREMENTS)**
 
 ## **5.1. Phân hệ 1: Tài khoản & Phân quyền (Auth & Profiles)**
 
-* **FR-AUTH-01 (Đăng ký / Đăng nhập):** MVP hỗ trợ đăng nhập nhanh qua Google OAuth2 hoặc Email kèm mật khẩu (tối thiểu 8 ký tự). Apple ID làm trước khi lên App Store; SĐT chưa làm trong MVP.  
+* **FR-AUTH-01 (Đăng ký / Đăng nhập):** MVP hỗ trợ đăng nhập nhanh qua Google OAuth2 hoặc Email kèm mật khẩu (tối thiểu 8 ký tự). Apple ID làm trước khi lên App Store; SĐT chưa làm trong MVP. Đăng ký bắt buộc ngày sinh; dưới 18 tuổi cần phụ huynh chấp thuận điều khoản (D-114, BQ-17).  
 * **FR-AUTH-02 (Cấp độ tài khoản \- User Tier):**  
   * *Tài khoản Phổ thông (Free/Trial):* Được làm Q&A tư vấn, kiểm tra đầu vào miễn phí, học thử Topic đầu của mỗi khóa; không được cấp lượt AI.  
   * *Tài khoản Khóa học (Paid/Premium):* Mở khóa đầy đủ toàn bộ bài giảng, bài tập, bài thi của khóa đã mua còn hạn và ví lượt AI hằng tuần của khóa.  
-  * *Nhân sự nội bộ:* Admin, Giám đốc, Kế toán, Nhân viên hỗ trợ, Biên tập viên (Phòng Đào tạo), Giáo viên; quyền theo phân quyền hybrid (FR-ADM-04).  
+  * *Nhân sự nội bộ:* Admin, Giám đốc, Kế toán, Nhân viên hỗ trợ, Biên tập viên (Phòng Đào tạo), Giáo viên, Trợ giảng, Quản lý đào tạo; quyền theo phân quyền hybrid (FR-ADM-04).  
 * **FR-AUTH-03 (Quản lý Hồ sơ & Mục tiêu):** Lưu trữ trình độ hiện tại, mục tiêu kỳ vọng, thời gian mục tiêu, lịch sử làm bài và thống kê năng lực.
 
 ## **5.2. Phân hệ 2: Khảo sát mục tiêu, Kiểm tra đầu vào & Điều hướng khóa học (Goal, Placement & Course Navigation Engine)**
 
 * **FR-GOAL-01 (Q&A tư vấn nhu cầu):** Bộ câu hỏi tư vấn xác định mục tiêu, band mong muốn, thời gian học và kỹ năng yếu. Q&A tách khỏi kiểm tra đầu vào: Q&A xác định nhu cầu, kiểm tra đầu vào xác định level. MVP dùng bộ Q&A tạm, Phòng Đào tạo sửa được.  
 * **FR-GOAL-02 (Hệ quy chiếu mục tiêu linh hoạt theo khóa học \- Goal Benchmark Framework):**  
-  * Mục tiêu được cấu hình đa dạng và linh hoạt tùy theo từng khóa học: Luyện thi chứng chỉ (Band điểm IELTS 5.5, 6.5+; Cambridge KET, PET, FCE); Học sinh phổ thông (Theo Khối lớp 6–12, thi vào 10, ôn thi THPT Quốc gia); Tiếng Anh ứng dụng/giao tiếp (Mất gốc \-\> Tự tin phản xạ, Giao tiếp công sở, Phỏng vấn xin việc). MVP chỉ dùng mục tiêu IELTS.  
+  * Mục tiêu được cấu hình đa dạng và linh hoạt tùy theo từng khóa học: Luyện thi chứng chỉ (Band điểm IELTS 5.5, 6.5+; Cambridge KET, PET, FCE); Học sinh phổ thông (Theo Khối lớp 6–12, thi vào 10, ôn thi THPT Quốc gia); Tiếng Anh ứng dụng/giao tiếp (Mất gốc \-\> Tự tin phản xạ, Giao tiếp công sở, Phỏng vấn xin việc). Mục tiêu theo chương trình của khóa, không cố định band IELTS (D-105).  
   * Thiết kế Data Model: Hỗ trợ cấu trúc linh hoạt (target\_type và target\_value) gắn liền với metadata của khóa học, không bị bó cứng vào một hệ quy chiếu đơn lẻ.  
 * **FR-GOAL-03 (Điều hướng & Đề xuất khóa học):** Dựa trên level từ kiểm tra đầu vào (hoặc trình độ tự chọn) và nhu cầu từ Q&A, hệ thống đề xuất khóa học lẻ theo lộ trình; không đề xuất combo.  
 * **FR-TEST-01 (Kiểm tra đầu vào \- Placement Test):** Có trong MVP, miễn phí. Đề do Phòng Đào tạo soạn, làm theo giao diện mô phỏng thi, có giới hạn thời gian, không tạm dừng. Cấu trúc đề và số lần làm lại: chờ chủ dự án quyết định (BQ-06).  
@@ -72,11 +86,12 @@ Vào màn hình Khóa học \-\> Chọn Level (A1, A2, B1...) \-\> Chọn Topic 
 
 ## **5.3. Phân hệ 3: Hệ thống bài giảng & Nội dung (Course & Video LMS)**
 
-* **FR-LMS-01 (Cấu trúc phân cấp):** Khóa học được phân tầng chặt chẽ: Level \-\> Topic \-\> Unit / Bài học.  
+* **FR-LMS-01 (Cấu trúc phân cấp):** Khóa học được phân tầng chặt chẽ: Level \-\> Topic \-\> Bài học; unit, chương tạm hiểu là Topic (D-124). Mỗi khóa thuộc một chương trình và một loại (tự học / có lớp).  
 * **FR-LMS-02 (Trình phát Video Từ kết nối):**  
   * Tích hợp trình phát video chất lượng cao (lưu trữ MinIO riêng của dự án hoặc YouTube Embed riêng tư).  
   * Hiển thị phụ đề thông minh (interactive transcript), cho phép bấm vào từ vựng/từ kết nối để xem giải nghĩa, phát âm mẫu và ngữ cảnh sử dụng.  
-  * Theo dõi tiến độ xem video (ghi nhận hoàn thành khi xem đạt \>= 80% thời lượng).
+  * Theo dõi tiến độ xem video (ghi nhận hoàn thành khi xem đạt \>= 80% thời lượng).  
+* **FR-LMS-04 (Học tuần tự):** Admin bật/tắt theo khóa. Xong unit trước (xem bài giảng đạt % admin cài, làm xong bài tập, nộp kiểm tra chương) mới mở unit sau; giáo viên được mở sớm cho lớp hoặc từng học viên (D-119, D-122, D-124).
 
 ## **5.4. Phân hệ 4: Hệ thống bài tập đa dạng (Exercise Engine)**
 
@@ -119,6 +134,7 @@ Kế thừa các dạng bài từ core engine của pps-education và mở rộn
   * Tác vụ AI trong khóa nào trừ ví của khóa đó; hết ví thì trừ pool lượt mua thêm (FR-COM-05); hết cả hai thì mời mua thêm.  
   * Số lượt mỗi tuần của từng khóa và trọng số từng tác vụ: chờ chủ dự án quyết định (BQ-04).  
   * Hệ thống ghi nhận lịch sử tiêu thụ token (ai\_grading\_token\_usage) để tối ưu chi phí vận hành.  
+  * Bài viết/nói giáo viên giao trong khóa có lớp không trừ lượt tuần của học viên (D-115); có giới hạn riêng hay không tính lượt: BQ-19.  
 * **FR-AI-05 (Chấm phát âm từng từ \- Word Pronunciation):**  
   * Tại popup giải nghĩa từ vựng (FR-LMS-02), học viên đọc to từ đang học vào mic.  
   * Hệ thống chấm ngay trên thiết bị của học viên, không gửi âm thanh lên máy chủ: cho điểm cả từ và từng âm, chỉ ra âm đọc sai và đọc thành âm nào.  
@@ -128,7 +144,7 @@ Kế thừa các dạng bài từ core engine của pps-education và mở rộn
 
 ## **5.6. Phân hệ 6: Thương mại & Quản lý gói học (E-Commerce & Commerce)**
 
-* **FR-COM-01 (Quản lý Gói bán):** Bán từng khóa học theo thời hạn 6 hoặc 12 tháng, hoặc gói nạp thêm lượt dùng AI (Add-on). Không bán combo, không hoàn tiền.  
+* **FR-COM-01 (Quản lý Gói bán):** Bán từng khóa học (tự học hoặc có lớp) theo các mức thời hạn do admin cấu hình cho từng khóa (D-127), hoặc gói nạp thêm lượt dùng AI (Add-on). Khóa có lớp mua trên app/web hoặc qua tư vấn viên và link kích hoạt; mua xong học được phần tự học ngay, phần lớp theo lịch lớp (D-107, D-110). Không bán combo, không hoàn tiền.  
 * **FR-COM-02 (Thanh toán trực tuyến):** Tạo đơn hàng, thanh toán và tự động kích hoạt ngay sau khi thanh toán thành công. Cổng thanh toán (VietQR / VNPay / MoMo) chưa chốt, chờ Kế toán, làm cuối; trong lúc chờ dùng cổng giả lập và link kích hoạt.  
 * **FR-COM-03 (Kích hoạt & Phân quyền nội dung):** Tự động mở khóa các Level/Topic tương ứng trong hồ sơ người dùng ngay khi giao dịch hoàn tất.  
 * **FR-COM-04 (Kích hoạt bằng link):** Admin tạo link kích hoạt gắn với một gói bán để phục vụ kiểm thử và khuyến mãi, không cần thanh toán. Link có số người dùng tối đa, ngày hết hạn và có thể thu hồi. Người dùng đăng nhập, đã xác thực email, được kích hoạt một lần cho mỗi link và nhận đúng thời hạn, lượt AI của gói.  
@@ -152,14 +168,18 @@ Kế thừa các dạng bài từ core engine của pps-education và mở rộn
 ## **5.9. Phân hệ 9: Thi (Exams)**
 
 * **FR-EXAM-01 (Mô phỏng thi IELTS trên máy):** Giao diện thi 4 kỹ năng, không tạm dừng, không gợi ý.  
-* **FR-EXAM-02 (Bài thi của khóa):** Mỗi khóa có bài thi riêng do Phòng Đào tạo soạn (không dùng đề sách có bản quyền); phải mua khóa mới được thi.  
-* **FR-EXAM-03 (Quy đổi band):** Reading, Listening đổi số câu đúng sang band theo bảng quy đổi; Writing, Speaking AI chấm band và trừ lượt.
+* **FR-EXAM-02 (Bài kiểm tra của khóa):** Mỗi khóa có nhiều bài kiểm tra do Phòng Đào tạo soạn (không dùng đề sách có bản quyền): kiểm tra chương và kiểm tra cuối khóa (D-118); phải mua khóa mới được làm.  
+* **FR-EXAM-03 (Quy đổi điểm):** Quy đổi theo thang điểm của chương trình (D-105). Với IELTS: Reading, Listening đổi số câu đúng sang band theo bảng quy đổi; Writing, Speaking AI chấm band và trừ lượt.
 
 ## **5.10. Phân hệ 10: Hỗ trợ học viên (Support)**
 
 * **FR-SUP-01 (Chatbox Cam):** Cam trả lời câu hỏi đơn giản trước trong chatbox; kênh ngoài: Zalo, hotline.  
 * **FR-SUP-02 (Ticket và chat với nhân viên):** Học viên yêu cầu gặp nhân viên thì tạo ticket và chat với nhân viên trong cùng chatbox.  
 * **FR-SUP-03 (Công cụ nhân viên hỗ trợ):** Tra cứu học viên, kích hoạt thủ công, cộng lượt bù, có ghi nhật ký.
+
+## **5.11. Phân hệ 11: Lớp học & Giảng dạy (Classes & Teaching)**
+
+Chỉ áp dụng cho khóa có lớp. Lớp học thuộc một khóa, có ngày bắt đầu riêng (D-120); giáo viên, trợ giảng phụ trách; buổi học nhóm và kèm 1-1, online (link Meet/Zoom) hoặc offline (giờ học); điểm danh tay; giao bài từ nội dung có sẵn của khóa, chấm AI, giáo viên sửa điểm và nhận xét; báo cáo tiến độ, chuyên cần, số buổi dạy cho Kế toán. Đặc tả: SRS Phân hệ 11 (FR-CLS, FR-SES, FR-ASG).
 
 # **6\. YÊU CẦU PHI CHỨC NĂNG & KIẾN TRÚC HỆ THỐNG (NFR & ARCHITECTURE)**
 
@@ -168,7 +188,7 @@ Kế thừa các dạng bài từ core engine của pps-education và mở rộn
 * **Backend:** Xây dựng dịch vụ độc lập sử dụng Java 21 \+ Spring Boot 3, kế thừa mô hình phân lớp chuẩn mực (Controller \-\> Service \-\> Repository), cơ chế quản lý version database bằng Flyway, và cơ sở dữ liệu PostgreSQL.  
 * **Frontend:**  
   * *Web:* Single Page App React 19 \+ Vite \+ TailwindCSS chuẩn Responsive trên cả Desktop và Mobile Browser.  
-  * *Mobile App:* Ứng dụng di động đa nền tảng viết bằng Flutter (iOS & Android), sử dụng chung 100% hệ thống RESTful API từ Backend, phát triển song song với web. Ra mắt một lượt khi web đủ tính năng.  
+  * *Mobile App:* Ứng dụng di động đa nền tảng viết bằng Flutter (iOS & Android), sử dụng chung 100% hệ thống RESTful API từ Backend. Làm sau web khóa tự học, song song với phần khóa có lớp trên web (D-123). Màn quản trị, giáo viên, giáo vụ chỉ có trên web.  
 * **Media & Lưu trữ:** Video và file âm thanh học viên nộp được lưu trên MinIO riêng của dự án (truy cập qua S3 API) hoặc nhúng YouTube.  
 * **AI Infrastructure:** Tích hợp LLM API qua hàng đợi bất đồng bộ (ReflexGradingQueueService / Worker) để tránh nghẽn thread người dùng khi AI xử lý bài chấm dài.
 
@@ -185,8 +205,12 @@ Kế thừa các dạng bài từ core engine của pps-education và mở rộn
 | 1 | **Chi tiết 8 yếu tố ngữ pháp:** Danh sách chính thức 8 yếu tố ngữ pháp theo tài liệu của thầy Phúc là gì? | Phòng Đào tạo | Cấu trúc bảng danh mục trong DB, taxonomy gắn tag câu hỏi và bộ lọc bài tập. |
 | 2 | **Cấu trúc Bài test đầu vào:** \[ĐÃ XÁC NHẬN 2026-11-13\] Kiểm tra đầu vào có trong MVP, miễn phí (FR-TEST-01). Cấu trúc đề, số lần làm lại: BQ-06. | Phòng Đào tạo | Thiết kế thuật toán chấm điểm và logic phân loại Level tự động. |
 | 3 | **Hệ quy chiếu mục tiêu & Phân loại đối tượng:** \[ĐÃ XÁC NHẬN\] Áp dụng hệ quy chiếu mục tiêu linh hoạt gắn với metadata từng khóa học (IELTS/Cambridge, Khối lớp 6–12/THPTQG, Tiếng Anh ứng dụng); thiết kế bảng mục tiêu linh hoạt với target\_type & target\_value. | Ban Giám đốc & Marketing | Định hình giọng văn, thiết kế UI và định hướng kho nội dung ban đầu. |
-| 4 | **Mô hình đóng gói & Giá bán chính thức:** \[ĐÃ XÁC NHẬN 2026-11-13\] Bán từng khóa theo thời hạn 6 hoặc 12 tháng; không combo, không thuê bao, không hoàn tiền. Giá gói 6 tháng: `docs/ba/decisions.md` mục 2; giá 12 tháng: BQ-01. | Ban Giám đốc | Thiết kế Data Model cho đơn hàng, hóa đơn, thời hạn bản quyền và chu kỳ thanh toán. |
+| 4 | **Mô hình đóng gói & Giá bán chính thức:** \[ĐÃ XÁC NHẬN 2026-11-13\] Bán từng khóa theo các mức thời hạn do công ty quyết định, admin cấu hình (D-127); không combo, không thuê bao, không hoàn tiền. Giá tham khảo: `docs/ba/decisions.md` mục 2; giá từng mức thời hạn: BQ-01. | Ban Giám đốc | Thiết kế Data Model cho đơn hàng, hóa đơn, thời hạn bản quyền và chu kỳ thanh toán. |
 | 5 | **Định mức lượt dùng AI:** \[XÁC NHẬN MỘT PHẦN 2026-11-13\] Lượt cấp theo tuần, theo từng khóa; gói mua thêm 10/20/50/100/200/500 lượt. Còn chờ: số lượt/tuần từng khóa (BQ-04), giá gói mua thêm (BQ-03). | Ban Giám đốc | Thiết kế bảng user\_ai\_quota, logic trừ quota và cảnh báo khi sắp hết lượt. |
+| 6 | **Phụ huynh chấp thuận điều khoản (BQ-17):** Cách chấp thuận cho học viên dưới 18 tuổi; nội dung hai bộ điều khoản. | Pháp chế | Luồng đăng ký, lưu bằng chứng chấp thuận. |
+| 7 | **Luyện tập mới (BQ-18):** Hạn giao đặc tả phần luyện tập mới (D-116). | Phòng Đào tạo | Phạm vi khóa có lớp. |
+| 8 | **Lượt AI bài được giao (BQ-19):** Có tính lượt không; nếu có, mức bao nhiêu. | Ban Giám đốc | Chi phí AI khóa có lớp. |
+| 9 | **Chương trình làm trước (BQ-20):** Chương trình nào, ai cung cấp thang điểm, lộ trình; xác nhận unit = Topic (D-124). | Ban Giám đốc, Phòng Đào tạo | Thang điểm, kiểm tra đầu vào, gợi ý khóa, học tuần tự. |
 
 # **8\. QUYẾT ĐỊNH & ĐỀ XUẤT VỀ THIẾT KẾ GIAO DIỆN (UI/UX DESIGN DIRECTION)**
 

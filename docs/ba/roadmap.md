@@ -16,7 +16,7 @@ Cập nhật lần cuối: 2026-11-19 · Người cập nhật: chủ dự án �
 | # | Hạng mục | FR | Ưu tiên | Phụ thuộc / chặn bởi |
 |---|---|---|---|---|
 | 1 | Phân quyền hybrid + nhật ký thao tác | FR-ADM-04, 05 | P0 | Role Giáo viên, Trợ giảng, Quản lý đào tạo theo D-99, D-108, D-109 |
-| 2 | Sản phẩm, giá, thời hạn cấu hình được | FR-COM-07, 01 | P0 | BQ-01; PRD/SRS còn ghi 6 hoặc 12 tháng, chờ cập nhật |
+| 2 | Sản phẩm, giá, thời hạn cấu hình được | FR-COM-07, 01 | P0 | BQ-01; D-127 |
 | 3 | Lượt AI theo tuần, theo khóa | FR-AI-04 | P0 | BQ-04 |
 | 4 | CMS khóa, bài học, upload video, phụ đề | FR-ADM-01 | P0 | Q-29 (đường truyền video) |
 | 5 | Ngân hàng câu hỏi 39 dạng + soạn, xem trước | FR-EX-04, FR-ADM-02 | P0 | Figma từng dạng (đã có) |
