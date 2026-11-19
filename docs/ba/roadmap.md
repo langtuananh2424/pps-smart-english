@@ -1,6 +1,6 @@
 # Ưu tiên và tiến độ
 
-Cập nhật lần cuối: 2026-11-13 · Người cập nhật: chủ dự án
+Cập nhật lần cuối: 2026-11-19 · Người cập nhật: chủ dự án · Lịch mới theo D-126 (hoàn thiện web trong khoảng 1 tháng)
 
 ## 1. Định nghĩa mức ưu tiên
 
@@ -15,8 +15,8 @@ Cập nhật lần cuối: 2026-11-13 · Người cập nhật: chủ dự án
 
 | # | Hạng mục | FR | Ưu tiên | Phụ thuộc / chặn bởi |
 |---|---|---|---|---|
-| 1 | Phân quyền hybrid + nhật ký thao tác | FR-ADM-04, 05 | P0 | BQ-08 (role Giáo viên) |
-| 2 | Sản phẩm 6 khóa, giá, thời hạn 6/12 tháng | FR-COM-07, 01 | P0 | BQ-01 |
+| 1 | Phân quyền hybrid + nhật ký thao tác | FR-ADM-04, 05 | P0 | Role Giáo viên, Trợ giảng, Quản lý đào tạo theo D-99, D-108, D-109 |
+| 2 | Sản phẩm, giá, thời hạn cấu hình được | FR-COM-07, 01 | P0 | BQ-01; PRD/SRS còn ghi 6 hoặc 12 tháng, chờ cập nhật |
 | 3 | Lượt AI theo tuần, theo khóa | FR-AI-04 | P0 | BQ-04 |
 | 4 | CMS khóa, bài học, upload video, phụ đề | FR-ADM-01 | P0 | Q-29 (đường truyền video) |
 | 5 | Ngân hàng câu hỏi 39 dạng + soạn, xem trước | FR-EX-04, FR-ADM-02 | P0 | Figma từng dạng (đã có) |
@@ -44,21 +44,32 @@ Cập nhật lần cuối: 2026-11-13 · Người cập nhật: chủ dự án
 | 27 | Reading màn hình ngang trên mobile | FR-EX-05 | P2 | #12 |
 | 28 | Phát âm từng từ trên thiết bị | FR-AI-05 | P3 | Q-32..Q-36 |
 | 29 | Cổng thanh toán thật | FR-COM-02 | P3 | D-18 (Kế toán) |
+| 30 | Lớp học: tạo lớp, chờ xếp, xếp/chuyển/rút, phân công giáo viên | FR-CLS-01..04 | P1 | #14 (role, quyền theo lớp) |
+| 31 | Buổi học và điểm danh | FR-SES-01..04 | P1 | hạng mục 30 |
+| 32 | Giao bài, nộp bài, điểm và nhận xét | FR-ASG-01..04 | P1 | hạng mục 30, BQ-19 |
+| 33 | Tiến độ lớp, mở sớm unit, báo cáo số buổi dạy | FR-CLS-05..07 | P1 | hạng mục 30–32, 34, BQ-12 |
+| 34 | Học tuần tự và bài kiểm tra chương, cuối khóa | FR-LMS-04, FR-EXAM-02, 03 | P1 | #11, BQ-07 |
+| 35 | Đăng ký có ngày sinh và phụ huynh chấp thuận | FR-AUTH-01 | P1 | BQ-17 |
 
-## 3. Cột mốc (thứ tự, chưa gắn ngày)
+**Đối chiếu với GitHub Project:** hạng mục 1–29 là issue #14–#42 (số issue = số hạng mục + 13). Hạng mục 30–35 là issue #59–#64 (hạng mục 30 = #59, 31 = #60, 32 = #61, 33 = #62, 34 = #63, 35 = #64). Các số "#" trong cột "Phụ thuộc" ở bảng này là số hạng mục, không phải số issue.
 
-Ngày chưa ghi vì chưa biết số người làm. Chủ dự án điền cột "Ngày dự kiến" khi chốt nguồn lực.
+## 3. Cột mốc (theo D-126)
 
-| Mốc | Nội dung | Gồm hạng mục | Ngày dự kiến | Trạng thái |
+Mục tiêu của chủ dự án (D-126): hoàn thiện toàn bộ web, gồm khóa tự học và khóa có lớp, trong khoảng 1 tháng (20/11 đến khoảng 19/12/2026). Ngày chỉ là hạn làm xong, ước tính chưa kiểm chứng nguồn lực; thời điểm đưa vào sử dụng do cấp trên quyết định (D-123). Mốc ngày thay các ngày của D-103 và D-123. App mobile (M6) làm sau web, chưa gắn ngày.
+
+| Mốc | Nội dung | Gồm hạng mục | Ngày dự kiến (hạn) | Trạng thái |
 |---|---|---|---|---|
-| M1 | Nền quản trị: role, sản phẩm, lượt theo khóa, nhân viên | 1, 2, 3, 9 | | Chưa bắt đầu |
-| M2 | Nội dung: CMS đủ để Phòng Đào tạo nhập 6 khóa, câu hỏi, đề | 4, 5, 11, 20 | | Chưa bắt đầu |
-| M3 | Học viên web: từ đăng ký tới làm bài tập, thời gian, tạm dừng | 6, 7, 8 | | Chưa bắt đầu |
-| M4 | IELTS và thi: luyện tập R/L/W, thi khóa | 12, 13, 14 | | Chưa bắt đầu |
-| M5 | Nói, hỗ trợ, mua thêm: chấm nói, ticket, gói lượt, Luyện thêm, phụ đề | 15–19, 21 | | Chưa bắt đầu |
-| M6 | App Flutter đủ tính năng học viên (chạy song song từ M1) | 10 + màn học viên | | Chưa bắt đầu |
-| M7 | Sẵn sàng ra mắt: load test, backup, giám sát, staging, P2 nếu kịp | 22–27 | | Chưa bắt đầu |
-| M8 | Cổng thanh toán thật, phát âm từng từ | 28, 29 | | Chờ quyết định |
+| M1 | Nền quản trị: role, sản phẩm, lượt theo khóa, nhân viên | 1, 2, 3, 9 | 04/12/2026 | Đang làm |
+| M2 | Nội dung: CMS đủ để Phòng Đào tạo nhập khóa, câu hỏi, đề | 4, 5, 11, 20 | 08/12/2026 | Đang làm |
+| M3 | Học viên web: từ đăng ký tới làm bài tập, thời gian, tạm dừng | 6, 7, 8, 35 | 04/12/2026 | Đang làm |
+| M4 | IELTS và thi: luyện tập R/L/W, thi khóa, học tuần tự, kiểm tra chương | 12, 13, 14, 34 | 11/12/2026 | Đang làm |
+| M5 | Nói, hỗ trợ, mua thêm: chấm nói, ticket, gói lượt, Luyện thêm, phụ đề | 15–19, 21 | 11/12/2026 | Đang làm |
+| M6 | App Flutter đủ tính năng học viên (làm sau web, D-123) | 10 + màn học viên | chưa gắn ngày | Đang làm khung |
+| M7 | Sẵn sàng ra mắt: load test, backup, giám sát, staging, P2 | 22–27 | 26/12/2026 | Chưa bắt đầu |
+| M8 | Cổng thanh toán thật, phát âm từng từ | 28, 29 | chưa gắn ngày | Chờ quyết định |
+| M9 | Khóa có lớp (LMS): lớp, buổi học, điểm danh, giao bài, báo cáo giảng dạy | 30–33 | 19/12/2026 | Chưa bắt đầu |
+
+Điều kiện: Figma các màn còn thiếu (#58) xong trong tuần đầu; BQ-02, 03, 07, 12, 17, 19 được trả lời sớm; Phòng Đào tạo soạn nội dung sớm theo. Ngày bắt đầu và hạn từng issue nằm ở trường Start date và Target date của GitHub Project (view Roadmap).
 
 Song song suốt từ M1: **Phòng Đào tạo soạn nội dung** (6 khóa, câu hỏi, đề đầu vào, đề thi khóa, bảng quy đổi, Q&A, FAQ). Đây là đường găng: thiếu nội dung thì không ra mắt được dù code xong.
 
@@ -69,7 +80,7 @@ Trạng thái: `—` không cần · `Chưa` · `Đang làm` · `Xong` · `Chặ
 | # | Hạng mục | Figma | BE | WEB | MOB | Nội dung | Ghi chú |
 |---|---|---|---|---|---|---|---|
 | 1 | Phân quyền hybrid + nhật ký | Chưa | Chưa | Chưa | — | — | Hiện có ADMIN/EDITOR cố định |
-| 2 | Sản phẩm, giá, thời hạn | Chưa | Đang làm | Chưa | Chưa | Chưa | BE có `products`, thiếu chọn 6/12 tháng |
+| 2 | Sản phẩm, giá, thời hạn | Chưa | Đang làm | Chưa | Chưa | Chưa | BE có `products`, thời hạn cố định 6/12 cần đổi sang cấu hình |
 | 3 | Lượt AI theo tuần, theo khóa | Chưa | Chưa | Chưa | Chưa | — | BE đang là ví chung, cần sửa |
 | 4 | CMS khóa, video, phụ đề | Chưa | Đang làm | Chưa | — | Chưa | BE có cây khóa, thiếu upload + phụ đề |
 | 5 | Câu hỏi 39 dạng | Xong | Đang làm | Chưa | Chưa | Chưa | BE có 7 dạng |
