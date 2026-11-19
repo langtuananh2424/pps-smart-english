@@ -16,6 +16,8 @@ public interface ActivationLinkRepository extends JpaRepository<ActivationLink, 
 
     Optional<ActivationLink> findByTokenHash(String tokenHash);
 
+    boolean existsByProductId(Long productId);
+
     /** Không có token: danh sách admin chỉ thấy hash gián tiếp qua id. */
     @Query("select new com.pps.smartenglish.commerce.dto.ActivationLinkView(l.id, l.productId, p.name, l.maxUses, "
             + "l.usedCount, l.expiresAt, l.revokedAt, l.note) "

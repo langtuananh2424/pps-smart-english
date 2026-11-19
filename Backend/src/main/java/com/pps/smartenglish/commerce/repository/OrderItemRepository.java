@@ -12,6 +12,8 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
     List<OrderItem> findByOrderId(Long orderId);
 
+    boolean existsByProductId(Long productId);
+
     /** [orderId, productId, name] của nhiều đơn trong một truy vấn. */
     @Query("select i.orderId, p.id, p.name from OrderItem i, Product p where i.orderId in :orderIds and p.id = i.productId order by i.id")
     List<Object[]> findNames(@Param("orderIds") Collection<Long> orderIds);
