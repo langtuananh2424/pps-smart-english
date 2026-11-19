@@ -67,6 +67,12 @@ public class NotificationService {
                 url, "WRITING_GRADED:" + jobId, WRITING_TTL);
     }
 
+    /** Nhân viên trả lời ticket (FR-SUP-02), dedupe theo tin nhắn. Nội dung tin nhắn không nằm trong thông báo. */
+    public void ticketReply(long userId, long ticketId, long messageId) {
+        notifyOnce(userId, Notification.Type.TICKET_REPLY, "Nhân viên đã trả lời", "Mở hỗ trợ để xem tin nhắn.",
+                "/ho-tro/" + ticketId, "TICKET_REPLY:" + messageId, WRITING_TTL);
+    }
+
     @Transactional(readOnly = true)
     public CursorPage<NotificationView> list(long userId, String limit, String cursor) {
         int size = Cursors.size(limit, DEFAULT_LIMIT, MAX_LIMIT);
