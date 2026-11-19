@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -164,6 +165,20 @@ public class AiQuotaService {
     @EventListener
     public void onActivationLinkRedeemed(ActivationLinkRedeemed e) {
         credit(e.userId(), e.aiQuota(), Reason.ACTIVATION_LINK, e.redemptionId(), null);
+    }
+
+    /**
+     * Cộng lượt bù do nhân viên hỗ trợ (FR-SUP-03), trả số dư pool mới. Ghi sổ cái lý do REFUND (bù lượt) với ref_id âm
+     * ngẫu nhiên: không đụng id job dương của REFUND chấm lỗi, và chỉ mục unique (lý do, ref, nguồn) chặn va chạm.
+     * shortcut: dùng lại REFUND thay vì lý do riêng vì CHECK của V5 khó nới đồng nhất trên H2 và PostgreSQL; tách khi báo cáo cần phân biệt.
+     */
+    @Transactional
+    public int grantBonus(long userId, int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("amount phải dương");
+        }
+        credit(userId, amount, Reason.REFUND, -(1 + ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 1)), null);
+        return pool(userId);
     }
 
     private void credit(long userId, int amount, Reason reason, long refId, Long courseId) {

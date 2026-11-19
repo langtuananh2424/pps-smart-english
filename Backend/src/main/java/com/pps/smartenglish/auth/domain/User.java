@@ -70,4 +70,13 @@ public class User extends Auditable {
     public Status getStatus() {
         return status;
     }
+
+    /** Trả false nếu tài khoản không bị khóa. */
+    public boolean unlock() {
+        if (status != Status.LOCKED) {
+            return false;
+        }
+        status = Status.ACTIVE;
+        return true;
+    }
 }

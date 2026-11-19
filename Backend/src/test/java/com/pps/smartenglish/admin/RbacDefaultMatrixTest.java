@@ -36,7 +36,7 @@ class RbacDefaultMatrixTest extends ApiTestBase {
         assertEquals(new TreeSet<>(jdbc.queryForList("select code from permissions", String.class)), permissionsOf("ADMIN"));
         assertEquals(Set.of("report.view", "audit.view", "order.view"), permissionsOf("DIRECTOR"));
         assertEquals(Set.of("report.view", "order.view", "report.teaching"), permissionsOf("ACCOUNTANT"));
-        assertEquals(Set.of("student.view", "order.view", "activation.manage"), permissionsOf("SUPPORT"));
+        assertEquals(Set.of("student.view", "order.view", "activation.manage", "student.support"), permissionsOf("SUPPORT"));
         assertEquals(Set.of("cms.content", "regrade.manage"), permissionsOf("EDITOR"));
         assertEquals(Set.of("regrade.manage", "student.view", "class.teach"), permissionsOf("TEACHER"));
         // D-99, D-109: trợ giảng và quản lý đào tạo

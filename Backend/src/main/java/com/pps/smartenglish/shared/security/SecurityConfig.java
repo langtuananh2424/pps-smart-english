@@ -54,6 +54,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/regrades/**", "/api/admin/questions/**").access(guard.require("regrade.manage"))
                         .requestMatchers("/api/admin/audit-logs/**").access(guard.require("audit.view"))
                         .requestMatchers("/api/admin/orders/**").access(guard.require("order.view"))
+                        .requestMatchers(HttpMethod.GET, "/api/admin/support/**").access(guard.require("student.view"))
+                        .requestMatchers(HttpMethod.POST, "/api/admin/support/**").access(guard.require("student.support"))
                         .requestMatchers("/api/admin/ai-weights", "/api/admin/products/**", "/api/admin/products")
                         .access(guard.require("product.manage"))
                         .requestMatchers("/api/admin/roles/**", "/api/admin/permissions", "/api/admin/users/**")
