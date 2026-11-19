@@ -20,6 +20,7 @@ import com.pps.smartenglish.lms.domain.LessonProgress;
 import com.pps.smartenglish.lms.dto.PlayableLesson;
 import com.pps.smartenglish.lms.repository.LessonProgressRepository;
 import com.pps.smartenglish.lms.service.LessonAccessPolicy;
+import com.pps.smartenglish.lms.service.UnitUnlockService;
 import com.pps.smartenglish.retention.domain.XpEvent;
 import com.pps.smartenglish.retention.repository.XpEventRepository;
 import com.pps.smartenglish.shared.error.ApiException;
@@ -56,10 +57,11 @@ public class RoadmapService {
     private final QuestionRepository questions;
     private final XpEventRepository xpEvents;
     private final List<LessonAccessPolicy> policies;
+    private final UnitUnlockService unitUnlock;
 
     RoadmapService(CourseRepository courses, CourseLevelRepository levels, TopicRepository topics, LessonRepository lessons,
                    LessonProgressRepository progress, QuestionBankRepository banks, QuestionRepository questions,
-                   XpEventRepository xpEvents, List<LessonAccessPolicy> policies) {
+                   XpEventRepository xpEvents, List<LessonAccessPolicy> policies, UnitUnlockService unitUnlock) {
         this.courses = courses;
         this.levels = levels;
         this.topics = topics;
@@ -69,12 +71,14 @@ public class RoadmapService {
         this.questions = questions;
         this.xpEvents = xpEvents;
         this.policies = policies;
+        this.unitUnlock = unitUnlock;
     }
 
     @Transactional(readOnly = true)
     public Roadmap of(long userId, long courseId) {
-        courses.findById(courseId).filter(c -> PUBLISHED.equals(c.getStatus()))
+        var course = courses.findById(courseId).filter(c -> PUBLISHED.equals(c.getStatus()))
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "course_not_found", "Không tìm thấy khóa học"));
+        Set<Long> sequentialLocked = unitUnlock.lockedTopicIds(userId, courseId, course.isSequential());
         // chỉ level, topic, bài PUBLISHED; cha DRAFT thì con không có trong cây (cùng quy tắc CatalogService)
         List<CourseLevel> lvls = levels.findByCourseIdAndStatusOrderBySortOrderAscIdAsc(courseId, PUBLISHED);
         List<Topic> tps = lvls.isEmpty() ? List.of()
@@ -96,14 +100,17 @@ public class RoadmapService {
                 if (!lv.getId().equals(t.getLevelId())) {
                     continue;
                 }
-                boolean locked = lockMemo.computeIfAbsent(lv.getId() + ":" + t.isFreeTrial(),
+                boolean paywall = lockMemo.computeIfAbsent(lv.getId() + ":" + t.isFreeTrial(),
                         k -> !allowed(userId, t.isFreeTrial(), lv.getId()));
+                boolean sequential = !paywall && !t.isFreeTrial() && sequentialLocked.contains(t.getId());
+                boolean locked = paywall || sequential;
+                String lockReason = paywall ? "PAYWALL" : sequential ? "SEQUENTIAL" : null;
                 List<Lesson> topicLessons = lessonsByTopic.getOrDefault(t.getId(), List.of());
                 List<LessonNode> nodes = lessonNodes(topicLessons, done);
                 int completed = (int) nodes.stream().filter(LessonNode::completed).count();
                 topicNodes.add(new TopicNode(t.getId(), t.getTitle(), t.isFreeTrial(), t.getSkill(), locked, completed, nodes.size(),
                         xp.getOrDefault(t.getId(), 0L), status(locked, completed, nodes), nodes,
-                        bankIndex.visibleByTopic().getOrDefault(t.getId(), List.of())));
+                        bankIndex.visibleByTopic().getOrDefault(t.getId(), List.of()), lockReason));
             }
             tree.add(new LevelNode(lv.getId(), lv.getCode(), lv.getTitle(), topicNodes));
         }

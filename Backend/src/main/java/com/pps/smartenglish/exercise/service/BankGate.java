@@ -1,8 +1,10 @@
 package com.pps.smartenglish.exercise.service;
 
+import com.pps.smartenglish.catalog.repository.CourseRepository;
 import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.dto.BankInfo;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
+import com.pps.smartenglish.lms.service.UnitUnlockService;
 import com.pps.smartenglish.shared.error.ApiException;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -14,10 +16,14 @@ class BankGate {
 
     private final QuestionBankRepository banks;
     private final List<BankAccessPolicy> policies;
+    private final UnitUnlockService unitUnlock;
+    private final CourseRepository courses;
 
-    BankGate(QuestionBankRepository banks, List<BankAccessPolicy> policies) {
+    BankGate(QuestionBankRepository banks, List<BankAccessPolicy> policies, UnitUnlockService unitUnlock, CourseRepository courses) {
         this.banks = banks;
         this.policies = policies;
+        this.unitUnlock = unitUnlock;
+        this.courses = courses;
     }
 
     BankInfo require(Long bankId, Long userId) {
@@ -25,6 +31,10 @@ class BankGate {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "bank_not_found", "Không tìm thấy bộ câu hỏi"));
         if (policies.stream().noneMatch(p -> p.allows(userId, bank))) {
             throw new ApiException(HttpStatus.FORBIDDEN, "bank_locked", "Bạn chưa có quyền làm bộ câu hỏi này");
+        }
+        // Học tuần tự (FR-LMS-04); bài thi cuối khóa mở theo tỷ lệ học (ExamService), không theo thứ tự unit.
+        if (courses.findByExamBankId(bankId).isEmpty()) {
+            unitUnlock.requireUnlocked(userId, bank.topicId());
         }
         return bank;
     }

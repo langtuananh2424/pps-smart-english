@@ -1,9 +1,11 @@
 package com.pps.smartenglish.exercise.controller;
 
+import com.pps.smartenglish.exercise.dto.CourseTest;
 import com.pps.smartenglish.exercise.dto.ExamStatus;
 import com.pps.smartenglish.exercise.service.ExamService;
 import com.pps.smartenglish.shared.security.CurrentUser;
 import com.pps.smartenglish.shared.web.PathId;
+import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,6 +19,12 @@ class ExamController {
 
     ExamController(ExamService exams) {
         this.exams = exams;
+    }
+
+    /** D-118: mọi bài kiểm tra của khóa (chương rồi cuối khóa) kèm trạng thái mở/khóa của học viên. */
+    @GetMapping("/api/courses/{courseId}/tests")
+    List<CourseTest> tests(@PathVariable String courseId, Authentication auth) {
+        return exams.tests(CurrentUser.id(auth), PathId.parse(courseId, "course_not_found", "Không tìm thấy khóa học"));
     }
 
     @GetMapping("/api/courses/{courseId}/exam")

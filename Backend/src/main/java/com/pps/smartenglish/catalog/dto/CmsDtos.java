@@ -43,7 +43,8 @@ public final class CmsDtos {
             @Min(0) @Max(1000) Integer examRetakes,
             @DecimalMin("0") @DecimalMax("9") BigDecimal bandFrom,
             @DecimalMin("0") @DecimalMax("9") BigDecimal bandTo,
-            Boolean clearBand) {}
+            Boolean clearBand,
+            Boolean sequential) {}
 
     public record CreateLevel(
             @NotBlank @Size(max = 20) String code,
@@ -62,7 +63,10 @@ public final class CmsDtos {
             @Size(max = 200) @Pattern(regexp = NOT_BLANK, message = "Không được để trống") String title,
             @Min(0) Integer sortOrder,
             Boolean isFreeTrial,
-            TopicSkill skill) {}
+            TopicSkill skill,
+            Long chapterTestBankId,
+            Boolean clearChapterTest,
+            @Min(0) @Max(1000) Integer chapterTestRetakes) {}
 
     /** type: CONNECTIVE_VIDEO hoặc REFLEX_VIDEO. videoSource chỉ nhận YOUTUBE; videoRef là mã hoặc URL YouTube. */
     public record CreateLesson(
@@ -85,12 +89,12 @@ public final class CmsDtos {
 
     public record CourseView(Long id, String slug, String title, String description, String targetType, String status,
                              String aiPeriod, int aiPeriodQuota, Long examBankId, int examUnlockPercent, int examRetakes,
-                             BigDecimal bandFrom, BigDecimal bandTo) {}
+                             BigDecimal bandFrom, BigDecimal bandTo, boolean sequential) {}
 
     public record LevelView(Long id, Long courseId, String code, String title, int sortOrder, String status) {}
 
     public record TopicView(Long id, Long levelId, String title, int sortOrder, boolean isFreeTrial, TopicSkill skill,
-                           String status) {}
+                           String status, Long chapterTestBankId, int chapterTestRetakes) {}
 
     public record LessonView(Long id, Long topicId, String type, String title, Integer durationSec, int sortOrder, String status,
                              String videoSource, String videoRef) {}

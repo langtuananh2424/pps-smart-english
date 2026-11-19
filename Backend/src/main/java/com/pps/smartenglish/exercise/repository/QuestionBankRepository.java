@@ -31,7 +31,7 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long
 
     @Query("""
             select new com.pps.smartenglish.exercise.dto.BankInfo(b.id, b.title, b.lessonId, b.trial, t.freeTrial, lv.id,
-                   b.timeLimitSec, b.mode)
+                   b.timeLimitSec, b.mode, t.id)
             from QuestionBank b, Topic t, CourseLevel lv, Course c
             where b.id = :id and b.status = 'PUBLISHED'
               and t.id = b.topicId and t.status = 'PUBLISHED'

@@ -11,6 +11,8 @@ import com.pps.smartenglish.catalog.repository.CourseRepository;
 import com.pps.smartenglish.catalog.repository.LessonRepository;
 import com.pps.smartenglish.catalog.repository.TopicRepository;
 import com.pps.smartenglish.shared.audit.AuditRecorder;
+import com.pps.smartenglish.exercise.domain.QuestionBank;
+import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.persistence.CmsWrites;
 import org.springframework.http.HttpStatus;
@@ -27,11 +29,13 @@ public class CmsTopicService {
     private final CourseLevelRepository levels;
     private final CourseRepository courses;
     private final LessonRepository lessons;
+    private final QuestionBankRepository banks;
     private final CmsWrites writes;
     private final AuditRecorder audit;
 
     CmsTopicService(TopicRepository topics, CourseLevelRepository levels, CourseRepository courses, LessonRepository lessons,
-                    CmsWrites writes, AuditRecorder audit) {
+                    QuestionBankRepository banks, CmsWrites writes, AuditRecorder audit) {
+        this.banks = banks;
         this.courses = courses;
         this.audit = audit;
         this.topics = topics;
@@ -70,6 +74,7 @@ public class CmsTopicService {
         if (req.skill() != null) {
             topic.setSkill(req.skill());
         }
+        applyChapterTest(topic, req);
         if (req.isFreeTrial() != null) {
             topic.setFreeTrial(req.isFreeTrial());
             if (req.isFreeTrial()) {
@@ -103,6 +108,35 @@ public class CmsTopicService {
         return after;
     }
 
+    /**
+     * D-118: kiểm tra chương là bộ câu hỏi mode EXAM của chính topic, không trùng bài thi cuối khóa và không dùng cho topic khác.
+     * clearChapterTest bỏ gắn; không dùng cùng chapterTestBankId.
+     */
+    private void applyChapterTest(Topic topic, PatchTopic req) {
+        if (Boolean.TRUE.equals(req.clearChapterTest())) {
+            if (req.chapterTestBankId() != null) {
+                throw ApiException.validation("clearChapterTest", "Không dùng cùng chapterTestBankId");
+            }
+            topic.setChapterTestBankId(null);
+        }
+        if (req.chapterTestBankId() != null) {
+            Long bankId = req.chapterTestBankId();
+            boolean ok = banks.findById(bankId).filter(b -> topic.getId().equals(b.getTopicId())
+                    && QuestionBank.EXAM.equals(b.getMode()) && "COURSE".equals(b.getPurpose())).isPresent();
+            if (!ok) {
+                throw ApiException.validation("chapterTestBankId", "Phải là bộ câu hỏi chế độ EXAM thuộc chính topic này");
+            }
+            if (courses.findByExamBankId(bankId).isPresent()
+                    || topics.findByChapterTestBankId(bankId).filter(o -> !o.getId().equals(topic.getId())).isPresent()) {
+                throw ApiException.validation("chapterTestBankId", "Bộ câu hỏi đã là bài thi khóa hoặc kiểm tra chương khác");
+            }
+            topic.setChapterTestBankId(bankId);
+        }
+        if (req.chapterTestRetakes() != null) {
+            topic.setChapterTestRetakes(req.chapterTestRetakes());
+        }
+    }
+
     private boolean isFirstTopicOfFirstLevel(CourseLevel level) {
         courses.lockById(level.getCourseId());
         return !topics.existsByLevelId(level.getId())
@@ -131,6 +165,7 @@ public class CmsTopicService {
     }
 
     static TopicView view(Topic t) {
-        return new TopicView(t.getId(), t.getLevelId(), t.getTitle(), t.getSortOrder(), t.isFreeTrial(), t.getSkill(), t.getStatus());
+        return new TopicView(t.getId(), t.getLevelId(), t.getTitle(), t.getSortOrder(), t.isFreeTrial(), t.getSkill(), t.getStatus(),
+                t.getChapterTestBankId(), t.getChapterTestRetakes());
     }
 }

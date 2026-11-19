@@ -43,6 +43,10 @@ public class Course extends Auditable {
     @Column(name = "exam_retakes", nullable = false)
     private int examRetakes = 0;
 
+    /** FR-LMS-04, D-122: bật thì học viên phải xong unit trước mới mở unit sau. */
+    @Column(nullable = false)
+    private boolean sequential;
+
     /** FR-GOAL-03: dải band đầu vào <= band < đầu ra; null cả hai = không tham gia gợi ý. */
     @Column(name = "band_from")
     private BigDecimal bandFrom;
@@ -74,6 +78,9 @@ public class Course extends Auditable {
         this.bandFrom = from;
         this.bandTo = to;
     }
+
+    public boolean isSequential() { return sequential; }
+    public void setSequential(boolean sequential) { this.sequential = sequential; }
 
     public Long getExamBankId() { return examBankId; }
     public int getExamUnlockPercent() { return examUnlockPercent; }

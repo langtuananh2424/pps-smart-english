@@ -135,6 +135,9 @@ public class CmsCourseService {
             requireExamBankOf(id, req.examBankId());
             course.setExamBankId(req.examBankId());
         }
+        if (req.sequential() != null) {
+            course.setSequential(req.sequential());
+        }
         if (req.examUnlockPercent() != null) {
             course.setExamUnlockPercent(req.examUnlockPercent());
         }
@@ -218,6 +221,6 @@ public class CmsCourseService {
     static CourseView view(Course c) {
         return new CourseView(c.getId(), c.getSlug(), c.getTitle(), c.getDescription(), c.getTargetType(), c.getStatus(),
                 c.getAiPeriod(), c.getAiPeriodQuota(), c.getExamBankId(), c.getExamUnlockPercent(), c.getExamRetakes(),
-                c.getBandFrom(), c.getBandTo());
+                c.getBandFrom(), c.getBandTo(), c.isSequential());
     }
 }

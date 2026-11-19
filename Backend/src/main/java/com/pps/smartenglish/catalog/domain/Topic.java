@@ -35,6 +35,13 @@ public class Topic extends Auditable {
 
     private String status = ContentStatus.DRAFT;
 
+    /** D-118: bộ câu hỏi mode EXAM của topic này làm kiểm tra chương; làm lại tối đa chapterTestRetakes lần. */
+    @Column(name = "chapter_test_bank_id")
+    private Long chapterTestBankId;
+
+    @Column(name = "chapter_test_retakes", nullable = false)
+    private int chapterTestRetakes;
+
     protected Topic() {}
 
     public Topic(Long levelId, String title, int sortOrder, boolean freeTrial) {
@@ -51,10 +58,14 @@ public class Topic extends Auditable {
     public boolean isFreeTrial() { return freeTrial; }
     public TopicSkill getSkill() { return skill; }
     public String getStatus() { return status; }
+    public Long getChapterTestBankId() { return chapterTestBankId; }
+    public int getChapterTestRetakes() { return chapterTestRetakes; }
 
     public void setTitle(String title) { this.title = title; }
     public void setSortOrder(int sortOrder) { this.sortOrder = sortOrder; }
     public void setFreeTrial(boolean freeTrial) { this.freeTrial = freeTrial; }
     public void setSkill(TopicSkill skill) { this.skill = skill; }
     public void setStatus(String status) { this.status = status; }
+    public void setChapterTestBankId(Long chapterTestBankId) { this.chapterTestBankId = chapterTestBankId; }
+    public void setChapterTestRetakes(int chapterTestRetakes) { this.chapterTestRetakes = chapterTestRetakes; }
 }

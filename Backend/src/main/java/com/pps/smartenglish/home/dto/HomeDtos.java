@@ -23,9 +23,9 @@ public final class HomeDtos {
 
     public record LevelNode(Long id, String code, String title, List<TopicNode> topics) {}
 
-    /** status: DONE, IN_PROGRESS, NOT_STARTED hoặc LOCKED. */
+    /** status: DONE, IN_PROGRESS, NOT_STARTED hoặc LOCKED. lockReason (khi locked): PAYWALL (chưa mua) hoặc SEQUENTIAL (học tuần tự, FR-LMS-04). */
     public record TopicNode(Long id, String title, boolean isFreeTrial, TopicSkill skill, boolean locked, int completedLessons, int totalLessons,
-                            long xpEarned, String status, List<LessonNode> lessons, List<BankNode> banks) {}
+                            long xpEarned, String status, List<LessonNode> lessons, List<BankNode> banks, String lockReason) {}
 
     /** order: thứ tự 1-based trong topic. lastWatchedAt null khi chưa có tiến độ (D-59). */
     public record LessonNode(Long id, String title, String type, Integer durationSec, int order, boolean completed,
