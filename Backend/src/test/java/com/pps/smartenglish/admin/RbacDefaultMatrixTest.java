@@ -35,10 +35,13 @@ class RbacDefaultMatrixTest extends ApiTestBase {
     void defaultPermissionsMatchD37() {
         assertEquals(new TreeSet<>(jdbc.queryForList("select code from permissions", String.class)), permissionsOf("ADMIN"));
         assertEquals(Set.of("report.view", "audit.view", "order.view"), permissionsOf("DIRECTOR"));
-        assertEquals(Set.of("report.view", "order.view"), permissionsOf("ACCOUNTANT"));
+        assertEquals(Set.of("report.view", "order.view", "report.teaching"), permissionsOf("ACCOUNTANT"));
         assertEquals(Set.of("student.view", "order.view", "activation.manage"), permissionsOf("SUPPORT"));
         assertEquals(Set.of("cms.content", "regrade.manage"), permissionsOf("EDITOR"));
-        assertEquals(Set.of("regrade.manage", "student.view"), permissionsOf("TEACHER"));
+        assertEquals(Set.of("regrade.manage", "student.view", "class.teach"), permissionsOf("TEACHER"));
+        // D-99, D-109: trợ giảng và quản lý đào tạo
+        assertEquals(Set.of("class.teach", "student.view"), permissionsOf("ASSISTANT"));
+        assertEquals(Set.of("class.manage", "report.teaching", "student.view"), permissionsOf("TRAINING_MANAGER"));
         assertEquals(Set.of(), permissionsOf("STUDENT"));
         for (String p : List.of("product.manage", "order.view", "student.view")) {
             assertEquals(1, count("select count(*) from role_permissions rp join roles r on r.id = rp.role_id "
