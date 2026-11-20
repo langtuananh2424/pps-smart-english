@@ -59,6 +59,7 @@ public class SecurityConfig {
                         .access(guard.require("ticket.manage"))
                         .requestMatchers(HttpMethod.GET, "/api/admin/support/**").access(guard.require("student.view"))
                         .requestMatchers(HttpMethod.POST, "/api/admin/support/**").access(guard.require("student.support"))
+                        .requestMatchers("/api/admin/classes", "/api/admin/classes/**").access(guard.require("class.manage"))
                         .requestMatchers("/api/admin/ai-weights", "/api/admin/products/**", "/api/admin/products")
                         .access(guard.require("product.manage"))
                         .requestMatchers("/api/admin/roles/**", "/api/admin/permissions", "/api/admin/users/**")

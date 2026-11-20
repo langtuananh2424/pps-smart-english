@@ -44,7 +44,8 @@ public final class CmsDtos {
             @DecimalMin("0") @DecimalMax("9") BigDecimal bandFrom,
             @DecimalMin("0") @DecimalMax("9") BigDecimal bandTo,
             Boolean clearBand,
-            Boolean sequential) {}
+            Boolean sequential,
+            @Pattern(regexp = "SELF_PACED|CLASS_BASED", message = "Chỉ nhận SELF_PACED hoặc CLASS_BASED") String deliveryMode) {}
 
     public record CreateLevel(
             @NotBlank @Size(max = 20) String code,
@@ -89,7 +90,8 @@ public final class CmsDtos {
 
     public record CourseView(Long id, String slug, String title, String description, String targetType, String status,
                              String aiPeriod, int aiPeriodQuota, Long examBankId, int examUnlockPercent, int examRetakes,
-                             BigDecimal bandFrom, BigDecimal bandTo, boolean sequential) {}
+                             BigDecimal bandFrom, BigDecimal bandTo, boolean sequential,
+                             String deliveryMode) {}
 
     public record LevelView(Long id, Long courseId, String code, String title, int sortOrder, String status) {}
 

@@ -13,6 +13,7 @@ import com.pps.smartenglish.catalog.dto.CmsDtos.PatchCourse;
 import com.pps.smartenglish.catalog.dto.CmsDtos.TopicNode;
 import com.pps.smartenglish.catalog.repository.CourseLevelRepository;
 import com.pps.smartenglish.catalog.repository.CourseRepository;
+import com.pps.smartenglish.classroom.repository.ClassRepository;
 import com.pps.smartenglish.catalog.repository.LessonRepository;
 import com.pps.smartenglish.catalog.repository.TopicRepository;
 import com.pps.smartenglish.exercise.domain.QuestionBank;
@@ -45,16 +46,19 @@ public class CmsCourseService {
     private final LessonRepository lessons;
     private final QuestionBankRepository banks;
     private final CmsWrites writes;
+    private final ClassRepository classRooms;
     private final AuditRecorder audit;
 
     CmsCourseService(CourseRepository courses, CourseLevelRepository levels, TopicRepository topics, LessonRepository lessons,
-                     QuestionBankRepository banks, CmsWrites writes, AuditRecorder audit) {
+                     QuestionBankRepository banks, CmsWrites writes, ClassRepository classRooms,
+                     AuditRecorder audit) {
         this.courses = courses;
         this.levels = levels;
         this.topics = topics;
         this.lessons = lessons;
         this.banks = banks;
         this.writes = writes;
+        this.classRooms = classRooms;
         this.audit = audit;
     }
 
@@ -134,6 +138,12 @@ public class CmsCourseService {
         if (req.examBankId() != null) {
             requireExamBankOf(id, req.examBankId());
             course.setExamBankId(req.examBankId());
+        }
+        if (req.deliveryMode() != null && !req.deliveryMode().equals(course.getDeliveryMode())) {
+            if (Course.SELF_PACED.equals(req.deliveryMode()) && classRooms.existsByCourseId(course.getId())) {
+                throw new ApiException(HttpStatus.CONFLICT, "course_has_classes", "Khóa đã có lớp, không đổi về khóa tự học được");
+            }
+            course.setDeliveryMode(req.deliveryMode());
         }
         if (req.sequential() != null) {
             course.setSequential(req.sequential());
@@ -221,6 +231,6 @@ public class CmsCourseService {
     static CourseView view(Course c) {
         return new CourseView(c.getId(), c.getSlug(), c.getTitle(), c.getDescription(), c.getTargetType(), c.getStatus(),
                 c.getAiPeriod(), c.getAiPeriodQuota(), c.getExamBankId(), c.getExamUnlockPercent(), c.getExamRetakes(),
-                c.getBandFrom(), c.getBandTo(), c.isSequential());
+                c.getBandFrom(), c.getBandTo(), c.isSequential(), c.getDeliveryMode());
     }
 }

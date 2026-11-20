@@ -73,6 +73,18 @@ public class NotificationService {
                 "/ho-tro/" + ticketId, "TICKET_REPLY:" + messageId, WRITING_TTL);
     }
 
+    /** Giáo vụ xếp học viên vào lớp (FR-CLS-03), dedupe theo bản ghi thành viên. */
+    public void classAssigned(long userId, long classId, long memberId) {
+        notifyOnce(userId, Notification.Type.CLASS_ASSIGNED, "Bạn đã được xếp lớp", "Mở để xem thông tin lớp học.",
+                "/lop/" + classId, "CLASS_ASSIGNED:" + memberId, WRITING_TTL);
+    }
+
+    /** Giáo vụ chuyển học viên sang lớp khác (FR-CLS-03). */
+    public void classTransferred(long userId, long classId, long memberId) {
+        notifyOnce(userId, Notification.Type.CLASS_TRANSFERRED, "Bạn đã được chuyển lớp", "Mở để xem lớp mới.",
+                "/lop/" + classId, "CLASS_TRANSFERRED:" + memberId, WRITING_TTL);
+    }
+
     @Transactional(readOnly = true)
     public CursorPage<NotificationView> list(long userId, String limit, String cursor) {
         int size = Cursors.size(limit, DEFAULT_LIMIT, MAX_LIMIT);

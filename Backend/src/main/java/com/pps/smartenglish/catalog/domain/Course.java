@@ -13,6 +13,9 @@ import java.math.BigDecimal;
 @Table(name = "courses")
 public class Course extends Auditable {
 
+    public static final String SELF_PACED = "SELF_PACED";
+    public static final String CLASS_BASED = "CLASS_BASED";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -42,6 +45,10 @@ public class Course extends Auditable {
 
     @Column(name = "exam_retakes", nullable = false)
     private int examRetakes = 0;
+
+    /** D-117: SELF_PACED (khóa tự học) hoặc CLASS_BASED (khóa có lớp, FR-CLS-01). */
+    @Column(name = "delivery_mode", nullable = false)
+    private String deliveryMode = SELF_PACED;
 
     /** FR-LMS-04, D-122: bật thì học viên phải xong unit trước mới mở unit sau. */
     @Column(nullable = false)
@@ -79,6 +86,8 @@ public class Course extends Auditable {
         this.bandTo = to;
     }
 
+    public String getDeliveryMode() { return deliveryMode; }
+    public void setDeliveryMode(String deliveryMode) { this.deliveryMode = deliveryMode; }
     public boolean isSequential() { return sequential; }
     public void setSequential(boolean sequential) { this.sequential = sequential; }
 

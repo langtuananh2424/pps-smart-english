@@ -54,4 +54,9 @@ public class Enrollment extends Auditable {
     }
 
     public Instant getExpiresAt() { return expiresAt; }
+
+    /** Còn quyền học tại thời điểm now (cùng luật với EnrollmentRepository.existsActive). */
+    public boolean isActiveAt(Instant now) {
+        return "ACTIVE".equals(status) && (expiresAt == null || expiresAt.isAfter(now));
+    }
 }
