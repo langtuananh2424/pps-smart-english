@@ -36,7 +36,7 @@ public class ClassService {
 
     public static final int DEFAULT_LIMIT = 20;
     public static final int MAX_LIMIT = 100;
-    private static final ZoneId VN = ZoneId.of("Asia/Ho_Chi_Minh");
+    public static final ZoneId VN = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final ClassRepository classes;
     private final CourseRepository courses;

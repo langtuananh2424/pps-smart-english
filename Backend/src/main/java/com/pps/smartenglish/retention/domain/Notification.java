@@ -18,7 +18,7 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "notifications")
 public class Notification {
 
-    public enum Type { STREAK_REMINDER, WRITING_GRADED, TICKET_REPLY, CLASS_ASSIGNED, CLASS_TRANSFERRED }
+    public enum Type { STREAK_REMINDER, WRITING_GRADED, TICKET_REPLY, CLASS_ASSIGNED, CLASS_TRANSFERRED, SESSION_CHANGED, SESSION_REMINDER }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

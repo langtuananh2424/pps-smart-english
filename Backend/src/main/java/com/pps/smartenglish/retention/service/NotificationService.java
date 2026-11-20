@@ -85,6 +85,18 @@ public class NotificationService {
                 "/lop/" + classId, "CLASS_TRANSFERRED:" + memberId, WRITING_TTL);
     }
 
+    /** Buổi học đổi giờ/link hoặc bị hủy (FR-SES-03). Mỗi lần đổi là một thông báo riêng (khóa theo thời điểm). */
+    public void sessionChanged(long userId, long classId, long sessionId, boolean cancelled) {
+        notifyOnce(userId, Notification.Type.SESSION_CHANGED, cancelled ? "Buổi học đã hủy" : "Buổi học đã đổi lịch",
+                "Mở để xem lịch học mới.", "/lop/" + classId, "SESSION_CHANGED:" + sessionId + ":" + Instant.now(clock).toEpochMilli(), WRITING_TTL);
+    }
+
+    /** Nhắc buổi học sắp diễn ra (FR-SES-03), một lần cho mỗi buổi và mỗi lần đổi giờ. */
+    public void sessionReminder(long userId, long classId, long sessionId, long startsAtMillis) {
+        notifyOnce(userId, Notification.Type.SESSION_REMINDER, "Sắp đến giờ học", "Mở để xem giờ và link buổi học.",
+                "/lop/" + classId, "SESSION_REMINDER:" + sessionId + ":" + startsAtMillis, WRITING_TTL);
+    }
+
     @Transactional(readOnly = true)
     public CursorPage<NotificationView> list(long userId, String limit, String cursor) {
         int size = Cursors.size(limit, DEFAULT_LIMIT, MAX_LIMIT);
