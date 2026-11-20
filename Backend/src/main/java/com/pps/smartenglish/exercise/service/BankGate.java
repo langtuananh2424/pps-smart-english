@@ -18,12 +18,15 @@ class BankGate {
     private final List<BankAccessPolicy> policies;
     private final UnitUnlockService unitUnlock;
     private final CourseRepository courses;
+    private final AssignedBanks assigned;
 
-    BankGate(QuestionBankRepository banks, List<BankAccessPolicy> policies, UnitUnlockService unitUnlock, CourseRepository courses) {
+    BankGate(QuestionBankRepository banks, List<BankAccessPolicy> policies, UnitUnlockService unitUnlock, CourseRepository courses,
+             AssignedBanks assigned) {
         this.banks = banks;
         this.policies = policies;
         this.unitUnlock = unitUnlock;
         this.courses = courses;
+        this.assigned = assigned;
     }
 
     BankInfo require(Long bankId, Long userId) {
@@ -33,7 +36,7 @@ class BankGate {
             throw new ApiException(HttpStatus.FORBIDDEN, "bank_locked", "Bạn chưa có quyền làm bộ câu hỏi này");
         }
         // Học tuần tự (FR-LMS-04); bài thi cuối khóa mở theo tỷ lệ học (ExamService), không theo thứ tự unit.
-        if (courses.findByExamBankId(bankId).isEmpty()) {
+        if (courses.findByExamBankId(bankId).isEmpty() && !assigned.isAssigned(userId, bankId)) {
             unitUnlock.requireUnlocked(userId, bank.topicId());
         }
         return bank;

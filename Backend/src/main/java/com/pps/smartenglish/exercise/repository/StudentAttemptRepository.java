@@ -44,6 +44,11 @@ public interface StudentAttemptRepository extends JpaRepository<StudentAttempt, 
 
     long countByUserIdAndBankId(Long userId, Long bankId);
 
+    /** Bài được giao (FR-ASG-02): lượt đang làm dở, và đã nộp chưa. */
+    Optional<StudentAttempt> findFirstByAssignmentIdAndUserIdAndSubmittedAtIsNullOrderByIdDesc(Long assignmentId, Long userId);
+
+    boolean existsByAssignmentIdAndUserIdAndSubmittedAtIsNotNull(Long assignmentId, Long userId);
+
     /** Lượt đang làm dở (chưa nộp) mới nhất của người dùng, mọi bộ. */
     Optional<StudentAttempt> findFirstByUserIdAndSubmittedAtIsNullOrderByIdDesc(Long userId);
 

@@ -1,0 +1,38 @@
+package com.pps.smartenglish.classroom.dto;
+
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+
+/** FR-ASG-01..04. */
+public final class AssignmentDtos {
+
+    private AssignmentDtos() {}
+
+    /** studentIds trống hoặc vắng = cả lớp. */
+    public record CreateAssignment(
+            @NotNull(message = "Bộ câu hỏi là bắt buộc") Long bankId,
+            @NotNull(message = "Hạn nộp là bắt buộc") Instant dueAt,
+            @Size(max = 200, message = "Tối đa 200 học viên") List<Long> studentIds) {}
+
+    /** myStatus chỉ điền khi người xem là học viên. */
+    public record AssignmentView(Long id, Long classId, Long bankId, String bankTitle, Instant dueAt, String status, boolean wholeClass,
+                                 String myStatus) {}
+
+    /** status: NOT_SUBMITTED, SUBMITTED, LATE (nộp sau hạn), OVERDUE (quá hạn chưa nộp). finalScore = điểm giáo viên sửa mới nhất, không có thì điểm AI. */
+    public record ProgressRow(Long userId, String displayName, String status, Long attemptId, Instant submittedAt, BigDecimal aiScore,
+                              Integer maxScore, BigDecimal finalScore, String teacherComment) {}
+
+    public record GradeRequest(
+            @DecimalMin(value = "0", message = "Điểm không âm") BigDecimal score,
+            @Size(max = 4000, message = "Nhận xét tối đa 4000 ký tự") String comment) {}
+
+    public record GradeView(Long id, Long attemptId, BigDecimal score, String comment, Long gradedBy, Instant gradedAt) {}
+
+    /** Kết quả của chính học viên cho một bài giao; điểm AI hiện ngay, điểm giáo viên sửa thay thế khi có (D-113). */
+    public record MyResult(Long assignmentId, String status, Long attemptId, Instant submittedAt, BigDecimal aiScore, Integer maxScore,
+                           BigDecimal finalScore, String teacherComment) {}
+}

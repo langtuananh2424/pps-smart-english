@@ -39,16 +39,20 @@ public class SessionReminderService {
 
     @Transactional(readOnly = true)
     public SettingsView settings() {
-        return new SettingsView(settings.findById(1).orElseThrow().getReminderMinutes());
+        var row = settings.findById(1).orElseThrow();
+        return new SettingsView(row.getReminderMinutes(), row.getAssignmentReminderHours());
     }
 
     @Transactional
     public SettingsView update(UpdateSettings req) {
         var row = settings.findById(1).orElseThrow();
-        var before = new SettingsView(row.getReminderMinutes());
+        var before = new SettingsView(row.getReminderMinutes(), row.getAssignmentReminderHours());
         row.setReminderMinutes(req.reminderMinutes());
+        if (req.assignmentReminderHours() != null) {
+            row.setAssignmentReminderHours(req.assignmentReminderHours());
+        }
         settings.saveAndFlush(row);
-        var after = new SettingsView(row.getReminderMinutes());
+        var after = new SettingsView(row.getReminderMinutes(), row.getAssignmentReminderHours());
         audit.record("CLASS_SETTINGS_UPDATE", "CLASS_SETTINGS", 1, before, after);
         return after;
     }

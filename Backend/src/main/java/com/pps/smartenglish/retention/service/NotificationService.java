@@ -97,6 +97,24 @@ public class NotificationService {
                 "/lop/" + classId, "SESSION_REMINDER:" + sessionId + ":" + startsAtMillis, WRITING_TTL);
     }
 
+    /** Giáo viên giao bài mới (FR-ASG-01), dedupe theo bài và người nhận. */
+    public void assignmentNew(long userId, long classId, long assignmentId) {
+        notifyOnce(userId, Notification.Type.ASSIGNMENT_NEW, "Bạn có bài tập mới", "Mở để xem bài và hạn nộp.",
+                "/lop/" + classId + "/bai-giao/" + assignmentId, "ASSIGNMENT_NEW:" + assignmentId + ":" + userId, WRITING_TTL);
+    }
+
+    /** Nhắc hạn nộp bài được giao (FR-ASG-02). */
+    public void assignmentDue(long userId, long classId, long assignmentId) {
+        notifyOnce(userId, Notification.Type.ASSIGNMENT_DUE, "Sắp đến hạn nộp bài", "Mở để làm và nộp bài được giao.",
+                "/lop/" + classId + "/bai-giao/" + assignmentId, "ASSIGNMENT_DUE:" + assignmentId + ":" + userId, WRITING_TTL);
+    }
+
+    /** Giáo viên sửa điểm hoặc nhận xét (FR-ASG-03); mỗi lần sửa một thông báo (khóa theo bản ghi sửa). */
+    public void assignmentGraded(long userId, long classId, long assignmentId, long overrideId) {
+        notifyOnce(userId, Notification.Type.ASSIGNMENT_GRADED, "Giáo viên đã chấm bài của bạn", "Mở để xem điểm và nhận xét.",
+                "/lop/" + classId + "/bai-giao/" + assignmentId, "ASSIGNMENT_GRADED:" + overrideId, WRITING_TTL);
+    }
+
     @Transactional(readOnly = true)
     public CursorPage<NotificationView> list(long userId, String limit, String cursor) {
         int size = Cursors.size(limit, DEFAULT_LIMIT, MAX_LIMIT);

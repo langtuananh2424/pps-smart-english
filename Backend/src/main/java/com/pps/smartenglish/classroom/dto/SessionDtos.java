@@ -57,8 +57,9 @@ public final class SessionDtos {
 
     public record ChangeView(Long userId, String oldStatus, String newStatus, Long changedBy, Instant changedAt) {}
 
-    public record SettingsView(int reminderMinutes) {}
+    public record SettingsView(int reminderMinutes, int assignmentReminderHours) {}
 
     public record UpdateSettings(
-            @NotNull(message = "Số phút là bắt buộc") @Min(value = 5, message = "Tối thiểu 5 phút") @Max(value = 10080, message = "Tối đa 7 ngày") Integer reminderMinutes) {}
+            @NotNull(message = "Số phút là bắt buộc") @Min(value = 5, message = "Tối thiểu 5 phút") @Max(value = 10080, message = "Tối đa 7 ngày") Integer reminderMinutes,
+            @Min(value = 1, message = "Tối thiểu 1 giờ") @Max(value = 720, message = "Tối đa 30 ngày") Integer assignmentReminderHours) {}
 }

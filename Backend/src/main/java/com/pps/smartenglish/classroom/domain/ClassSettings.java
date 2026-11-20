@@ -16,8 +16,13 @@ public class ClassSettings {
     @Column(name = "reminder_minutes", nullable = false)
     private int reminderMinutes = 60;
 
+    @Column(name = "assignment_reminder_hours", nullable = false)
+    private int assignmentReminderHours = 24;
+
     protected ClassSettings() {}
 
     public int getReminderMinutes() { return reminderMinutes; }
     public void setReminderMinutes(int reminderMinutes) { this.reminderMinutes = reminderMinutes; }
+    public int getAssignmentReminderHours() { return assignmentReminderHours; }
+    public void setAssignmentReminderHours(int hours) { this.assignmentReminderHours = hours; }
 }

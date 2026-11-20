@@ -59,6 +59,25 @@ public class AttemptService {
         return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec());
     }
 
+    /**
+     * FR-ASG-02: bắt đầu (hoặc làm tiếp) lượt của bài được giao. Người gọi đã kiểm họ là người nhận; ở đây bỏ qua khóa unit tuần tự
+     * (BankGate mở riêng bộ này, FR-ASG-01) và các luật thi lại của bài thi thường. Mỗi bài giao chỉ nộp một lần.
+     */
+    @Transactional
+    public AttemptStarted startAssigned(Long bankId, long userId, long assignmentId) {
+        if (attempts.existsByAssignmentIdAndUserIdAndSubmittedAtIsNotNull(assignmentId, userId)) {
+            throw new ApiException(HttpStatus.CONFLICT, "assignment_submitted", "Bạn đã nộp bài được giao này");
+        }
+        var open = attempts.findFirstByAssignmentIdAndUserIdAndSubmittedAtIsNullOrderByIdDesc(assignmentId, userId);
+        if (open.isPresent()) {
+            var a = open.get();
+            return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec());
+        }
+        var bank = gate.require(bankId, userId);
+        var a = attempts.save(new StudentAttempt(userId, bankId, Instant.now(clock), bank.timeLimitSec(), assignmentId));
+        return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec());
+    }
+
     /** Chưa nộp: không có đáp án. Đã nộp: kết quả từ đáp án đã lưu (không chấm lại). */
     @Transactional(readOnly = true)
     public AttemptResponse get(long userId, Long attemptId) {

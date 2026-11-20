@@ -58,6 +58,14 @@ public class AiJobService {
         return Optional.of(job.getId());
     }
 
+    /** Job chấm bài không trừ lượt (bài giáo viên giao, D-130): vẫn giới hạn tần suất và kiểm hàng đợi như job thường. */
+    @Transactional
+    public long enqueueUncharged(long userId, AiJobKind kind, JsonNode input, Long attemptId) {
+        guard.rateLimit(userId);
+        guard.requireCapacity();
+        return jobs.save(new AiJob(userId, kind, input, null, attemptId, false, Instant.now(clock))).getId();
+    }
+
     /**
      * Job chấm lại bài cũ (Admin xác nhận): không rate limit, không requireCapacity, không trừ hay hoàn lượt của học viên.
      * Giới hạn số job đang chạy do nơi gọi giữ (app.regrade.max-ai-pending). adminId làm chủ job nên học viên không thấy.

@@ -57,6 +57,10 @@ public class StudentAttempt {
     @Column(name = "resumed_at")
     private Instant resumedAt;
 
+    /** FR-ASG-02: lượt làm của bài được giao; null với bài thường. Lượt này không trừ lượt AI (D-130). */
+    @Column(name = "assignment_id", updatable = false)
+    private Long assignmentId;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "draft_answers")
     private JsonNode draftAnswers;
@@ -71,6 +75,12 @@ public class StudentAttempt {
         this.resumedAt = startedAt;
     }
 
+    public StudentAttempt(Long userId, Long bankId, Instant startedAt, Integer timeLimitSec, Long assignmentId) {
+        this(userId, bankId, startedAt, timeLimitSec);
+        this.assignmentId = assignmentId;
+    }
+
+    public Long getAssignmentId() { return assignmentId; }
     public Long getId() { return id; }
     public Long getUserId() { return userId; }
     public Long getBankId() { return bankId; }

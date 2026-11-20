@@ -138,7 +138,8 @@ public class SubmissionService {
 
         // 429/503 ném từ đây làm rollback cả lần nộp; chỉ hết lượt là không làm hỏng lần nộp
         List<Long> pending = new ArrayList<>();
-        var quotaProducts = enqueueRewrite(userId, attemptId, banks.findCourseId(attempt.getBankId()).orElse(null), needsAi, given, pending);
+        var quotaProducts = enqueueRewrite(userId, attemptId, banks.findCourseId(attempt.getBankId()).orElse(null), needsAi, given, pending,
+                attempt.getAssignmentId() != null);
         // retention nghe sau commit: mọi lần nộp tính là một ngày có học, điểm dùng để xét thưởng
         events.publishEvent(new ExerciseScored(userId, attempt.getBankId(), attemptId, score, maxScore, true));
         return assembler.submitted(attempt, now, score, maxScore, set, rows, ruleRows, pending, quotaProducts);
@@ -158,11 +159,16 @@ public class SubmissionService {
 
     /** Gộp mọi câu cần AI vào một job, một lượt. Trả danh sách gói nạp lượt nếu hết lượt, ngược lại null. */
     private List<ProductView> enqueueRewrite(long userId, Long attemptId, Long courseId, Map<Long, Question> needsAi, Map<Long, JsonNode> given,
-                                             List<Long> pending) {
+                                             List<Long> pending,
+                                             boolean assigned) {
         if (needsAi.isEmpty()) {
             return null;
         }
         var input = rewriteInput.build(attemptId, needsAi, given);
+        if (assigned) { // D-130: bài giáo viên giao không trừ lượt AI, vẫn qua giới hạn tần suất và hàng đợi
+            pending.add(aiJobs.enqueueUncharged(userId, AiJobKind.REWRITE_GRADE, input, attemptId));
+            return null;
+        }
         var job = aiJobs.enqueueCharged(userId, AiJobKind.REWRITE_GRADE, input, null, attemptId, AiTask.REWRITE_SET, courseId);
         job.ifPresent(pending::add);
         return job.isPresent() ? null : addons.addons();

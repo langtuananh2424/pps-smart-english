@@ -1,0 +1,101 @@
+package com.pps.smartenglish.classroom.controller;
+
+import com.pps.smartenglish.classroom.dto.AssignmentDtos.AssignmentView;
+import com.pps.smartenglish.classroom.dto.AssignmentDtos.CreateAssignment;
+import com.pps.smartenglish.classroom.dto.AssignmentDtos.GradeRequest;
+import com.pps.smartenglish.classroom.dto.AssignmentDtos.GradeView;
+import com.pps.smartenglish.classroom.dto.AssignmentDtos.MyResult;
+import com.pps.smartenglish.classroom.dto.AssignmentDtos.ProgressRow;
+import com.pps.smartenglish.classroom.service.AssignmentProgressService;
+import com.pps.smartenglish.classroom.service.AssignmentService;
+import com.pps.smartenglish.exercise.dto.AttemptStarted;
+import com.pps.smartenglish.shared.security.CurrentUser;
+import com.pps.smartenglish.shared.web.PathId;
+import jakarta.validation.Valid;
+import java.util.List;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+/** FR-ASG-01..04: giao bài, làm bài được giao, theo dõi và chấm. Quyền theo lớp kiểm trong service qua ClassAccess (NFR-SEC-05). */
+@RestController
+class AssignmentController {
+
+    private static final String BASE = "/api/classes/{classId}/assignments";
+    private static final String CLASS_NF = "class_not_found";
+    private static final String CLASS_NF_MSG = "Không tìm thấy lớp";
+    private static final String ASG_NF = "assignment_not_found";
+    private static final String ASG_NF_MSG = "Không tìm thấy bài được giao";
+
+    private final AssignmentService assignments;
+    private final AssignmentProgressService progress;
+
+    AssignmentController(AssignmentService assignments, AssignmentProgressService progress) {
+        this.assignments = assignments;
+        this.progress = progress;
+    }
+
+    private static long cls(String raw) {
+        return PathId.parse(raw, CLASS_NF, CLASS_NF_MSG);
+    }
+
+    private static long asg(String raw) {
+        return PathId.parse(raw, ASG_NF, ASG_NF_MSG);
+    }
+
+    @PostMapping(BASE)
+    @ResponseStatus(HttpStatus.CREATED)
+    AssignmentView create(Authentication auth, @PathVariable String classId, @Valid @RequestBody CreateAssignment req) {
+        return assignments.create(CurrentUser.id(auth), cls(classId), req);
+    }
+
+    @GetMapping(BASE)
+    List<AssignmentView> list(Authentication auth, @PathVariable String classId) {
+        return assignments.list(CurrentUser.id(auth), cls(classId));
+    }
+
+    @GetMapping("/api/me/assignments")
+    List<AssignmentView> mine(Authentication auth) {
+        return assignments.mine(CurrentUser.id(auth));
+    }
+
+    @PostMapping(BASE + "/{id}/cancel")
+    AssignmentView cancel(Authentication auth, @PathVariable String classId, @PathVariable String id) {
+        return assignments.cancel(CurrentUser.id(auth), cls(classId), asg(id));
+    }
+
+    @PostMapping(BASE + "/{id}/start")
+    AttemptStarted start(Authentication auth, @PathVariable String classId, @PathVariable String id) {
+        return assignments.start(CurrentUser.id(auth), cls(classId), asg(id));
+    }
+
+    @GetMapping(BASE + "/{id}/mine")
+    MyResult myResult(Authentication auth, @PathVariable String classId, @PathVariable String id) {
+        return progress.mine(CurrentUser.id(auth), cls(classId), asg(id));
+    }
+
+    @GetMapping(BASE + "/{id}/progress")
+    List<ProgressRow> progress(Authentication auth, @PathVariable String classId, @PathVariable String id) {
+        return progress.progress(CurrentUser.id(auth), cls(classId), asg(id));
+    }
+
+    @PutMapping(BASE + "/{id}/attempts/{attemptId}/grade")
+    @ResponseStatus(HttpStatus.CREATED)
+    GradeView grade(Authentication auth, @PathVariable String classId, @PathVariable String id, @PathVariable String attemptId,
+                    @Valid @RequestBody GradeRequest req) {
+        return progress.grade(CurrentUser.id(auth), cls(classId), asg(id),
+                PathId.parse(attemptId, "attempt_not_found", "Không tìm thấy lượt làm bài"), req);
+    }
+
+    @GetMapping(BASE + "/{id}/attempts/{attemptId}/grades")
+    List<GradeView> history(Authentication auth, @PathVariable String classId, @PathVariable String id, @PathVariable String attemptId) {
+        return progress.history(CurrentUser.id(auth), cls(classId), asg(id),
+                PathId.parse(attemptId, "attempt_not_found", "Không tìm thấy lượt làm bài"));
+    }
+}

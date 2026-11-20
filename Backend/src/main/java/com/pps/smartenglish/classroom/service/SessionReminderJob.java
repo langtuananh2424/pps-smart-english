@@ -12,9 +12,11 @@ public class SessionReminderJob {
     private static final Logger log = LoggerFactory.getLogger(SessionReminderJob.class);
 
     private final SessionReminderService reminders;
+    private final AssignmentReminderService assignmentReminders;
 
-    SessionReminderJob(SessionReminderService reminders) {
+    SessionReminderJob(SessionReminderService reminders, AssignmentReminderService assignmentReminders) {
         this.reminders = reminders;
+        this.assignmentReminders = assignmentReminders;
     }
 
     @Scheduled(initialDelayString = "PT1M", fixedDelayString = "PT1M")
@@ -23,6 +25,10 @@ public class SessionReminderJob {
             int n = reminders.sendDue();
             if (n > 0) {
                 log.info("Đã nhắc {} buổi học sắp bắt đầu", n);
+            }
+            int m = assignmentReminders.sendDue();
+            if (m > 0) {
+                log.info("Đã nhắc hạn nộp {} bài được giao", m);
             }
         } catch (RuntimeException e) {
             log.warn("Job nhắc lịch học lỗi: {}", e.getMessage());
