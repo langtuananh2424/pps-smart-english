@@ -66,8 +66,12 @@ public class AssignmentProgressService {
     @Transactional(readOnly = true)
     public List<ProgressRow> progress(long callerId, long classId, long assignmentId) {
         access.requireStaff(callerId, classId);
-        Assignment a = assignmentService.require(classId, assignmentId);
-        var rows = assignments.progress(assignmentId, classId);
+        return rows(assignmentService.require(classId, assignmentId));
+    }
+
+    /** Tiến độ từng người nhận của một bài, không kiểm quyền: người gọi (bảng tiến độ lớp) đã kiểm. */
+    List<ProgressRow> rows(Assignment a) {
+        var rows = assignments.progress(a.getId(), a.getClassId());
         Map<Long, Latest> latest = latest(rows.stream().filter(r -> r[2] != null).map(r -> ((Number) r[2]).longValue()).toList());
         Instant now = classes.now();
         return rows.stream().map(r -> {

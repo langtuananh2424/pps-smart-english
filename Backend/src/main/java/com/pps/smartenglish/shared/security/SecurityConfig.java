@@ -49,6 +49,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/activation-links/*").permitAll() // xem trước gói trước khi đăng nhập
                         // FR-ADM-04: quyền theo role và override, đọc từ DB mỗi lần gọi. Route không khai báo thì từ chối.
                         .requestMatchers("/api/admin/cms/**").access(guard.require("cms.content"))
+                        .requestMatchers("/api/admin/reports/teaching", "/api/admin/reports/teaching/**").access(guard.require("report.teaching"))
                         .requestMatchers("/api/admin/reports/**").access(guard.require("report.view"))
                         .requestMatchers("/api/admin/activation-links/**").access(guard.require("activation.manage"))
                         .requestMatchers("/api/admin/regrades/**", "/api/admin/questions/**").access(guard.require("regrade.manage"))

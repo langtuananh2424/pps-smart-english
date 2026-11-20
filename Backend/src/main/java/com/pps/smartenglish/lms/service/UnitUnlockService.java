@@ -22,9 +22,26 @@ public class UnitUnlockService {
     public static final String UNIT_LOCKED = "unit_locked";
 
     private final UnitProgressRepository units;
+    private final EarlyUnlocks early;
 
-    UnitUnlockService(UnitProgressRepository units) {
+    UnitUnlockService(UnitProgressRepository units, EarlyUnlocks early) {
         this.units = units;
+        this.early = early;
+    }
+
+    /** Vị trí học của học viên: index 0-based của unit đầu tiên chưa xong (= total nếu đã xong hết), topicId của unit đó. */
+    public record Position(int index, int total, Long topicId) {}
+
+    @Transactional(readOnly = true)
+    public Position position(long userId, long courseId) {
+        List<Long> ordered = units.orderedTopicIds(courseId);
+        Set<Long> unfinished = new HashSet<>(units.unfinishedTopicIds(courseId, userId));
+        for (int i = 0; i < ordered.size(); i++) {
+            if (unfinished.contains(ordered.get(i))) {
+                return new Position(i, ordered.size(), ordered.get(i));
+            }
+        }
+        return new Position(ordered.size(), ordered.size(), null);
     }
 
     /** Topic bị khóa của khóa này đối với học viên; rỗng nếu khóa không bật tuần tự. */
@@ -43,6 +60,7 @@ public class UnitUnlockService {
             }
             blocked |= unfinished.contains(id);
         }
+        locked.removeAll(early.openedTopics(userId, courseId)); // giáo viên mở sớm (FR-CLS-06)
         return locked;
     }
 
@@ -63,6 +81,9 @@ public class UnitUnlockService {
             return Optional.empty();
         }
         long courseId = ((Number) r[0]).longValue();
+        if (early.openedTopics(userId, courseId).contains(topicId)) {
+            return Optional.empty();
+        }
         Set<Long> unfinished = new HashSet<>(units.unfinishedTopicIds(courseId, userId));
         for (Long id : units.orderedTopicIds(courseId)) {
             if (id.equals(topicId)) {
