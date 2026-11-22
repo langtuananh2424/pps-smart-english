@@ -20,6 +20,7 @@
         <aws.sdk.version>2.46.7</aws.sdk.version>
         <anthropic.sdk.version>3.2.0</anthropic.sdk.version>
         <webpush.version>5.1.2</webpush.version>
+        <scrimage.version>4.3.5</scrimage.version>
         <!-- surefire đọc thuộc tính argLine: test chạy ở UTC giống CI, ghi đè được bằng -DargLine="-Duser.timezone=..." -->
         <argLine>-Duser.timezone=UTC</argLine>
     </properties>
@@ -81,6 +82,16 @@
             <version>${webpush.version}</version>
         </dependency>
         <!-- web-push khai báo các thư viện dưới đây ở scope provided nên phải tự thêm -->
+        <dependency>
+            <groupId>com.sksamuel.scrimage</groupId>
+            <artifactId>scrimage-core</artifactId>
+            <version>${scrimage.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sksamuel.scrimage</groupId>
+            <artifactId>scrimage-webp</artifactId>
+            <version>${scrimage.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>

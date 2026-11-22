@@ -25,13 +25,15 @@ class QuestionDetails {
     private final GrammarElementRepository grammar;
 
     private final RegradeRequirement regrade;
+    private final QuestionMediaService media;
 
     QuestionDetails(QuestionChoiceRepository choices, QuestionTagRepository tags, GrammarElementRepository grammar,
-                    RegradeRequirement regrade) {
+                    RegradeRequirement regrade, QuestionMediaService media) {
         this.choices = choices;
         this.tags = tags;
         this.grammar = grammar;
         this.regrade = regrade;
+        this.media = media;
     }
 
     List<QuestionDetail> of(List<Question> questions) {
@@ -48,11 +50,13 @@ class QuestionDetails {
                                 .sorted(Comparator.comparingInt(GrammarElement::getSortOrder).thenComparing(GrammarElement::getId))
                                 .map(GrammarElement::getCode).toList())));
         Set<Long> required = regrade.among(questions);
+        var mediaMap = media.forQuestions(ids);
         return questions.stream().map(q -> new QuestionDetail(q.getId(), q.getBankId(), q.getType().name(), q.getPrompt(),
                 q.getPayload(), q.getAnswerKey(),
                 choiceMap.getOrDefault(q.getId(), List.of()).stream()
                         .map(c -> new ChoiceView(c.getId(), c.getLabel(), c.getContent(), c.isCorrect(), c.getExplanation())).toList(),
                 q.getExplanation(), q.getSortOrder(), codeMap.getOrDefault(q.getId(), List.of()), q.getAnswerVersion(),
-                required.contains(q.getId()), q.getSkill(), q.getInstruction())).toList();
+                required.contains(q.getId()), q.getSkill(), q.getInstruction(),
+                mediaMap.getOrDefault(q.getId(), List.of()))).toList();
     }
 }

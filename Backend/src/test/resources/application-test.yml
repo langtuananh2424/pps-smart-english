@@ -16,6 +16,8 @@ app:
   speaking:
     engine: fake
     cleanup-enabled: false # test gọi SpeakingCleanupJob.tick() trực tiếp
+  media:
+    cleanup-enabled: false # test gọi MediaCleanupJob.tick() trực tiếp
   regrade:
     enabled: false # test gọi RegradeRunner.tick() trực tiếp
   retention:

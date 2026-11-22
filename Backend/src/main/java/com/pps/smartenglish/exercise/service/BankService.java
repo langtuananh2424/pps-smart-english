@@ -11,6 +11,7 @@ import com.pps.smartenglish.exercise.dto.BankResponse;
 import com.pps.smartenglish.exercise.dto.BankResponse.ChoiceView;
 import com.pps.smartenglish.exercise.dto.BankResponse.HintView;
 import com.pps.smartenglish.exercise.dto.BankResponse.QuestionView;
+import com.pps.smartenglish.exercise.dto.QuestionMediaDtos.QuestionMediaView;
 import com.pps.smartenglish.exercise.repository.QuestionHintRepository;
 import java.util.List;
 import java.util.Map;
@@ -26,12 +27,14 @@ public class BankService {
     private final QuestionLoader loader;
     private final ExamService exam;
     private final QuestionHintRepository hints;
+    private final QuestionMediaService media;
 
-    BankService(BankGate gate, QuestionLoader loader, ExamService exam, QuestionHintRepository hints) {
+    BankService(BankGate gate, QuestionLoader loader, ExamService exam, QuestionHintRepository hints, QuestionMediaService media) {
         this.gate = gate;
         this.loader = loader;
         this.exam = exam;
         this.hints = hints;
+        this.media = media;
     }
 
     @Transactional(readOnly = true)
@@ -41,17 +44,20 @@ public class BankService {
         var set = loader.load(bankId);
         var hintsByQuestion = hintsOf(bank.mode(), set.questions());
         return new BankResponse(bank.id(), bank.title(), bank.lessonId(), bank.trial(), bank.mode(),
-                bank.timeLimitSec(), questionViews(set, hintsByQuestion));
+                bank.timeLimitSec(), questionViews(set, hintsByQuestion,
+                        media.forQuestions(set.questions().stream().map(Question::getId).toList())));
     }
 
     /** Đề cho người làm bài: không đáp án. Dùng chung với kiểm tra đầu vào (module placement). */
-    public static List<QuestionView> questionViews(QuestionSet set, Map<Long, List<HintView>> hintsByQuestion) {
+    public static List<QuestionView> questionViews(QuestionSet set, Map<Long, List<HintView>> hintsByQuestion,
+                                                   Map<Long, List<QuestionMediaView>> mediaByQuestion) {
         return set.questions().stream().map(q -> new QuestionView(q.getId(), q.getType().name(), q.getInstruction(), q.getPrompt(),
                 payloadFor(q),
                 q.getType() == QuestionType.CONNECTIVE_MCQ
                         ? set.choicesOf(q).stream().map(c -> new ChoiceView(c.getId(), c.getLabel(), c.getContent())).toList()
                         : null,
-                hintsByQuestion.getOrDefault(q.getId(), List.of()))).toList();
+                hintsByQuestion.getOrDefault(q.getId(), List.of()),
+                mediaByQuestion.getOrDefault(q.getId(), List.of()))).toList();
     }
 
     /** FR-AI-06: chỉ bộ PRACTICE có gợi ý; một truy vấn cho cả bank. */

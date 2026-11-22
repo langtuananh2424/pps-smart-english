@@ -28,6 +28,9 @@ public interface ObjectStorage {
     /** Luồng đọc object; nơi gọi phải đóng. */
     InputStream open(String key);
 
+    /** Ghi object (ghi đè nếu có). Dùng cho file do máy chủ tự sinh, như ảnh đã xử lý. */
+    void put(String key, byte[] data, String contentType);
+
     /** Xóa object; không có thì bỏ qua. */
     void delete(String key);
 }

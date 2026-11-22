@@ -1,5 +1,6 @@
 package com.pps.smartenglish.exercise.dto;
 
+import com.pps.smartenglish.exercise.dto.QuestionMediaDtos.QuestionMediaView;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -70,7 +71,8 @@ public final class CmsQuestionDtos {
     /** answerVersion tăng mỗi lần đáp án thật sự đổi; regradeRequired: có bài nộp, dạng chấm lại được, chưa có run ở phiên bản này. */
     public record QuestionDetail(Long id, Long bankId, String type, String prompt, JsonNode payload, JsonNode answerKey,
                                  List<ChoiceView> choices, String explanation, int sortOrder, List<String> grammarElementCodes,
-                                 int answerVersion, boolean regradeRequired, String skill, String instruction) {}
+                                 int answerVersion, boolean regradeRequired, String skill, String instruction,
+                                 List<QuestionMediaView> media) {}
 
     public record BankDetail(BankView bank, List<QuestionDetail> questions) {}
 

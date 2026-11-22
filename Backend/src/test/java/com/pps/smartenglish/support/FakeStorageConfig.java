@@ -57,6 +57,11 @@ public class FakeStorageConfig {
         }
 
         @Override
+        public void put(String key, byte[] data, String contentType) {
+            objects.put(key, new Stored(data, contentType));
+        }
+
+        @Override
         public void delete(String key) {
             objects.remove(key);
         }

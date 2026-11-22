@@ -130,6 +130,12 @@ class S3ObjectStorage implements ObjectStorage, ApplicationRunner {
     }
 
     @Override
+    public void put(String key, byte[] data, String contentType) {
+        client.putObject(r -> r.bucket(bucket).key(key).contentType(contentType),
+                software.amazon.awssdk.core.sync.RequestBody.fromBytes(data));
+    }
+
+    @Override
     public void delete(String key) {
         client.deleteObject(r -> r.bucket(bucket).key(key));
     }

@@ -8,8 +8,11 @@ import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.GrammarElementView;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.PatchBank;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.PatchQuestion;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.QuestionDetail;
+import com.pps.smartenglish.exercise.dto.QuestionMediaDtos.QuestionMediaView;
+import com.pps.smartenglish.exercise.dto.QuestionMediaDtos.ReplaceMedia;
 import com.pps.smartenglish.exercise.service.CmsBankService;
 import com.pps.smartenglish.exercise.service.CmsQuestionService;
+import com.pps.smartenglish.exercise.service.QuestionMediaService;
 import com.pps.smartenglish.shared.web.PathId;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -34,10 +38,12 @@ class CmsQuestionController {
 
     private final CmsBankService banks;
     private final CmsQuestionService questions;
+    private final QuestionMediaService media;
 
-    CmsQuestionController(CmsBankService banks, CmsQuestionService questions) {
+    CmsQuestionController(CmsBankService banks, CmsQuestionService questions, QuestionMediaService media) {
         this.banks = banks;
         this.questions = questions;
+        this.media = media;
     }
 
     @GetMapping("/topics/{id}/banks")
@@ -86,6 +92,12 @@ class CmsQuestionController {
     @PatchMapping("/questions/{id}")
     QuestionDetail patchQuestion(@PathVariable String id, @Valid @RequestBody PatchQuestion req) {
         return questions.patch(id(id, "question_not_found"), req);
+    }
+
+    /** D-134: thay toàn bộ ảnh của câu (thứ tự mảng = thứ tự hiển thị). */
+    @PutMapping("/questions/{id}/media")
+    List<QuestionMediaView> replaceMedia(@PathVariable String id, @Valid @RequestBody ReplaceMedia req) {
+        return media.replace(id(id, "question_not_found"), req.items());
     }
 
     @DeleteMapping("/questions/{id}")

@@ -2,6 +2,7 @@ package com.pps.smartenglish.exercise.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.pps.smartenglish.exercise.dto.QuestionMediaDtos.QuestionMediaView;
 import java.util.List;
 
 /** Không có trường nào mang đáp án: không answerKey, is_correct hay explanation. */
@@ -10,7 +11,7 @@ public record BankResponse(Long id, String title, Long lessonId, boolean isTrial
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record QuestionView(Long id, String type, String instruction, String prompt, JsonNode payload, List<ChoiceView> choices,
-                        List<HintView> hints) {}
+                        List<HintView> hints, List<QuestionMediaView> media) {}
 
     public record ChoiceView(Long id, String label, String content) {}
 
