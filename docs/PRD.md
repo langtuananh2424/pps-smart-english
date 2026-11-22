@@ -111,7 +111,15 @@ Kế thừa các dạng bài từ core engine của pps-education và mở rộn
 * **FR-EX-04 (Dạng bài Luyện tập PPS):** 39 dạng bài theo thiết kế Figma, phần lớn kế thừa `pps-education` (trắc nghiệm, điền từ, sắp xếp, đọc hiểu, nghe, viết, nói, video phản xạ...).  
 * **FR-EX-05 (Dạng bài IELTS 4 kỹ năng):** Reading, Listening, Writing, Speaking với giao diện thi trên máy; mỗi bài có chế độ Luyện tập (có Cam gợi ý) và Mô phỏng thi.  
 * **FR-EX-06 (Thời gian làm bài):** Thời gian cấu hình theo từng đề / bộ bài tập. Luyện tập được tạm dừng và làm tiếp; kiểm tra và thi không được tạm dừng.  
-* **FR-EX-07 (Luyện thêm):** Học viên chọn dạng bài để luyện ngoài lộ trình Topic.
+* **FR-EX-07 (Luyện thêm):** Học viên chọn dạng bài để luyện ngoài lộ trình Topic.  
+* **FR-EX-08 (Kết quả cuối bài):** Hệ thống lưu toàn bộ quá trình làm bài: đáp án từng câu, đúng hay sai, số lần làm, thời gian làm. Cuối mỗi bài tập thay màn hình hoàn thành đơn giản bằng màn hình kết quả cho học viên biết mình đang ở đâu: số câu đúng, các câu sai nhiều, phần (dạng, chủ điểm ngữ pháp, kỹ năng) còn yếu. Với bài đang áp dụng Nghe ép (chỉ cho biết số câu đúng, không hiện đáp án) thì màn hình kết quả tuân theo quy tắc ẩn đáp án của chế độ đó.  
+* **FR-EX-09 (Hồ sơ năng lực học viên):** Tổng hợp từ dữ liệu FR-EX-08 theo từng học viên: điểm mạnh, điểm yếu theo từng kỹ năng (Listening, Reading, Writing, Speaking) và theo dạng bài hoặc chủ điểm; diễn biến theo thời gian; gợi ý cần cải thiện gì. Học viên xem hồ sơ của mình; giáo viên xem hồ sơ học viên trong lớp mình phụ trách (cùng phạm vi phân quyền như bảng tiến độ lớp, FR-CLS-05) để biết lớp yếu ở đâu và tương tác, hỗ trợ đúng chỗ.
+* **FR-EX-10 (Nghe ép):** Phương pháp luyện tập cho bài Listening, làm theo kiểu thi, không phải bài kiểm tra.  
+  * Người tạo đề bật Nghe ép cho bộ bài. Mọi con số do người tạo đề (hoặc giáo viên khi giao bài) cấu hình, có mặc định: số lần nghe 3, ngưỡng đạt 70% số câu đúng, N = 3, số lần sai để coi là "sai nhiều" = 3.  
+  * Không tua; chỉ nghe lại được sau khi audio phát hết, tính trong số lần nghe. Chế độ Thi: audio tự phát, học viên không thao tác, số lần nghe do người tạo đề đặt. Các chế độ luyện tập khác nghe và tua tự do.  
+  * Sau khi nộp, học viên chỉ biết số câu đúng, không biết đáp án.  
+  * Ngưỡng tính theo % số câu đúng, đặt cho cả bài hoặc từng part. Chưa đạt thì làm lại, không giới hạn số lần. Không có ngưỡng mở unit kế và không chặn học tuần tự.  
+  * Cứ sau mỗi N lượt làm, hệ thống hiện danh sách các câu học viên sai nhiều và học viên được chọn câu để xem script của câu đó.  
 
 ## **5.5. Phân hệ 5: Trợ lý AI & Chấm bài tự động (AI Engine)**
 

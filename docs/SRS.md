@@ -13,6 +13,7 @@ Dựa trên Phương pháp 24 Nguyên tắc vàng khi học Tiếng Anh — Chuy
 | v1.2 | 2026-11-19 | Cập nhật theo D-97..D-124 (chủ dự án cho phép): hai loại khóa (tự học, có lớp), nhiều chương trình, học tuần tự, nhiều bài kiểm tra mỗi khóa, Phân hệ 11 Lớp học & Giảng dạy, ngày sinh và chấp thuận điều khoản khi đăng ký, web trước app sau. Mô hình dữ liệu đề xuất: `docs/ba/lms-model.md`. |
 | v1.3 | 2026-11-19 | Đồng bộ D-94: FR-AUTH-02 thêm Refresh Token trong body cho app mobile. D-125: app mobile dùng SQLite lưu tạm dữ liệu trên máy (2.1). |
 | v1.4 | 2026-11-19 | D-127 (chủ dự án cho phép): số khóa và các mức thời hạn do công ty quyết định, admin cấu hình, không cố định 6 hoặc 12 tháng (mục 1, FR-COM-01). |
+| v1.5 | 2026-11-23 | D-133..D-138 (chủ dự án cho phép): soạn câu hỏi giàu định dạng bằng TipTap, ảnh và âm thanh trong câu hỏi, nhóm câu, FR-EX-08 (kết quả cuối bài), FR-EX-09 (hồ sơ năng lực), FR-EX-10 (Nghe ép). Mọi con số nghiệp vụ cấu hình được. Thiết kế dữ liệu: `docs/ba/question-data-design.md`. |
 
 # **1\. GIỚI THIỆU (INTRODUCTION)**
 
@@ -75,7 +76,8 @@ Hệ thống vận hành theo kiến trúc Client-Server hiện đại, phi tậ
 
 * **Backend Core:** Dịch vụ RESTful API viết bằng Java 21 \+ Spring Boot 3, cơ sở dữ liệu PostgreSQL 17 quản lý phiên bản bằng Flyway, Redis cho Pub/Sub kết quả AI, rate limit và cache.  
 * **Frontend Clients:** Web Client (React 19 \+ Vite \+ TailwindCSS) và Mobile Client (Flutter 3.x, dùng SQLite lưu tạm dữ liệu trên máy, D-125), cả hai kết nối độc lập với Backend Core qua giao thức HTTPS/REST và WSS/SSE.  
-* **Hạ tầng Media:** Video bài giảng và file âm thanh học viên nộp được lưu trên MinIO riêng của dự án (truy cập qua S3 API), kết hợp YouTube Private Embed.  
+* **Soạn nội dung câu hỏi:** Văn bản giàu định dạng soạn bằng TipTap (React); máy chủ làm sạch HTML trước khi lưu. Ảnh trong câu hỏi tự đổi sang WebP và thu nhỏ khi tải lên.  
+* **Hạ tầng Media:** Video bài giảng, ảnh và âm thanh của câu hỏi, file âm thanh học viên nộp được lưu trên MinIO riêng của dự án (truy cập qua S3 API), kết hợp YouTube Private Embed.  
 * **AI Engine:** Tích hợp LLM API (Anthropic) và Whisper STT thông qua hàng đợi bất đồng bộ (Asynchronous Queue Worker) để xử lý chấm điểm và hội thoại; chấm nói theo engine GOPT \+ wav2vec2 \+ Whisper như `pps-education`. Mọi nhà cung cấp gọi qua interface `AiGradingProvider`.  
 * **Cổng thanh toán:** Kết nối qua interface `PaymentGateway`. Cổng thật chưa chốt (chờ Kế toán); trong lúc chờ dùng cổng giả lập và link kích hoạt.
 
@@ -152,6 +154,9 @@ Hệ thống vận hành theo kiến trúc Client-Server hiện đại, phi tậ
 | **FR-EX-05** | Dạng bài IELTS 4 kỹ năng | Reading, Listening, Writing (Task 1, Task 2), Speaking (Part 1–3) với giao diện giống thi trên máy: đề bên trái, câu hỏi bên phải, thanh điều hướng câu, đánh dấu câu xem lại. Mỗi bài có 2 chế độ: Luyện tập (được tạm dừng, có Cam gợi ý, FR-AI-06) và Mô phỏng thi (FR-EXAM-01). Kết quả Reading/Listening gồm số câu đúng, band (FR-EXAM-03) và giải thích từng câu. |
 | **FR-EX-06** | Thời gian làm bài, tạm dừng | Thời gian làm bài cấu hình theo từng đề / bộ bài tập. Chế độ Luyện tập: được tạm dừng, lưu câu trả lời và thời gian còn lại, mở lại thì làm tiếp. Chế độ Kiểm tra / Thi: không tạm dừng. Hết giờ thì máy chủ tự nộp. |
 | **FR-EX-07** | Luyện thêm | Học viên chọn dạng bài và luyện các câu ngoài lộ trình Topic. Nguồn câu hỏi và cách trừ lượt AI: chờ chủ dự án quyết định. |
+| **FR-EX-08** | Kết quả cuối bài | Lưu đáp án, đúng/sai, điểm từng phần, số lần làm và thời gian từng câu. Cuối bài hiện số câu đúng, các câu sai nhiều (theo số lần sai tích lũy của học viên) và phần yếu theo kỹ năng, dạng bài, yếu tố ngữ pháp. Bài ở chế độ Nghe ép chỉ hiện số câu đúng (FR-EX-10). |
+| **FR-EX-09** | Hồ sơ năng lực học viên | Tổng hợp từ FR-EX-08 theo từng học viên: điểm mạnh, điểm yếu theo kỹ năng (Listening, Reading, Writing, Speaking) và theo dạng bài hoặc chủ điểm, diễn biến theo thời gian, gợi ý cần cải thiện. Học viên xem của mình; giáo viên xem học viên trong lớp mình phụ trách (NFR-SEC-05). |
+| **FR-EX-10** | Nghe ép | Phương pháp luyện tập cho bài Listening, làm theo kiểu thi, không phải bài kiểm tra. Người tạo đề bật cho bộ bài; người tạo đề hoặc giáo viên (khi giao bài) cấu hình: số lần nghe (mặc định 3), ngưỡng đạt tính theo % số câu đúng (mặc định 70%, đặt được cho cả bài hoặc từng part), cứ sau N lượt làm thì hiện danh sách câu sai nhiều (N mặc định 3), một câu coi là sai nhiều từ số lần sai (mặc định 3). Không tua; chỉ nghe lại sau khi audio phát hết, tính trong số lần nghe. Sau khi nộp chỉ biết số câu đúng, không biết đáp án. Chưa đạt thì làm lại không giới hạn. Khi hiện danh sách câu sai nhiều, học viên chọn câu để xem script của câu đó. Không có ngưỡng mở unit kế và không chặn học tuần tự. Chế độ Thi: audio tự phát, học viên không thao tác, số lần nghe do người tạo đề đặt. Các chế độ luyện tập khác nghe và tua tự do. |
 
 ## **PHÂN HỆ 5: TRỢ LÝ AI VIẾT PHÁT TRIỂN Ý & CHẤM CHỮA BÀI (MODULE 5: AI WRITING & EVALUATION ENGINE)**
 
@@ -190,7 +195,7 @@ Hệ thống vận hành theo kiến trúc Client-Server hiện đại, phi tậ
 | Mã Yêu Cầu | Tên Chức Năng | Mô Tả Nghiệp Vụ & Quy Tắc Thực Thi |
 | :---- | :---- | :---- |
 | **FR-ADM-01** | Quản lý Khóa học & Bài giảng | Cho phép tạo Level, Topic, upload video trực tiếp lên MinIO hoặc dán mã nhúng YouTube, tải lên và đồng bộ file phụ đề VTT/SRT. |
-| **FR-ADM-02** | Quản lý & Import ngân hàng câu hỏi | Kế thừa công cụ import hàng loạt từ file Excel/Word của `pps-education`, hỗ trợ cấu hình gắn thẻ yếu tố ngữ pháp và thiết lập đáp án tự động. Soạn và xem trước câu hỏi cho đủ các dạng FR-EX-04, FR-EX-05. |
+| **FR-ADM-02** | Quản lý & Import ngân hàng câu hỏi | Kế thừa công cụ import hàng loạt từ file Excel/Word của `pps-education`, hỗ trợ cấu hình gắn thẻ yếu tố ngữ pháp và thiết lập đáp án tự động. Soạn và xem trước câu hỏi cho đủ các dạng FR-EX-04, FR-EX-05. Văn bản giàu định dạng (TipTap), ảnh với kích thước hiển thị riêng từng câu, nhóm câu dùng chung bài đọc hoặc audio. Nhập hàng loạt có xem trước lỗi từng dòng, gợi ý câu trùng, hoàn tác cả lần nhập; nhập và sửa câu vẫn được khi câu đã có lượt làm (câu bị gỡ khi hoàn tác thì ẩn, không xóa lịch sử học viên). |
 | **FR-ADM-03** | Báo cáo & Thống kê Doanh thu | Dashboard thời gian thực theo dõi số lượng người dùng mới, tỷ lệ chuyển đổi Freemium sang Paid, doanh thu theo gói học và chi phí tiêu thụ token AI. Báo cáo cho Kế toán: BQ-12. |
 | **FR-ADM-04** | Phân quyền hybrid | Quyền là đơn vị nhỏ nhất, mã dạng `module.action`, nhóm theo module, mỗi quyền có một câu mô tả tiếng Việt. Role là tập quyền, lưu trong DB, tạo thêm được. Nhân sự có nhiều role và có thể được cấp thêm (GRANT) hoặc chặn (REVOKE) từng quyền riêng, có ngày hết hạn tùy chọn. Quyền hiệu lực = hợp quyền các role − REVOKE còn hạn + GRANT còn hạn; thay đổi có hiệu lực ở lần gọi API kế tiếp. Không được xóa quyền quản trị cuối cùng. Mô hình như `pps-education` nhưng gọn hơn (khoảng 30–40 quyền). Ma trận role mặc định: `docs/ba/use-cases.md` mục 7.1. Thêm role Trợ giảng, Quản lý đào tạo và quyền `class.manage` (giáo vụ), `class.teach` (giáo viên, trợ giảng, chỉ trong lớp được phân công), `report.teaching` (xem báo cáo số buổi dạy); thay ma trận D-37 cho Giáo viên (D-99, D-109). |
 | **FR-ADM-05** | Nhật ký thao tác nội bộ | Ghi ai, lúc nào, thao tác, đối tượng, giá trị trước/sau và lý do cho mọi thay đổi của nhân sự nội bộ. Không sửa, không xóa được. Lọc theo người, đối tượng, ngày. |
@@ -310,6 +315,7 @@ Tên bảng mới ở trên là tên khái niệm; tên vật lý chốt khi thi
 | Phân hệ 3 | Bài giảng Video Từ kết nối | FR-LMS-01 đến 03 | High | MVP |
 | Phân hệ 4 | Bài tập Luyện tập PPS, IELTS, thời gian làm bài | FR-EX-01 đến 06 | High | MVP |
 | Phân hệ 4 | Luyện thêm | FR-EX-07 | Medium | MVP |
+| Phân hệ 4 | Kết quả cuối bài, hồ sơ năng lực, Nghe ép | FR-EX-08 đến 10 | High | MVP |
 | Phân hệ 5 | AI Viết phát triển ý, Chấm chữa, Lượt AI theo khóa, Cam gợi ý | FR-AI-01 đến 04, FR-AI-06 | High | MVP |
 | Phân hệ 5 | Trợ lý AI hỏi đáp | FR-AI-07 | Medium | MVP nếu kịp |
 | Phân hệ 5 | Phát âm từng từ trên thiết bị | FR-AI-05 | High | MVP (đưa sớm, sau đợt thử nghiệm kỹ thuật) |
