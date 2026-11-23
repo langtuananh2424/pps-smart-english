@@ -60,6 +60,13 @@ Chủ dự án theo dõi việc trên GitHub Project "PPS Smart English MVP" (`g
 - Việc mới phát sinh mà chưa có issue: tạo issue, gắn vào project, ghi mã yêu cầu (FR/D-xx).
 - Không đổi trạng thái hay tạo issue cho việc chưa bắt đầu hoặc chỉ là đề xuất chưa duyệt.
 
+## Bảo trì issue
+
+- Issue trùng phạm vi với issue khác (ví dụ đã tách thành các issue nhỏ hơn): đóng với lý do "not planned", bình luận lý do kèm số các issue thay thế, rồi gỡ khỏi project. Không gỡ được thì đổi `Status` sang Reject và ghi rõ lý do trong bình luận.
+- Issue không còn làm vì yêu cầu thay đổi: xử lý như trên, bình luận dẫn mã quyết định (D-xx) hoặc mục PRD/SRS đã đổi.
+- Issue đóng vì trùng hoặc bỏ thì không chuyển sang Done; Done chỉ dành cho việc đã làm xong.
+- Đóng, gỡ hay đổi trạng thái issue mà không phải việc vừa làm xong: chỉ làm khi chủ dự án yêu cầu.
+
 ## Commit
 
 Theo Conventional Commits: `type(scope): subject`
