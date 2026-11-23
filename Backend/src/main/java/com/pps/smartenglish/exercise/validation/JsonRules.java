@@ -10,6 +10,11 @@ import java.util.Set;
 /** Các phép kiểm JSON dùng chung của validator; luôn ném 400 kèm tên trường (vd. "payload.left[1].id"). */
 final class JsonRules {
 
+    /** D-138: trần chung cho payload kiểu mới (hằng số có tên, không cấu hình hóa). Chuỗi bằng giới hạn lựa chọn ở CmsQuestionService. */
+    static final int TEXT_MAX = 500;
+    static final int LIST_MAX = 100;
+    static final int LONG_TEXT_MAX = 5000;
+
     private JsonRules() {}
 
     static ApiException bad(String field, String message) {
@@ -38,10 +43,28 @@ final class JsonRules {
         return v.asText();
     }
 
+    /** Như text nhưng giới hạn độ dài. */
+    static String text(JsonNode obj, String name, String field, int maxLen) {
+        String t = text(obj, name, field);
+        if (t.length() > maxLen) {
+            throw bad(field + "." + name, "Tối đa " + maxLen + " ký tự");
+        }
+        return t;
+    }
+
     static JsonNode array(JsonNode obj, String name, String field, int min) {
         JsonNode v = obj.get(name);
         if (v == null || !v.isArray() || v.size() < min) {
             throw bad(field + "." + name, min <= 1 ? "Bắt buộc, là mảng không rỗng" : "Bắt buộc, là mảng từ " + min + " phần tử");
+        }
+        return v;
+    }
+
+    /** Như array nhưng tối đa LIST_MAX phần tử. */
+    static JsonNode boundedArray(JsonNode obj, String name, String field, int min) {
+        JsonNode v = array(obj, name, field, min);
+        if (v.size() > LIST_MAX) {
+            throw bad(field + "." + name, "Tối đa " + LIST_MAX + " phần tử");
         }
         return v;
     }
@@ -62,6 +85,9 @@ final class JsonRules {
             if (!t.isTextual() || t.asText().isBlank()) {
                 throw bad(field + "[" + i + "]", "Phải là chuỗi không rỗng");
             }
+            if (t.asText().length() > TEXT_MAX) {
+                throw bad(field + "[" + i + "]", "Tối đa " + TEXT_MAX + " ký tự");
+            }
             if (!out.add(t.asText()) && unique) {
                 throw bad(field + "[" + i + "]", "Bị lặp");
             }
@@ -71,17 +97,24 @@ final class JsonRules {
 
     /** Mảng {id, text}: trả tập id (không lặp). */
     static Set<String> idTextList(JsonNode obj, String name, String field, int min) {
-        JsonNode arr = array(obj, name, field, min);
+        JsonNode arr = boundedArray(obj, name, field, min);
         Set<String> ids = new HashSet<>();
         for (int i = 0; i < arr.size(); i++) {
             String at = field + "." + name + "[" + i + "]";
             JsonNode item = object(arr.get(i), at, Set.of("id", "text"));
-            if (!ids.add(text(item, "id", at))) {
+            if (!ids.add(text(item, "id", at, TEXT_MAX))) {
                 throw bad(at + ".id", "Bị lặp");
             }
-            text(item, "text", at);
+            text(item, "text", at, TEXT_MAX);
         }
         return ids;
+    }
+
+    /** payload.scoring tùy chọn: chỉ PARTIAL hoặc ALL (D-140). */
+    static void scoring(JsonNode payload) {
+        if (payload.has("scoring") && !Set.of("PARTIAL", "ALL").contains(payload.get("scoring").asText())) {
+            throw bad("payload.scoring", "Chỉ nhận PARTIAL hoặc ALL");
+        }
     }
 
     static void requireNone(JsonNode n, String field, String message) {

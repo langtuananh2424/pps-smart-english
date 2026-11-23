@@ -18,6 +18,6 @@ public record QuestionSet(List<Question> questions, Map<Long, List<QuestionChoic
     public GradingInput inputOf(Question q) {
         Set<Long> correct = choicesOf(q).stream().filter(QuestionChoice::isCorrect).map(QuestionChoice::getId)
                 .collect(Collectors.toSet());
-        return new GradingInput(q.getAnswerKey(), correct);
+        return new GradingInput(q.getAnswerKey(), correct, q.getPayload());
     }
 }

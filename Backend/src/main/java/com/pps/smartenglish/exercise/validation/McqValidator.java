@@ -2,6 +2,7 @@ package com.pps.smartenglish.exercise.validation;
 
 import com.pps.smartenglish.exercise.domain.QuestionType;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +19,13 @@ class McqValidator implements QuestionValidator {
     public void validate(QuestionDraft d, Set<String> grammarCodes) {
         JsonRules.requireNone(d.payload(), "payload", "Trắc nghiệm không có payload");
         JsonRules.requireNone(d.answerKey(), "answerKey", "Đáp án trắc nghiệm nằm ở choices, không có answerKey");
-        var choices = d.choices();
+        if (countCorrect(d.choices()) != 1) {
+            throw JsonRules.bad("choices", "Phải có đúng 1 lựa chọn đúng");
+        }
+    }
+
+    /** Kiểm số lượng, nhãn, nội dung các lựa chọn (dùng chung với CHOICE_MULTI); trả số lựa chọn đúng. */
+    static long countCorrect(List<QuestionDraft.ChoiceDraft> choices) {
         if (choices.size() < 2) {
             throw JsonRules.bad("choices", "Cần ít nhất 2 lựa chọn");
         }
@@ -38,8 +45,6 @@ class McqValidator implements QuestionValidator {
             }
             correct += c.correct() ? 1 : 0;
         }
-        if (correct != 1) {
-            throw JsonRules.bad("choices", "Phải có đúng 1 lựa chọn đúng");
-        }
+        return correct;
     }
 }

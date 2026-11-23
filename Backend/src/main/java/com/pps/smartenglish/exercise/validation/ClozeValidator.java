@@ -25,12 +25,7 @@ class ClozeValidator implements QuestionValidator {
         String text = JsonRules.text(payload, "text", "payload");
         Set<String> blanks = JsonRules.texts(JsonRules.array(payload, "blanks", "payload", 1), "payload.blanks", true);
 
-        Set<String> inText = new HashSet<>();
-        Matcher m = PLACEHOLDER.matcher(text);
-        while (m.find()) {
-            inText.add(m.group(1));
-        }
-        if (!inText.equals(blanks)) {
+        if (!placeholders(text).equals(blanks)) {
             throw JsonRules.bad("payload.text", "Mỗi chỗ trống {id} trong text phải có trong blanks và ngược lại");
         }
 
@@ -47,6 +42,16 @@ class ClozeValidator implements QuestionValidator {
             }
             JsonRules.texts(e.getValue(), "answerKey.blanks." + e.getKey(), false);
         });
+    }
+
+    /** Các id chỗ trống viết dạng {id} trong text (dùng chung với WORD_BANK). */
+    static Set<String> placeholders(String text) {
+        Set<String> out = new HashSet<>();
+        Matcher m = PLACEHOLDER.matcher(text);
+        while (m.find()) {
+            out.add(m.group(1));
+        }
+        return out;
     }
 
     /** D-70: tên chỗ trống tùy chọn; khóa phải là id chỗ trống có thật, mỗi tên không rỗng và tối đa 100 ký tự. */

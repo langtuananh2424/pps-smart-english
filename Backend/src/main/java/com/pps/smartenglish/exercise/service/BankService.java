@@ -78,7 +78,7 @@ public class BankService {
                                                    Map<String, String> html) {
         return set.questions().stream().map(q -> new QuestionView(q.getId(), q.getType().name(), q.getInstruction(), q.getPrompt(),
                 payloadFor(q),
-                q.getType() == QuestionType.CONNECTIVE_MCQ
+                q.getType().usesChoices()
                         ? set.choicesOf(q).stream().map(c -> new ChoiceView(c.getId(), c.getLabel(), c.getContent(),
                                 rendered(html, c.getContentHtml()))).toList()
                         : null,

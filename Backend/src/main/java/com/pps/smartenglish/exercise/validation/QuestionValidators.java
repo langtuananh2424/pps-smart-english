@@ -28,8 +28,8 @@ public class QuestionValidators {
         if (validator == null) {
             throw JsonRules.bad("type", "Dạng " + type + " chưa được hỗ trợ trong CMS");
         }
-        if (type != QuestionType.CONNECTIVE_MCQ && !draft.choices().isEmpty()) {
-            throw JsonRules.bad("choices", "Chỉ câu trắc nghiệm dùng choices");
+        if (!type.usesChoices() && !draft.choices().isEmpty()) {
+            throw JsonRules.bad("choices", "Chỉ câu trắc nghiệm (một hoặc nhiều đáp án) dùng choices");
         }
         validator.validate(draft, grammarCodes);
     }
