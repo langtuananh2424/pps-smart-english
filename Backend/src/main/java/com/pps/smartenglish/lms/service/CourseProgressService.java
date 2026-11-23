@@ -8,7 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** D-46: tỷ lệ học xong khóa = bài đã hoàn thành (xem đủ 80% video) / bài đã xuất bản. */
+/** D-46: tỷ lệ học xong khóa = bài đã hoàn thành (xem đủ ngưỡng của khóa, courses.lesson_complete_percent, mặc định 80) / bài đã xuất bản. */
 @Service
 public class CourseProgressService {
 
