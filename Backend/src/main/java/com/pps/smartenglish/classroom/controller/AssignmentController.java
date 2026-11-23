@@ -1,5 +1,6 @@
 package com.pps.smartenglish.classroom.controller;
 
+import com.pps.smartenglish.classroom.dto.AssignmentDtos.AiSubmissionDetail;
 import com.pps.smartenglish.classroom.dto.AssignmentDtos.AssignmentView;
 import com.pps.smartenglish.classroom.dto.AssignmentDtos.CreateAssignment;
 import com.pps.smartenglish.classroom.dto.AssignmentDtos.GradeRequest;
@@ -8,6 +9,7 @@ import com.pps.smartenglish.classroom.dto.AssignmentDtos.MyResult;
 import com.pps.smartenglish.classroom.dto.AssignmentDtos.ProgressRow;
 import com.pps.smartenglish.classroom.service.AssignmentProgressService;
 import com.pps.smartenglish.classroom.service.AssignmentService;
+import com.pps.smartenglish.classroom.service.AssignmentSubmissionReader;
 import com.pps.smartenglish.exercise.dto.AttemptStarted;
 import com.pps.smartenglish.shared.security.CurrentUser;
 import com.pps.smartenglish.shared.web.PathId;
@@ -35,10 +37,12 @@ class AssignmentController {
 
     private final AssignmentService assignments;
     private final AssignmentProgressService progress;
+    private final AssignmentSubmissionReader submissions;
 
-    AssignmentController(AssignmentService assignments, AssignmentProgressService progress) {
+    AssignmentController(AssignmentService assignments, AssignmentProgressService progress, AssignmentSubmissionReader submissions) {
         this.assignments = assignments;
         this.progress = progress;
+        this.submissions = submissions;
     }
 
     private static long cls(String raw) {
@@ -83,6 +87,13 @@ class AssignmentController {
     @GetMapping(BASE + "/{id}/progress")
     List<ProgressRow> progress(Authentication auth, @PathVariable String classId, @PathVariable String id) {
         return progress.progress(CurrentUser.id(auth), cls(classId), asg(id));
+    }
+
+    /** D-141: giáo viên mở bài nộp Viết/Nói; submissionId = attemptId của bảng tiến độ. */
+    @GetMapping(BASE + "/{id}/submissions/{submissionId}")
+    AiSubmissionDetail submission(Authentication auth, @PathVariable String classId, @PathVariable String id, @PathVariable String submissionId) {
+        return submissions.read(CurrentUser.id(auth), cls(classId), asg(id),
+                PathId.parse(submissionId, "submission_not_found", "Không tìm thấy bài nộp của bài này"));
     }
 
     @PutMapping(BASE + "/{id}/attempts/{attemptId}/grade")

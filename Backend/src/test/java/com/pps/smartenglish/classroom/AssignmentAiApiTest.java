@@ -530,4 +530,141 @@ class AssignmentAiApiTest extends AiTestSupport {
         call(HttpMethod.GET, base(f), s.accessToken(), null).andExpect(jsonPath("$", hasSize(1)));
         call(HttpMethod.POST, base(f) + "/" + asg + "/start", s.accessToken(), null).andExpect(status().isOk());
     }
+
+    private ResultActions submissionOf(Fx f, Account who, long asg, Object id) throws Exception {
+        return call(HttpMethod.GET, base(f) + "/" + asg + "/submissions/" + id, who.accessToken(), null);
+    }
+
+    @Test
+    void teacherReadsWritingAndSpeakingSubmissions() throws Exception {
+        var f = fixture();
+        var s = member(f);
+        var other = member(f);
+        long asgW = assignOk(f, f.qA(), inHours(48), null);
+        long asgS = assignOk(f, f.sB(), inHours(48), null);
+        long session = writeAssigned(s, f.qA(), asgW);
+        writeAssigned(other, f.qA(), asgW);
+        long speak = speakingPermit(s, f.sB(), asgS);
+        completeSpeaking(s, speak).andExpect(status().isAccepted());
+        runner.runDueNow();
+        runner.runDueNow();
+        runner.runDueNow();
+
+        // Viết: đúng những gì học viên tự xem ở phiên của mình, và chỉ của người đó
+        long gradeJob = jdbc.queryForObject("select grade_job_id from writing_sessions where id = ?", Long.class, session);
+        submissionOf(f, f.teacher(), asgW, session).andExpect(status().isOk()).andExpect(jsonPath("$.questionType").value("WRITING"))
+                .andExpect(jsonPath("$.userId").value(s.id())).andExpect(jsonPath("$.writing.sessionId").value(session))
+                .andExpect(jsonPath("$.writing.finalText").value(ESSAY)).andExpect(jsonPath("$.writing.gradeJobId").value(gradeJob))
+                .andExpect(jsonPath("$.writing.grade.scorePercent").value(70)).andExpect(jsonPath("$.writing.turns").isNotEmpty())
+                .andExpect(jsonPath("$.speaking").doesNotExist());
+        String own = getJson("/api/writing/sessions/" + session, s).andReturn().getResponse().getContentAsString();
+        assertEquals(json.readTree(own), json.readTree(submissionOf(f, f.teacher(), asgW, session).andReturn().getResponse()
+                .getContentAsString()).get("writing"), "giáo viên thấy đúng nội dung học viên tự xem");
+
+        // Nói: link nghe ký ngắn hạn, chép lời, kết quả
+        submissionOf(f, f.teacher(), asgS, speak).andExpect(status().isOk()).andExpect(jsonPath("$.questionType").value("SPEAKING"))
+                .andExpect(jsonPath("$.userId").value(s.id())).andExpect(jsonPath("$.audioDeleted").value(false))
+                .andExpect(jsonPath("$.speaking.audioUrl").isNotEmpty()).andExpect(jsonPath("$.speaking.result.transcript").isNotEmpty())
+                .andExpect(jsonPath("$.speaking.result.overall").isNumber()).andExpect(jsonPath("$.writing").doesNotExist());
+
+        // D-43: audio đã xóa thì không có link, vẫn có chép lời và kết quả
+        jdbc.update("update speaking_submissions set audio_deleted_at = CURRENT_TIMESTAMP where id = ?", speak);
+        submissionOf(f, f.teacher(), asgS, speak).andExpect(status().isOk()).andExpect(jsonPath("$.audioDeleted").value(true))
+                .andExpect(jsonPath("$.speaking.audioUrl").doesNotExist()).andExpect(jsonPath("$.speaking.result.transcript").isNotEmpty())
+                .andExpect(jsonPath("$.speaking.result.overall").isNumber());
+    }
+
+    @Test
+    void submissionReadIsBlockedForEveryoneButClassStaffAndWrongTargets() throws Exception {
+        var f = fixture();
+        var s = member(f);
+        long asgW = assignOk(f, f.qA(), inHours(48), null);
+        long asgS = assignOk(f, f.sB(), inHours(48), null);
+        long bankAsg = idOf(call(HttpMethod.POST, base(f), f.teacher().accessToken(), Map.of("bankId",
+                jdbc.queryForObject("select bank_id from questions where id = ?", Long.class, f.qA()), "dueAt", inHours(72).toString()))
+                .andExpect(status().isCreated()), "id");
+        long session = writeAssigned(s, f.qA(), asgW);
+        long speak = speakingPermit(s, f.sB(), asgS);
+        completeSpeaking(s, speak).andExpect(status().isAccepted());
+        runner.runDueNow();
+        runner.runDueNow();
+        submissionOf(f, f.teacher(), asgW, session).andExpect(status().isOk());
+
+        // học viên (kể cả chủ bài), giáo viên lớp khác, lớp khác
+        submissionOf(f, s, asgW, session).andExpect(status().isNotFound());
+        var outsider = teacherOf(newClass(f.course()));
+        submissionOf(f, outsider, asgW, session).andExpect(status().isNotFound());
+        // bài giao của lớp khác dưới đường dẫn lớp này, và ngược lại
+        var g = fixture();
+        long foreign = assignOk(g, g.qA(), inHours(48), null);
+        submissionOf(f, f.teacher(), foreign, session).andExpect(status().isNotFound());
+        call(HttpMethod.GET, base(g) + "/" + asgW + "/submissions/" + session, g.teacher().accessToken(), null).andExpect(status().isNotFound());
+        // bài nộp không thuộc bài giao: phiên luyện tập, phiên của bài giao khác, id không có, id sai dạng
+        var s2 = member(f);
+        long practice = idOf(startWriting(s2, f.qA(), null).andExpect(status().isCreated()), "sessionId");
+        submissionOf(f, f.teacher(), asgW, practice).andExpect(status().isNotFound());
+        long asgW2 = assignOk(f, f.qA(), inHours(96), null);
+        submissionOf(f, f.teacher(), asgW2, session).andExpect(status().isNotFound());
+        submissionOf(f, f.teacher(), asgW, 999999L).andExpect(status().isNotFound());
+        submissionOf(f, f.teacher(), asgW, "abc").andExpect(status().isNotFound());
+        // lượt nói dưới bài Viết và phiên viết dưới bài Nói (id hai bảng độc lập, chỉ kiểm khi khác nhau)
+        if (speak != session) {
+            submissionOf(f, f.teacher(), asgW, speak).andExpect(status().isNotFound());
+            submissionOf(f, f.teacher(), asgS, session).andExpect(status().isNotFound());
+        }
+        // bài giao cả bộ câu hỏi không thuộc luồng này
+        submissionOf(f, f.teacher(), bankAsg, session).andExpect(status().isNotFound());
+        // phiên Viết đang làm dở: chưa nộp thì chưa mở, nhất quán với bảng tiến độ
+        long draft = idOf(startWriting(member(f), f.qA(), asgW2).andExpect(status().isCreated()), "sessionId");
+        submissionOf(f, f.teacher(), asgW2, draft).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void parallelStartsOfOneAssignmentOpenSingleWritingSession() throws Exception {
+        var f = fixture();
+        var s = member(f);
+        long asg = assignOk(f, f.qA(), inHours(48), null);
+        guard.resetRateLimit(s.id());
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        var gate = new java.util.concurrent.CountDownLatch(1);
+        try {
+            List<java.util.concurrent.Future<Integer>> calls = new java.util.ArrayList<>();
+            for (int i = 0; i < 2; i++) {
+                calls.add(pool.submit(() -> {
+                    gate.await();
+                    var body = new HashMap<String, Object>();
+                    body.put("questionId", f.qA());
+                    body.put("assignmentId", asg);
+                    return postJson("/api/writing/sessions", s, body).andReturn().getResponse().getStatus();
+                }));
+            }
+            gate.countDown();
+            for (var c : calls) {
+                assertEquals(201, c.get(30, java.util.concurrent.TimeUnit.SECONDS));
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+        assertEquals(1, count("select count(*) from writing_sessions where assignment_id = ? and user_id = ?", asg, s.id()));
+    }
+
+    @Test
+    void teacherStillReadsSubmissionsAfterStudentCourseAccessExpires() throws Exception {
+        var f = fixture();
+        var s = member(f);
+        long asgW = assignOk(f, f.qA(), inHours(48), null);
+        long asgS = assignOk(f, f.sB(), inHours(48), null);
+        long session = writeAssigned(s, f.qA(), asgW);
+        long speak = speakingPermit(s, f.sB(), asgS);
+        completeSpeaking(s, speak).andExpect(status().isAccepted());
+        runner.runDueNow();
+        runner.runDueNow();
+        jdbc.update("update user_course_enrollments set expires_at = TIMESTAMPADD(DAY, -1, CURRENT_TIMESTAMP) where user_id = ?", s.id());
+
+        submissionOf(f, f.teacher(), asgW, session).andExpect(status().isOk()).andExpect(jsonPath("$.writing.question.id").value(f.qA()))
+                .andExpect(jsonPath("$.writing.finalText").value(ESSAY));
+        submissionOf(f, f.teacher(), asgS, speak).andExpect(status().isOk()).andExpect(jsonPath("$.speaking.result.transcript").isNotEmpty());
+        // học viên tự mở phiên của mình vẫn theo quy tắc cũ (hết quyền khóa thì bị chặn)
+        getJson("/api/writing/sessions/" + session, s).andExpect(status().is4xxClientError());
+    }
 }

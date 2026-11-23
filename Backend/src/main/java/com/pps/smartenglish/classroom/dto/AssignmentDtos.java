@@ -42,4 +42,13 @@ public final class AssignmentDtos {
     /** Kết quả của chính học viên cho một bài giao; điểm AI hiện ngay, điểm giáo viên sửa thay thế khi có (D-113). */
     public record MyResult(Long assignmentId, String status, Long attemptId, Instant submittedAt, BigDecimal aiScore, Integer maxScore,
                            BigDecimal finalScore, String teacherComment) {}
+
+    /**
+     * D-141: bài nộp câu Viết/Nói cho giáo viên. Đúng một trong hai: writing (phiên viết như học viên tự xem) hoặc speaking (lượt nói,
+     * audioUrl ký ngắn hạn, kết quả gồm chép lời). audioDeleted: ghi âm đã xóa theo D-43, vẫn có chép lời và kết quả.
+     */
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    public record AiSubmissionDetail(Long assignmentId, Long userId, String questionType, Instant submittedAt,
+                                     com.pps.smartenglish.ai.dto.WritingDtos.SessionView writing,
+                                     com.pps.smartenglish.ai.speaking.SpeakingDtos.SubmissionView speaking, Boolean audioDeleted) {}
 }

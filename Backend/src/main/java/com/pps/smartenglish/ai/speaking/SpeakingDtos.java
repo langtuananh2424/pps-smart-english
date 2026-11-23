@@ -24,6 +24,9 @@ public final class SpeakingDtos {
     public record SubmissionView(long id, long questionId, String status, JsonNode result, String audioUrl, BigDecimal durationSec,
                                  Instant createdAt) {}
 
+    /** D-141: lượt nói cho giáo viên; audioDeleted = ghi âm đã bị xóa theo D-43 (audioUrl null, chép lời và kết quả vẫn còn). */
+    public record StaffView(SubmissionView submission, boolean audioDeleted) {}
+
     /** Đề nói cho màn Nói (cueCard rỗng nếu không phải part 2). */
     public record QuestionView(long id, int part, String prompt, List<String> cueCard, int maxSeconds) {}
 }

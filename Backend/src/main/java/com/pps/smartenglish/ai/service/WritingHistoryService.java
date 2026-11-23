@@ -41,9 +41,27 @@ public class WritingHistoryService {
 
     @Transactional(readOnly = true)
     public SessionView view(long userId, long sessionId) {
-        var s = sessions.findByIdAndUserId(sessionId, userId)
+        return toView(sessions.findByIdAndUserId(sessionId, userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "session_not_found", "Không tìm thấy phiên viết")));
+    }
+
+    /**
+     * D-141: giáo viên xem bài nộp của học viên, cùng nội dung chủ phiên tự xem. Không lọc theo chủ phiên nên người gọi phải kiểm
+     * quyền lớp và bài giao trước (AssignmentSubmissionReader).
+     */
+    @Transactional(readOnly = true)
+    public SessionView viewForStaff(long sessionId) {
+        var s = sessions.findById(sessionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "session_not_found", "Không tìm thấy phiên viết"));
-        var q = questions.find(s.getQuestionId(), userId, s.getAssignmentId() != null);
+        return toView(s, questions.findForStaff(s.getQuestionId()));
+    }
+
+    private SessionView toView(WritingSession s) {
+        return toView(s, questions.find(s.getQuestionId(), s.getUserId(), s.getAssignmentId() != null));
+    }
+
+    private SessionView toView(WritingSession s, WritingQuestionSource.WritingQuestion q) {
+        long userId = s.getUserId();
         List<TurnView> turns = new ArrayList<>();
         s.getTurns().forEach(t -> turns.add(new TurnView(
                 WritingService.ASSISTANT.equals(t.path("role").asText()) ? "CAM" : "STUDENT", t.path("text").asText())));

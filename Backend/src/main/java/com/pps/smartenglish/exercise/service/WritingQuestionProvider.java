@@ -33,6 +33,22 @@ class WritingQuestionProvider implements WritingQuestionSource {
             throw ApiException.validation("questionId", "Không phải câu hỏi viết");
         }
         gate.requirePracticable(q.getBankId(), userId, inAssignment);
+        return toQuestion(q);
+    }
+
+    /** D-141: giáo viên đọc bài nộp; người gọi đã kiểm bài nộp thuộc đúng bài giao của lớp mình, không xét quyền khóa của học viên. */
+    @Override
+    @Transactional(readOnly = true)
+    public WritingQuestion findForStaff(long questionId) {
+        var q = questions.findById(questionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "question_not_found", "Không tìm thấy câu hỏi"));
+        if (q.getType() != QuestionType.WRITING) {
+            throw ApiException.validation("questionId", "Không phải câu hỏi viết");
+        }
+        return toQuestion(q);
+    }
+
+    private WritingQuestion toQuestion(com.pps.smartenglish.exercise.domain.Question q) {
         var payload = q.getPayload();
         String task = payload != null && payload.path("task").isTextual() && !payload.path("task").asText().isBlank()
                 ? payload.path("task").asText() : q.getPrompt();

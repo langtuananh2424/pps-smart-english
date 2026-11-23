@@ -6,6 +6,7 @@ import com.pps.smartenglish.ai.service.AssignedAiWork;
 import com.pps.smartenglish.ai.service.AiQuotaService;
 import com.pps.smartenglish.ai.speaking.SpeakingDtos.CompleteResponse;
 import com.pps.smartenglish.ai.speaking.SpeakingDtos.QuestionView;
+import com.pps.smartenglish.ai.speaking.SpeakingDtos.StaffView;
 import com.pps.smartenglish.ai.speaking.SpeakingDtos.SubmissionView;
 import com.pps.smartenglish.ai.speaking.SpeakingDtos.UploadPermit;
 import com.pps.smartenglish.commerce.service.EmailVerification;
@@ -140,6 +141,13 @@ public class SpeakingService {
 
     public SubmissionView view(long userId, long id) {
         return toView(load(userId, id));
+    }
+
+    /** D-141: không lọc theo chủ lượt nói nên người gọi phải kiểm quyền lớp và bài giao trước (AssignmentSubmissionReader). */
+    public StaffView viewForStaff(long id) {
+        var s = submissions.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "submission_not_found", "Không tìm thấy lượt nói"));
+        return new StaffView(toView(s), s.getAudioDeletedAt() != null);
     }
 
     public CursorPage<SubmissionView> list(long userId, Long questionId, String limit, String cursor) {
