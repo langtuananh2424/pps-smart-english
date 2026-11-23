@@ -10,5 +10,6 @@ import java.util.List;
 public record SubmitRequest(
         @NotNull(message = "Bắt buộc") @Size(max = 500, message = "Tối đa 500 câu") List<@Valid @NotNull AnswerInput> answers) {
 
-    public record AnswerInput(@NotNull(message = "Bắt buộc") Long questionId, JsonNode answer) {}
+    /** timeSpentMs (FR-EX-08): tùy chọn; ngoài 0..max cấu hình thì máy chủ bỏ (lưu null), không từ chối lần nộp. */
+    public record AnswerInput(@NotNull(message = "Bắt buộc") Long questionId, JsonNode answer, Long timeSpentMs) {}
 }

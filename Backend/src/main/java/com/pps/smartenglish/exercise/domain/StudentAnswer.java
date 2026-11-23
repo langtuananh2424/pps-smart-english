@@ -41,14 +41,25 @@ public class StudentAnswer {
     @Column(precision = 5, scale = 4)
     private BigDecimal credit;
 
+    /** FR-EX-08: thời gian làm câu (ms) do client báo, đã chặn giá trị phi lý; null = không có. */
+    @Column(name = "time_spent_ms", updatable = false)
+    private Integer timeSpentMs;
+
+    /** Phiên bản đáp án của câu lúc chấm (mục 7.3); chấm lại cập nhật theo phiên bản mới. */
+    @Column(name = "answer_version", nullable = false)
+    private int answerVersion = 1;
+
     protected StudentAnswer() {}
 
-    public StudentAnswer(Long attemptId, Long questionId, JsonNode answer, Boolean correct, BigDecimal credit) {
+    public StudentAnswer(Long attemptId, Long questionId, JsonNode answer, Boolean correct, BigDecimal credit,
+                         Integer timeSpentMs, int answerVersion) {
         this.attemptId = attemptId;
         this.questionId = questionId;
         this.answer = answer;
         this.correct = correct;
         this.credit = credit;
+        this.timeSpentMs = timeSpentMs;
+        this.answerVersion = answerVersion;
     }
 
     public Long getId() { return id; }
@@ -57,4 +68,6 @@ public class StudentAnswer {
     public JsonNode getAnswer() { return answer; }
     public Boolean getCorrect() { return correct; }
     public BigDecimal getCredit() { return credit; }
+    public Integer getTimeSpentMs() { return timeSpentMs; }
+    public int getAnswerVersion() { return answerVersion; }
 }

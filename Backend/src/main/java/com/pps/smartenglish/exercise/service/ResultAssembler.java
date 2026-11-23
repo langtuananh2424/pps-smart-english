@@ -44,7 +44,7 @@ class ResultAssembler {
                 .collect(Collectors.toMap(AnswerGrading::getAnswerId, AnswerGrading::getResult, (a, b) -> a));
         var results = set.questions().stream().map(q -> result(q, set, byQuestion.get(q.getId()), gradingByAnswer)).toList();
         return new AttemptResponse(attempt.getId(), attempt.getBankId(), attempt.getStartedAt(), submittedAt, score, maxScore,
-                results, pendingJobs, quotaProducts == null ? null : Boolean.TRUE, quotaProducts);
+                results, pendingJobs, quotaProducts == null ? null : Boolean.TRUE, quotaProducts, null);
     }
 
     private QuestionResult result(Question q, QuestionSet set, StudentAnswer stored, Map<Long, JsonNode> gradingByAnswer) {

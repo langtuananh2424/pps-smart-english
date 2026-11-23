@@ -45,7 +45,8 @@ public interface StudentAnswerRepository extends JpaRepository<StudentAnswer, Lo
 
     /** Ghi kết quả chấm lại: đổi is_correct sang bất kỳ giá trị nào, kể cả đang null. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("update StudentAnswer a set a.correct = :correct, a.credit = :credit where a.id = :id")
+    @Query("update StudentAnswer a set a.correct = :correct, a.credit = :credit, "
+            + "a.answerVersion = (select q.answerVersion from Question q where q.id = a.questionId) where a.id = :id")
     int setVerdict(@Param("id") Long id, @Param("correct") boolean correct, @Param("credit") BigDecimal credit);
 
     /** Ghi kết quả AI một lần: chỉ khi còn null nên chạy lại cùng job không ghi đè hay tính điểm hai lần. */

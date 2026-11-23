@@ -8,6 +8,7 @@ import com.pps.smartenglish.ai.domain.AiTask;
 import com.pps.smartenglish.ai.service.AddonCatalog;
 import com.pps.smartenglish.ai.service.AiJobService;
 import com.pps.smartenglish.commerce.dto.ProductView;
+import com.pps.smartenglish.exercise.config.LearningStatsProperties;
 import com.pps.smartenglish.exercise.domain.AnswerGrading;
 import com.pps.smartenglish.exercise.domain.Question;
 import com.pps.smartenglish.exercise.domain.StudentAnswer;
@@ -60,11 +61,13 @@ public class SubmissionService {
     private final ObjectMapper mapper;
     private final Clock clock;
     private final ApplicationEventPublisher events;
+    private final LearningStatsProperties props;
 
     SubmissionService(StudentAttemptRepository attempts, StudentAnswerRepository answers, AnswerGradingRepository gradings,
                       QuestionLoader loader, GraderRegistry graders, RewriteRules rewriteRules, RewriteJobInput rewriteInput,
                       ResultAssembler assembler, AiJobService aiJobs, AddonCatalog addons, QuestionBankRepository banks, ObjectMapper mapper, Clock clock,
-                      ApplicationEventPublisher events) {
+                      ApplicationEventPublisher events, LearningStatsProperties props) {
+        this.props = props;
         this.events = events;
         this.rewriteInput = rewriteInput;
         this.attempts = attempts;
@@ -95,6 +98,7 @@ public class SubmissionService {
         }
         var set = loader.load(attempt.getBankId());
         Map<Long, JsonNode> given = indexAnswers(req.answers(), set.questions());
+        Map<Long, Integer> times = validTimes(req.answers());
 
         BigDecimal score = BigDecimal.ZERO; // tổng credit; làm tròn 2 chữ số một lần ở cuối
         int maxScore = 0;
@@ -125,7 +129,7 @@ public class SubmissionService {
                 maxScore += credit == null ? 0 : 1;
             }
             score = score.add(credit == null ? BigDecimal.ZERO : credit);
-            rows.add(new StudentAnswer(attemptId, q.getId(), answer, correct, credit));
+            rows.add(new StudentAnswer(attemptId, q.getId(), answer, correct, credit, times.get(q.getId()), q.getAnswerVersion()));
         }
 
         score = score.setScale(2, RoundingMode.HALF_UP);
@@ -181,6 +185,18 @@ public class SubmissionService {
             return new SubmitRequest(List.of());
         }
         return new SubmitRequest(mapper.convertValue(draft, new TypeReference<List<AnswerInput>>() {}));
+    }
+
+    /** FR-EX-08: client báo, không tin được; ngoài 0..maxTimeSpentMs thì bỏ (không có trong map = lưu null). */
+    private Map<Long, Integer> validTimes(List<AnswerInput> inputs) {
+        Map<Long, Integer> out = new HashMap<>();
+        for (AnswerInput in : inputs) {
+            Long ms = in.timeSpentMs();
+            if (ms != null && ms >= 0 && ms <= props.maxTimeSpentMs()) {
+                out.put(in.questionId(), ms.intValue());
+            }
+        }
+        return out;
     }
 
     /** questionId phải thuộc bank và không lặp; answer null/JSON null = bỏ trống (lưu SQL NULL). */

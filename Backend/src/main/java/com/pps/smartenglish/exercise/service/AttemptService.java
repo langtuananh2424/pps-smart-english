@@ -35,11 +35,13 @@ public class AttemptService {
     private final QuestionLoader loader;
     private final ResultAssembler assembler;
     private final ExamService exam;
+    private final LearningStatsService stats;
     private final Clock clock;
 
     AttemptService(BankGate gate, StudentAttemptRepository attempts, StudentAnswerRepository answers,
                    AnswerGradingRepository gradings, AiJobService aiJobs, QuestionLoader loader, ResultAssembler assembler,
-                   ExamService exam, Clock clock) {
+                   ExamService exam, LearningStatsService stats, Clock clock) {
+        this.stats = stats;
         this.gate = gate;
         this.attempts = attempts;
         this.answers = answers;
@@ -84,13 +86,15 @@ public class AttemptService {
         var a = attempts.findByIdAndUserId(attemptId, userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "attempt_not_found", "Không tìm thấy lượt làm bài"));
         if (a.getSubmittedAt() == null) {
-            return new AttemptResponse(a.getId(), a.getBankId(), a.getStartedAt(), null, null, null, null, null, null, null);
+            return new AttemptResponse(a.getId(), a.getBankId(), a.getStartedAt(), null, null, null, null, null, null, null, null);
         }
         var stored = answers.findByAttemptId(a.getId());
         var gradingRows = stored.isEmpty() ? List.<AnswerGrading>of()
                 : gradings.findByAnswerIdIn(stored.stream().map(StudentAnswer::getId).toList());
-        return assembler.submitted(a, a.getSubmittedAt(), a.getScore(), a.getMaxScore(), loader.load(a.getBankId()), stored,
+        var base = assembler.submitted(a, a.getSubmittedAt(), a.getScore(), a.getMaxScore(), loader.load(a.getBankId()), stored,
                 gradingRows, aiJobs.pendingIds(a.getId()), null);
+        return new AttemptResponse(base.id(), base.bankId(), base.startedAt(), base.submittedAt(), base.score(), base.maxScore(),
+                base.results(), base.pendingJobs(), base.aiQuotaRequired(), base.products(), stats.breakdown(userId, attemptId));
     }
 
     /** Mới nhất trước; con trỏ là id của phần tử cuối trang, mã hóa mờ. */
