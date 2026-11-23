@@ -1,13 +1,13 @@
 # PPS Smart English — quy tắc dự án
 
-Nền tảng B2C bán khóa học và luyện tập tiếng Anh. `Web/` React, `Backend/` Spring Boot (Java 21), `Mobile/` Flutter, DB PostgreSQL, chạy bằng Docker Compose. Lệnh build/test xem `README.md`.
+Nền tảng B2C bán khóa học tiếng Anh kết hợp LMS: khóa tự học và khóa có lớp (giáo viên, giao bài, điểm danh), mô hình khóa học → lớp. `Web/` React, `Backend/` Spring Boot (Java 21), `Mobile/` Flutter, DB PostgreSQL, chạy bằng Docker Compose. Lệnh build/test xem `README.md`.
 
 ## Tài liệu là nguồn
 
 - `docs/PRD.md` và `docs/SRS.md` là nguồn yêu cầu duy nhất.
 - **Không sửa, xóa hay bổ sung hai file này khi chưa có sự cho phép của chủ dự án.**
 - Code mâu thuẫn hoặc thiếu so với tài liệu: dừng, báo lại, chờ quyết định. Không tự diễn giải.
-- `docs/ba/` là bộ tài liệu BA phái sinh: `decisions.md` (quyết định D-xx đã đưa vào PRD v0.2 / SRS v1.1, câu hỏi BQ-xx còn mở), `use-cases.md` (luồng chi tiết), `user-stories.md`, `roadmap.md`. Phần chạm BQ-xx chưa trả lời thì chưa code.
+- `docs/ba/` là bộ tài liệu BA phái sinh: `decisions.md` (quyết định D-xx đã đưa vào PRD v0.3 / SRS v1.2, câu hỏi BQ-xx còn mở), `use-cases.md` (luồng chi tiết), `user-stories.md`, `roadmap.md`, `lms-model.md` (mô hình dữ liệu khóa học → lớp, đề xuất), `lms-pivot-report.md` (báo cáo chuyển hướng LMS). Phần chạm BQ-xx chưa trả lời thì chưa code.
 - `docs/system-design.md` là thiết kế phái sinh (kiến trúc, dữ liệu, luồng, câu hỏi mở `[Q-xx]`). Lệch PRD/SRS thì PRD/SRS đúng. Phần chạm câu hỏi mở chưa trả lời thì chưa code.
 
 ## Khi thêm hoặc sửa tính năng
@@ -35,13 +35,13 @@ Tài liệu (SRS 2.1) là nguồn; mục nào lệch tài liệu ghi rõ ở "Ch
 
 - **Backend:** Java 21, Spring Boot 3, Controller → Service → Repository, Flyway, PostgreSQL **17**, Redis (Pub/Sub kết quả AI, rate limit, cache; hàng đợi AI dùng bảng PostgreSQL, xem `docs/system-design.md` mục 9), Spring Security + JWT, MinIO (lưu media trên server, truy cập qua S3 API).
 - **Web (giai đoạn 1):** React **19**, Vite, TypeScript, Tailwind **3.4** (làm thư viện FE chính), React Router 7, TanStack Query 5, React Hook Form + Zod, Vitest + Testing Library, Playwright. Responsive mobile-first, giao diện theo thiết kế Figma; phông Nunito (gói `@fontsource-variable/nunito`, có tiếng Việt); màu, bo góc, đổ bóng lấy từ token Figma (đã cấu hình trong `tailwind.config.js`, SRS 3.1). Thêm thư viện khi có tính năng đầu tiên cần dùng.
-- **Mobile:** phát triển song song với web (SRS 1.2, NFR-MOB-01), đủ tính năng học viên, không có màn quản trị: Flutter, Riverpod, go_router, dio, flutter_secure_storage, Firebase Messaging, `record`. Dùng lại giao diện của web.
+- **Mobile:** làm sau web khóa tự học, song song với phần khóa có lớp trên web (SRS 1.2, NFR-MOB-01, D-123), đủ tính năng học viên, không có màn quản trị, giáo viên, giáo vụ: Flutter, Riverpod, go_router, dio, flutter_secure_storage (token), SQLite (lưu tạm dữ liệu trên máy), Firebase Messaging, `record`. Dùng lại giao diện của web.
 - **AI:** Haiku 5.5 qua Anthropic API cho phần lớn tác vụ. Speaking: GOPT + wav2vec2 + Whisper (Groq) như `pps-education` và `pps-speaking-engine`. Gọi qua interface `AiGradingProvider`.
 - **Thanh toán:** interface `PaymentGateway`, theo cách `pps-education` làm; chưa kết nối cổng thật.
 - **Thông báo:** Web Push (VAPID) cho web, FCM cho mobile.
 - **Hạ tầng:** server riêng của công ty, Cloudflare Tunnel + nginx, đã có domain. Thêm Redis (chưa có). Docker Compose.
 
-Các lệch trước đây (PostgreSQL 17, React 19, MinIO, chưa làm đăng ký SĐT/Apple, không tặng lượt AI khi đăng ký, màu và phông theo Figma) đã đưa vào PRD v0.2 / SRS v1.1 ngày 2026-11-13. Hiện không còn mục lệch tài liệu.
+Các lệch trước đây (PostgreSQL 17, React 19, MinIO, chưa làm đăng ký SĐT/Apple, không tặng lượt AI khi đăng ký, màu và phông theo Figma) đã đưa vào PRD v0.2 / SRS v1.1 ngày 2026-11-13. Chuyển hướng LMS (D-97..D-124) đã đưa vào PRD v0.3 / SRS v1.2 ngày 2026-11-19. Hiện không còn mục lệch tài liệu.
 
 ## Nhánh
 
@@ -83,8 +83,12 @@ Theo Conventional Commits: `type(scope): subject`
 | Đầu não (phiên chính) | Opus 5.5 | Thiết kế luồng, đề xuất, chia việc, duyệt kết quả |
 | `researcher` | Haiku 5.5 | Tìm, đọc, tổng hợp tài liệu/code rồi gửi Opus |
 | `coder` | Sonnet 5.5 | Viết code theo đặc tả Opus giao |
+| `tester` | Opus 5.5 | Kiểm thử tổng thể và rà lỗ hổng bảo mật sau khi coder xong, theo `docs/testing-guide.md` |
 
 - Opus gọi `researcher` trước khi quyết định; không tự đọc hàng loạt file.
 - Opus giao `coder` bằng đặc tả rõ: mã FR, tác nhân, luồng, file liên quan, tiêu chí xong.
 - `coder` thiếu thông tin thì trả câu hỏi về cho Opus, không tự đoán.
-- Định nghĩa agent ở `.Codex/agents/`.
+- Nhiều issue có thể giao song song cho nhiều `coder`; hai coder không sửa cùng file (chồng file thì dùng worktree riêng hoặc làm tuần tự).
+- Khi mọi `coder` của đợt xong, Opus gom kết quả rồi giao **một** `tester` kiểm thử tổng thể cả đợt: danh sách issue/FR, file đã đổi, tiêu chí xong.
+- `tester` chỉ viết test, không sửa code sản phẩm; lỗi và lỗ hổng trả về Opus để giao lại `coder`, sửa xong thì `tester` chạy lại.
+- Định nghĩa agent ở `.codex/agents/`.
