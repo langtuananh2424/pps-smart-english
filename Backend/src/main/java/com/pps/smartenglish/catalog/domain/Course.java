@@ -50,6 +50,10 @@ public class Course extends Auditable {
     @Column(name = "delivery_mode", nullable = false)
     private String deliveryMode = SELF_PACED;
 
+    /** FR-LMS-03, D-124: % thời lượng xem để bài giảng tính là xong (1..100). */
+    @Column(name = "lesson_complete_percent", nullable = false)
+    private int lessonCompletePercent = 80;
+
     /** FR-LMS-04, D-122: bật thì học viên phải xong unit trước mới mở unit sau. */
     @Column(nullable = false)
     private boolean sequential;
@@ -88,6 +92,8 @@ public class Course extends Auditable {
 
     public String getDeliveryMode() { return deliveryMode; }
     public void setDeliveryMode(String deliveryMode) { this.deliveryMode = deliveryMode; }
+    public int getLessonCompletePercent() { return lessonCompletePercent; }
+    public void setLessonCompletePercent(int lessonCompletePercent) { this.lessonCompletePercent = lessonCompletePercent; }
     public boolean isSequential() { return sequential; }
     public void setSequential(boolean sequential) { this.sequential = sequential; }
 

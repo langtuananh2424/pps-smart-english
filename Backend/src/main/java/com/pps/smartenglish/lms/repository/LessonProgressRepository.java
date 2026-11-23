@@ -68,14 +68,16 @@ public interface LessonProgressRepository extends JpaRepository<LessonProgress, 
     /**
      * Đặt completed_at đúng một lần: trả 1 chỉ ở lần chuyển sang hoàn thành đầu tiên (completed_at IS NULL),
      * nên dùng làm điều kiện phát LessonCompleted. duration 0 = chưa biết thời lượng, không bao giờ hoàn thành.
-     * Ngưỡng 80% tính số nguyên: watched*10 >= duration*8.
+     * Ngưỡng theo khóa (courses.lesson_complete_percent) tính số nguyên: watched*100 >= duration*percent.
+     * Dòng đã hoàn thành không bị tính lại khi admin đổi ngưỡng.
      */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(nativeQuery = true, value = """
             UPDATE lesson_progress SET completed_at = CAST(:now AS timestamp with time zone)
             WHERE user_id = :userId AND lesson_id = :lessonId AND completed_at IS NULL
-              AND :duration > 0 AND watched_sec * 10 >= :duration * 8
+              AND :duration > 0
+              AND watched_sec * 100 >= :duration * (SELECT lesson_complete_percent FROM courses WHERE id = :courseId)
             """)
-    int markCompleted(@Param("userId") Long userId, @Param("lessonId") Long lessonId, @Param("duration") int duration,
-                      @Param("now") Instant now);
+    int markCompleted(@Param("userId") Long userId, @Param("lessonId") Long lessonId, @Param("courseId") Long courseId,
+                      @Param("duration") int duration, @Param("now") Instant now);
 }

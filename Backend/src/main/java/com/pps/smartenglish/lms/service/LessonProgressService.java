@@ -51,7 +51,7 @@ public class LessonProgressService {
         }
         Instant now = Instant.now(clock);
         progress.addProgress(userId, lessonId, Math.min(req.watchedDeltaSec(), MAX_DELTA_SEC), req.positionSec(), now);
-        if (progress.markCompleted(userId, lessonId, duration, now) == 1) {
+        if (progress.markCompleted(userId, lessonId, lesson.courseId(), duration, now) == 1) {
             events.publishEvent(new LessonCompleted(userId, lessonId)); // retention nghe sau commit
         }
         var p = progress.findByUserIdAndLessonId(userId, lessonId).orElseThrow();
