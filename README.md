@@ -29,7 +29,7 @@ cd Backend && JWT_SECRET=<chuỗi-32-byte-trở-lên> mvn spring-boot:run   # ht
 cd Web && npm install && npm run dev    # http://localhost:5173 (proxy /api -> 8080)
 ```
 
-Mobile (cần Flutter SDK). Lần đầu tạo thư mục nền tảng android/ios:
+Mobile (cần Flutter SDK **3.47.9**, cùng bản CI ghim trong `mobile-ci.yml`). Lần đầu tạo thư mục nền tảng android/ios:
 
 ```bash
 cd Mobile

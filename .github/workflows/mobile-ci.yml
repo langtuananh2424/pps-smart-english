@@ -18,6 +18,8 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          # ghim bản: 3.50 đánh dấu package:flutter/material.dart là deprecated làm analyze fail; nâng khi chuyển sang material_ui
+          flutter-version: 3.47.9
           cache: true
       - run: flutter pub get
       - run: flutter analyze
