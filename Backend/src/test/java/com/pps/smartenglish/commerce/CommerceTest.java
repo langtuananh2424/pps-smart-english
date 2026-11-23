@@ -3,6 +3,7 @@ package com.pps.smartenglish.commerce;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -26,6 +27,7 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -493,16 +495,9 @@ class CommerceTest extends ApiTestBase {
     }
 
     @Test
-    void comboOpensEveryLevel() throws Exception {
-        var c1 = content();
-        var c2 = content();
-        long combo = product("COMBO", 890000, 365, 50, "ACTIVE", c1.levelId, c2.levelId);
-        var u = buyer();
-        pay(orderCode(u, combo, addon20()), 890500);
-        assertEquals(2, count("select count(*) from user_course_enrollments where user_id = ?", u.id()));
-        lesson(c1, u).andExpect(status().isOk());
-        lesson(c2, u).andExpect(status().isOk());
-        assertEquals(20, balance(u)); // chỉ gói nạp đi kèm; ai_quota 50 của combo bị bỏ qua
+    void databaseRejectsComboProductType() {
+        assertThrows(DataIntegrityViolationException.class,
+                () -> jdbc.update("insert into products (type, name, price_vnd, status) values ('COMBO', 'x', 1000, 'ACTIVE')")); // D-03
     }
 
     @Test

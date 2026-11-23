@@ -2,7 +2,6 @@
 -- Phụ thuộc R__demo_catalog (chạy trước theo thứ tự tên). Idempotent: sản phẩm khóa theo tên, chỉ tạo khi chưa có.
 -- Giá mẫu, chờ BQ-01/BQ-03 (D-34): chỉ để dựng giao diện, không phải số liệu chính thức.
 -- D-25: ghi danh theo khóa. Sản phẩm theo khóa gắn mọi Level của khóa vào product_levels (EntitlementGranter suy ra khóa từ Level).
--- D-03: không seed COMBO. Giá trị COMBO vẫn nằm trong CHECK của bảng products để migration không phá vỡ dữ liệu cũ.
 DO $$
 DECLARE
     course_row RECORD;
@@ -11,11 +10,11 @@ DECLARE
     pid bigint;
     pname text;
 BEGIN
-    -- Dọn seed cũ (sản phẩm theo Level, COMBO, sản phẩm không còn level nào của khóa đang xuất bản): ẩn đi, không xóa vì có thể đã có đơn tham chiếu.
+    -- Dọn seed cũ (sản phẩm theo Level, sản phẩm không còn level nào của khóa đang xuất bản): ẩn đi, không xóa vì có thể đã có đơn tham chiếu.
     UPDATE products SET status = 'INACTIVE', updated_at = CURRENT_TIMESTAMP
-    WHERE status = 'ACTIVE' AND (type = 'COMBO' OR (type = 'LEVEL' AND (name NOT LIKE '% - % ngày' OR NOT EXISTS (
+    WHERE status = 'ACTIVE' AND type = 'LEVEL' AND (name NOT LIKE '% - % ngày' OR NOT EXISTS (
         SELECT 1 FROM product_levels pl JOIN course_levels lv ON lv.id = pl.level_id JOIN courses c ON c.id = lv.course_id
-        WHERE pl.product_id = products.id AND c.status = 'PUBLISHED'))));
+        WHERE pl.product_id = products.id AND c.status = 'PUBLISHED'));
 
     -- D-54/D-02: giá 6 tháng theo bảng; D-34: 12 tháng = 1,6 x, làm tròn đến nghìn. type 'LEVEL' là giá trị khóa học còn hợp lệ.
     FOR course_row IN
