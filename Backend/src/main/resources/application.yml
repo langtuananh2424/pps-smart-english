@@ -39,6 +39,8 @@ app:
     secret-previous: ${JWT_SECRET_PREVIOUS:}
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
+    # danh sách phẩy: web, Android, iOS (D-95); gộp với client-id
+    client-ids: ${GOOGLE_CLIENT_IDS:}
   mail:
     from: ${MAIL_FROM:no-reply@localhost}
   storage:
