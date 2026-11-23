@@ -4,6 +4,7 @@ import com.pps.smartenglish.auth.dto.AuthResponse;
 import com.pps.smartenglish.auth.dto.ForgotPasswordRequest;
 import com.pps.smartenglish.auth.dto.GoogleLoginRequest;
 import com.pps.smartenglish.auth.dto.LoginRequest;
+import com.pps.smartenglish.auth.dto.RefreshRequest;
 import com.pps.smartenglish.auth.dto.RegisterRequest;
 import com.pps.smartenglish.auth.dto.ResetPasswordRequest;
 import com.pps.smartenglish.auth.dto.SessionResponse;
@@ -49,28 +50,29 @@ class AuthController {
 
     @PostMapping("/register")
     ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest req, HttpServletRequest http) {
-        return RefreshCookies.session(HttpStatus.CREATED, auth.register(req, ClientIp.of(http), deviceLabel(http)));
+        return RefreshCookies.session(HttpStatus.CREATED, auth.register(req, ClientIp.of(http), deviceLabel(http)), http);
     }
 
     @PostMapping("/login")
     ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest req, HttpServletRequest http) {
-        return RefreshCookies.session(HttpStatus.OK, auth.login(req, ClientIp.of(http), deviceLabel(http)));
+        return RefreshCookies.session(HttpStatus.OK, auth.login(req, ClientIp.of(http), deviceLabel(http)), http);
     }
 
     @PostMapping("/oauth/google")
     ResponseEntity<AuthResponse> google(@Valid @RequestBody GoogleLoginRequest req, HttpServletRequest http) {
-        return RefreshCookies.session(HttpStatus.OK, oauth.login("GOOGLE", req.idToken(), req.consent(), deviceLabel(http)));
+        return RefreshCookies.session(HttpStatus.OK, oauth.login("GOOGLE", req.idToken(), req.consent(), deviceLabel(http)), http);
     }
 
     @PostMapping("/refresh")
-    ResponseEntity<AuthResponse> refresh(@CookieValue(name = RefreshCookies.NAME, required = false) String token,
-                                         HttpServletRequest http) {
-        return RefreshCookies.session(HttpStatus.OK, sessions.refresh(token, deviceLabel(http)));
+    ResponseEntity<AuthResponse> refresh(@CookieValue(name = RefreshCookies.NAME, required = false) String cookie,
+                                         @RequestBody(required = false) RefreshRequest body, HttpServletRequest http) {
+        return RefreshCookies.session(HttpStatus.OK, sessions.refresh(tokenOf(cookie, body), deviceLabel(http)), http);
     }
 
     @PostMapping("/logout")
-    ResponseEntity<Void> logout(@CookieValue(name = RefreshCookies.NAME, required = false) String token) {
-        sessions.logout(token);
+    ResponseEntity<Void> logout(@CookieValue(name = RefreshCookies.NAME, required = false) String cookie,
+                                @RequestBody(required = false) RefreshRequest body) {
+        sessions.logout(tokenOf(cookie, body));
         return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, RefreshCookies.cleared().toString()).build();
     }
 
@@ -107,6 +109,11 @@ class AuthController {
     ResponseEntity<Void> reset(@Valid @RequestBody ResetPasswordRequest req) {
         recovery.resetPassword(req.token(), req.newPassword());
         return ResponseEntity.noContent().build();
+    }
+
+    /** Cookie (web) ưu tiên; không có thì lấy từ body (mobile). */
+    private static String tokenOf(String cookie, RefreshRequest body) {
+        return cookie != null ? cookie : body == null ? null : body.refreshToken();
     }
 
     private static String deviceLabel(HttpServletRequest http) {

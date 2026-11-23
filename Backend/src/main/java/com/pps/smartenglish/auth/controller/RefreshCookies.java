@@ -3,6 +3,7 @@ package com.pps.smartenglish.auth.controller;
 import com.pps.smartenglish.auth.dto.AuthResponse;
 import com.pps.smartenglish.auth.service.LoginResult;
 import com.pps.smartenglish.auth.service.SessionService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -15,7 +16,15 @@ final class RefreshCookies {
 
     private RefreshCookies() {}
 
-    static ResponseEntity<AuthResponse> session(HttpStatus status, LoginResult r) {
+    static boolean isMobile(HttpServletRequest http) {
+        return "mobile".equalsIgnoreCase(http.getHeader("X-Client"));
+    }
+
+    /** Mobile nhận refresh token trong body (D-94), web nhận qua cookie httpOnly. */
+    static ResponseEntity<AuthResponse> session(HttpStatus status, LoginResult r, HttpServletRequest http) {
+        if (isMobile(http)) {
+            return ResponseEntity.status(status).body(r.body().withRefreshToken(r.refreshToken()));
+        }
         return ResponseEntity.status(status)
                 .header(HttpHeaders.SET_COOKIE, build(r.refreshToken(), SessionService.REFRESH_TTL.toSeconds()).toString())
                 .body(r.body());
