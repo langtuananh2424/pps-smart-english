@@ -15,7 +15,7 @@ Phiên bản 0.2 · 2026-11-13 · Trạng thái: **Đã duyệt, FR đã chép v
 | A-CAM | Cam — trợ lý AI | Tác nhân hệ thống |
 | A-SUP | Nhân viên hỗ trợ | |
 | A-EDU | Biên tập viên / Phòng Đào tạo | Thay `EDITOR` hiện có |
-| A-TEA | Giáo viên | Quyền chờ BQ-08 |
+| A-TEA | Giáo viên, trợ giảng | Thao tác trong lớp được phân công (D-99, D-108; SRS v1.2 Phân hệ 11) |
 | A-ACC | Kế toán | |
 | A-DIR | Giám đốc | |
 | A-ADM | Admin hệ thống | |
@@ -291,11 +291,11 @@ Lưu ý: SRS FR-EX-02 có "Nhận diện cấu trúc" và "Xếp khối tạo c�
 
 - **Tác nhân:** A-ADM.
 - **Mô hình** (giống `pps-education`, bản gọn): quyền là đơn vị nhỏ nhất, mã dạng `module.action` (vd `commerce.order.view`), nhóm theo module; role là tập quyền, lưu trong DB (không phải enum), tạo thêm role được; người dùng nội bộ có nhiều role, và có thể được **cấp thêm (GRANT) hoặc chặn (REVOKE)** từng quyền riêng, có ngày hết hạn tùy chọn. Quyền hiệu lực = hợp quyền các role − REVOKE còn hạn + GRANT còn hạn.
-- **Bảng tham khảo từ `pps-education`:** `roles`, `permissions`, `role_permissions`, `user_roles`, `user_permission_overrides`, `permission_audit_log`. Bỏ phần không cần cho B2C: chức vụ (`positions`), phạm vi dữ liệu theo cơ sở/lớp (`data_scope`) — trừ khi Giáo viên cần giới hạn theo khóa (BQ-08).
+- **Bảng tham khảo từ `pps-education`:** `roles`, `permissions`, `role_permissions`, `user_roles`, `user_permission_overrides`, `permission_audit_log`. Bỏ phần không cần cho B2C: chức vụ (`positions`), phạm vi dữ liệu theo cơ sở (`data_scope`). Giáo viên, trợ giảng giới hạn theo lớp được phân công bằng một chỗ kiểm tra chung (NFR-SEC-05, `lms-model.md` mục 3).
 - **Gọn hơn `pps-education`:** khoảng 30–40 quyền thay vì ~230; mỗi quyền có một câu mô tả tiếng Việt dễ hiểu; màn hình 3 phần: danh sách role, ma trận tick quyền theo nhóm, thành viên của role; quyền riêng từng người nằm ở trang chi tiết nhân sự.
 - **Luồng chính:** tạo/sửa role → tick quyền theo nhóm (mỗi quyền có một câu mô tả ngắn) → gán role cho nhân sự → (tùy chọn) cấp thêm / chặn quyền riêng.
 - **Quy tắc:** không được tự xóa quyền quản trị cuối cùng; thay đổi quyền có hiệu lực ở lần gọi API kế tiếp; ghi nhật ký.
-- **Role mặc định đề xuất:** xem mục 7.1 (chờ BQ-08 và đối chiếu `pps-education`).
+- **Role mặc định đề xuất:** xem mục 7.1 (D-37; phần giáo viên, trợ giảng, giáo vụ theo D-99, D-108, D-109).
 
 #### 7.1 Ma trận role mặc định (đề xuất)
 
@@ -305,7 +305,7 @@ Lưu ý: SRS FR-EX-02 có "Nhận diện cấu trúc" và "Xếp khối tạo c�
 | Sản phẩm, giá | ✓ | xem | xem | | | |
 | Đơn hàng, thanh toán | ✓ | xem | ✓ | xem | | |
 | Link kích hoạt | ✓ | | | ✓ | | |
-| Học viên: tra cứu | ✓ | ✓ | ✓ | ✓ | | lớp/khóa mình (BQ-08) |
+| Học viên: tra cứu | ✓ | ✓ | ✓ | ✓ | | lớp được phân công (NFR-SEC-05) |
 | Học viên: kích hoạt thủ công, cộng lượt, mở khóa | ✓ | | | ✓ | | |
 | Ticket hỗ trợ | ✓ | xem | | ✓ | | |
 | Báo cáo doanh thu | ✓ | ✓ | ✓ | | | |

@@ -83,7 +83,8 @@ Xem decisions.md mục 3. Tóm tắt: mỗi khóa có ví tuần reset thứ Hai
 | Giám đốc | Xem doanh thu, báo cáo tổng |
 | Kế toán | Đối soát đơn hàng, thanh toán, hóa đơn (BQ-12); chọn cổng thanh toán |
 | Phòng Đào tạo / Biên tập viên | Soạn khóa, video, câu hỏi, đề thi, bảng quy đổi band, Q&A, FAQ cho Cam |
-| Giáo viên | Chờ BQ-08 |
+| Giáo viên, trợ giảng | Dạy lớp được phân công: tiến độ, giao bài, điểm danh, sửa điểm (D-99, D-108; SRS v1.2 Phân hệ 11) |
+| Quản lý đào tạo | Tạo lớp, xếp lớp, phân công, báo cáo mọi lớp (D-109) |
 | Nhân viên hỗ trợ | Trả lời ticket, tra cứu học viên, xử lý lỗi thanh toán, cộng lượt bù |
 | Admin hệ thống | Cấu hình role, quyền, sản phẩm, giá |
 | Học viên | Học, luyện, thi, mua |

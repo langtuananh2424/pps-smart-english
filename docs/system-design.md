@@ -106,24 +106,29 @@ Theo SRS 2.2.
 |---|---|---|
 | Khách vãng lai | (không token) | Xem danh mục, bài giảng mẫu, làm bài tập thử `[Q-05]` |
 | Học viên Free | `STUDENT` | Không có enrollment trả phí; mở 1–2 Topic đầu mỗi Level `[Q-03]`; xem video và làm trắc nghiệm ở Topic học thử; **không có lượt AI** (chỉ được cấp sau khi mua) |
-| Học viên Paid | `STUDENT` | Có enrollment còn hiệu lực cho Level tương ứng |
-| Admin / Biên tập viên | `ADMIN` | Cổng CMS `[Q-12]` |
+| Học viên Paid | `STUDENT` | Có enrollment còn hiệu lực cho khóa tương ứng (D-25) |
+| Nhân sự nội bộ | `SUPPORT`, `TEACHER`, `ACCOUNTANT`, `DIRECTOR`, `EDITOR`, `ADMIN` | Phân quyền hybrid lưu DB (`V1__auth_rbac.sql`, FR-ADM-04): quyền hiệu lực = quyền các role − REVOKE + GRANT |
+| Trợ giảng, Quản lý đào tạo | (role mới, chưa có trong DB) | SRS v1.2 Phân hệ 11, quyền `class.manage`, `class.teach`, `report.teaching`; giáo viên, trợ giảng chỉ thao tác trong lớp được phân công (NFR-SEC-05) |
 
-Free và Paid **không** là hai role mà suy ra từ enrollment, vì một người có thể đã mua Level A1 nhưng chưa mua B1.
+Free và Paid **không** là hai role mà suy ra từ enrollment, vì một người có thể đã mua khóa này nhưng chưa mua khóa khác.
 
 Quy tắc mở khóa nội dung (FR-AUTH-02 PRD, FR-COM-03):
 
 ```
 được xem lesson L thuộc topic T, level V  ⇔
     T.is_free_trial
- ∨  tồn tại user_course_enrollments(user, V) với status = ACTIVE và (expires_at IS NULL ∨ expires_at > now)
+ ∨  tồn tại user_course_enrollments(user, V.course) với status = ACTIVE và (expires_at IS NULL ∨ expires_at > now)
 ```
+
+Khi khóa bật học tuần tự (FR-LMS-04), điều kiện trên còn phải kèm: unit của L đã mở cho học viên (xong unit trước, hoặc được giáo viên mở sớm).
 
 `topics.is_free_trial` do Admin bật cho từng Topic, nên số Topic học thử (1 hay 2) là cấu hình, không cứng trong code.
 
 ## 4. Mô hình dữ liệu
 
 Mở rộng từ SRS mục 6. Bảng **in đậm** là bổ sung của thiết kế (SRS chưa liệt kê), lý do ghi bên cạnh. Mọi bảng có `id bigserial`, `created_at`, `updated_at timestamptz`, trừ khi ghi khác.
+
+Phần khóa có lớp, chương trình, học tuần tự (SRS v1.2 Phân hệ 11, FR-LMS-04): mô hình đề xuất ở `docs/ba/lms-model.md`, chưa thiết kế chi tiết ở đây.
 
 ### 4.1 Tài khoản và hồ sơ
 
@@ -184,12 +189,12 @@ Chấm tự động (< 100 ms, FR-EX-03) chạy trong `api`: so `answer` với `
 
 | Bảng | Cột chính | Ghi chú |
 |---|---|---|
-| **`products`** | `type` (LEVEL/COMBO/AI_ADDON), `name`, `price_vnd`, `access_days` null, `ai_quota` null, `status` | FR-COM-01; giá và thời hạn chờ `[Q-08]`, `[Q-09]` |
-| **`product_levels`** | `product_id`, `level_id` | Level lẻ = 1 dòng; Combo = nhiều dòng |
+| **`products`** | `type` (LEVEL/AI_ADDON), `name`, `price_vnd`, `access_days` null, `ai_quota` null, `status` | FR-COM-01; không bán combo (D-03), loại COMBO bỏ ở V11; giá và thời hạn chờ `[Q-08]`, `[Q-09]` |
+| **`product_levels`** | `product_id`, `level_id` | Nối sản phẩm với level; khi mua, cấp ghi danh cho khóa chứa level đó |
 | `orders` | `user_id`, `code` unique, `status` (PENDING/PAID/EXPIRED/CANCELLED), `total_vnd`, `paid_at` | |
 | `order_items` | `order_id`, `product_id`, `price_vnd` (giá lúc mua) | |
 | `payment_transactions` | `order_id`, `provider`, `provider_ref` unique, `amount_vnd`, `status`, `raw_payload jsonb`, `received_at` | Nhật ký webhook (SRS 6) |
-| `user_course_enrollments` | `user_id`, `level_id`, `order_id` null, `status`, `starts_at`, `expires_at` null | Unique (user, level) đang ACTIVE; `order_id` null khi kích hoạt bằng link |
+| `user_course_enrollments` | `user_id`, `course_id`, `order_id` null, `status`, `starts_at`, `expires_at` null | Ghi danh theo khóa (D-25); unique (user, course); `order_id` null khi kích hoạt bằng link |
 | **`activation_links`** | `token_hash` unique, `product_id`, `max_uses`, `used_count`, `expires_at`, `revoked_at`, `note`, `created_by` | FR-COM-04; chỉ lưu hash của mã |
 | **`activation_redemptions`** | `link_id`, `user_id`, `redeemed_at`, unique (link, user) | Mỗi tài khoản dùng một lần cho mỗi link |
 
@@ -225,7 +230,7 @@ Mọi khóa chính là `bigserial`, trừ `user_profiles` (PK `user_id`) và `ac
 | Dùng link xác thực / đặt lại | unique `email_tokens(token_hash)` |
 | Đổi / thu hồi refresh token | unique `refresh_tokens(token_hash)`; `(user_id)` có điều kiện `revoked_at IS NULL` |
 | Cây khóa học | `course_levels(course_id, sort_order)`, `topics(level_id, sort_order)`, `lessons(topic_id, sort_order)` |
-| Kiểm quyền Level | unique `user_course_enrollments(user_id, level_id)` có điều kiện `status = 'ACTIVE'` |
+| Kiểm quyền khóa | unique `user_course_enrollments(user_id, course_id)` |
 | Lịch sử làm bài của tôi | `student_exercise_attempts(user_id, started_at DESC)`; `student_answers(attempt_id)` |
 | Câu hỏi của một bộ đề | `questions(bank_id, sort_order)` |
 | Tiến độ video | unique `lesson_progress(user_id, lesson_id)` |
