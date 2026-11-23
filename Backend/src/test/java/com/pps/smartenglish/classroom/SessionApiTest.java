@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.pps.smartenglish.classroom.service.SessionReminderService;
 import com.pps.smartenglish.support.ApiTestBase;
 import java.time.Instant;
+import com.pps.smartenglish.classroom.service.ClassService;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
@@ -53,7 +54,7 @@ class SessionApiTest extends ApiTestBase {
     /** Lớp chạy từ 30 ngày trước đến 30 ngày sau, để buổi quá khứ và tương lai đều hợp lệ. */
     private long newClass(long courseId) {
         return insert("classes", Map.of("course_id", courseId, "name", "Lớp " + UUID.randomUUID().toString().substring(0, 4),
-                "starts_on", LocalDate.now().minusDays(30), "ends_on", LocalDate.now().plusDays(30), "mode", "ONLINE", "capacity", 20));
+                "starts_on", LocalDate.now(ClassService.VN).minusDays(30), "ends_on", LocalDate.now(ClassService.VN).plusDays(30), "mode", "ONLINE", "capacity", 20));
     }
 
     private long course() {
@@ -62,7 +63,7 @@ class SessionApiTest extends ApiTestBase {
 
     private void staffOf(long classId, Account a, String role) {
         jdbc.update("insert into class_staff (class_id, user_id, role, assigned_from) values (?, ?, ?, ?)", classId, a.id(), role,
-                LocalDate.now().minusDays(30));
+                LocalDate.now(ClassService.VN).minusDays(30));
     }
 
     private Account memberOf(long classId, long courseId) throws Exception {
@@ -104,7 +105,7 @@ class SessionApiTest extends ApiTestBase {
         String url = "/api/classes/" + cls + "/sessions";
 
         var repeat = group(in(24 * 60), "ONLINE", URL);
-        repeat.put("repeatUntil", LocalDate.now().plusDays(1 + 14).toString());
+        repeat.put("repeatUntil", LocalDate.now(ClassService.VN).plusDays(1 + 14).toString());
         call(HttpMethod.POST, url, teacher.accessToken(), repeat).andExpect(status().isCreated()).andExpect(jsonPath("$", hasSize(3)))
                 .andExpect(jsonPath("$[0].kind").value("GROUP")).andExpect(jsonPath("$[0].meetingUrl").value(URL));
 
@@ -120,7 +121,7 @@ class SessionApiTest extends ApiTestBase {
         call(HttpMethod.POST, url, teacher.accessToken(), group(in(60 * 24 * 90), "ONLINE", URL))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error.details.startsAt").exists());
         var tooLong = group(in(60), "ONLINE", URL);
-        tooLong.put("repeatUntil", LocalDate.now().plusDays(90).toString());
+        tooLong.put("repeatUntil", LocalDate.now(ClassService.VN).plusDays(90).toString());
         call(HttpMethod.POST, url, teacher.accessToken(), tooLong).andExpect(status().isBadRequest()).andExpect(jsonPath("$.error.details.repeatUntil").exists());
         var stranger = group(in(60), "ONLINE", URL);
         stranger.put("taughtBy", withRole("TEACHER").id());
