@@ -1,5 +1,6 @@
 package com.pps.smartenglish.ai.stream;
 
+import com.pps.smartenglish.ai.config.AiProperties;
 import com.pps.smartenglish.ai.worker.ResultNotifier;
 import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
@@ -20,7 +21,13 @@ class ResultListenerConfig {
 
     @Bean
     RedisMessageListenerContainer aiResultListenerContainer(RedisConnectionFactory factory, JobStreamService streams) {
-        var container = new RedisMessageListenerContainer();
+        // Không tự khởi động cùng context: RedisListenerStarter khởi động ở nền và thử lại
+        var container = new RedisMessageListenerContainer() {
+            @Override
+            public boolean isAutoStartup() {
+                return false;
+            }
+        };
         container.setConnectionFactory(factory);
         container.addMessageListener((message, pattern) -> {
             String channel = new String(message.getChannel(), StandardCharsets.UTF_8);
@@ -31,5 +38,10 @@ class ResultListenerConfig {
             }
         }, new PatternTopic(ResultNotifier.CHANNEL_PREFIX + "*"));
         return container;
+    }
+
+    @Bean
+    RedisListenerStarter aiResultListenerStarter(RedisMessageListenerContainer aiResultListenerContainer, AiProperties props) {
+        return new RedisListenerStarter(aiResultListenerContainer, props.redisRetryInterval());
     }
 }

@@ -116,6 +116,8 @@ app:
     worker-enabled: ${AI_WORKER_ENABLED:true}
     concurrency: ${AI_CONCURRENCY:10}
     redis-notify: true
+    # chu kỳ thử đăng ký lại kênh Redis khi Redis chưa sẵn sàng lúc khởi động
+    redis-retry-interval: ${AI_REDIS_RETRY_INTERVAL:5s}
     # USD cho 1 triệu token
     price:
       input: 0.10

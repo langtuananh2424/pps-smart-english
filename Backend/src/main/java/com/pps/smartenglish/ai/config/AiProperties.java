@@ -1,6 +1,7 @@
 package com.pps.smartenglish.ai.config;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
@@ -14,6 +15,7 @@ public record AiProperties(
         @DefaultValue("true") boolean workerEnabled,
         @DefaultValue("10") int concurrency,
         @DefaultValue("true") boolean redisNotify,
+        @DefaultValue("5s") Duration redisRetryInterval,
         @DefaultValue Price price) {
 
     public record Price(
