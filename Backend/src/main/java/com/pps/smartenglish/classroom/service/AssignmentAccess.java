@@ -32,4 +32,9 @@ class AssignmentAccess implements AssignedBanks, AssignedAiWork {
             throw AssignmentService.notFound();
         }
     }
+
+    @Override
+    public void lock(long assignmentId) {
+        assignments.lockById(assignmentId); // dòng bị xóa thì không có gì để khóa; requireRecipient đã chặn trước đó
+    }
 }

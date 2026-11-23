@@ -77,6 +77,7 @@ public class WritingService {
             guard.rateLimit(userId);
             quota.requireAvailable(userId, q.courseId(), q.aiTask());
         } else {
+            assigned.lock(assignmentId); // cùng người bấm hai lần song song: bên sau chờ rồi dùng lại phiên của bên trước
             var open = sessions.findFirstByAssignmentIdAndUserIdAndStatusInOrderByIdDesc(assignmentId, userId,
                     java.util.List.of(WritingSession.ACTIVE, WritingSession.READY));
             if (open.isPresent()) {
@@ -152,6 +153,7 @@ public class WritingService {
                     .orElseThrow(quota::exhausted);
         } else { // D-130: bài giao không trừ lượt, vẫn qua giới hạn tần suất và hàng đợi
             assigned.requireRecipient(userId, s.getAssignmentId(), q.id());
+            assigned.lock(s.getAssignmentId()); // hai phiên cùng bài (phiên cũ chấm lỗi) không cùng qua được kiểm tra đã nộp
             requireNotSubmitted(s.getAssignmentId(), userId);
             jobId = aiJobs.enqueueUncharged(userId, AiJobKind.WRITING_GRADE, in, s.getId(), null);
         }

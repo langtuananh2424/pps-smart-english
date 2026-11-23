@@ -8,4 +8,10 @@ public interface AssignedAiWork {
 
     /** Học viên phải là người nhận của bài giao còn hiệu lực và bài phải giao đúng câu này; không thì 404 assignment_not_found. */
     void requireRecipient(long userId, long assignmentId, long questionId);
+
+    /**
+     * Khóa dòng bài giao đến hết transaction để hai request của cùng một người không cùng mở hoặc cùng nộp phiên Viết.
+     * Gọi sau requireRecipient, trong transaction ghi.
+     */
+    void lock(long assignmentId);
 }

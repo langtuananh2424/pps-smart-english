@@ -1,12 +1,14 @@
 package com.pps.smartenglish.classroom.repository;
 
 import com.pps.smartenglish.classroom.domain.Assignment;
+import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,6 +16,11 @@ import org.springframework.data.repository.query.Param;
 public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
     Optional<Assignment> findByIdAndClassId(Long id, Long classId);
+
+    /** SELECT ... FOR UPDATE: tuần tự hóa các request cùng bài giao (chạy cả H2 và PostgreSQL). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select a from Assignment a where a.id = :id")
+    Optional<Assignment> lockById(@Param("id") Long id);
 
     List<Assignment> findByClassIdOrderByIdDesc(Long classId, Pageable page);
 
