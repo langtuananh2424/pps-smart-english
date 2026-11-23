@@ -21,3 +21,6 @@ Web/test-results/
 Web/playwright-report/
 test-results/
 playwright-report/
+
+# worktree tạm của agent
+.claude/worktrees/
