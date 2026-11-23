@@ -79,8 +79,12 @@ Theo Conventional Commits: `type(scope): subject`
 | Đầu não (phiên chính) | Opus 5.5 | Thiết kế luồng, đề xuất, chia việc, duyệt kết quả |
 | `researcher` | Haiku 5.5 | Tìm, đọc, tổng hợp tài liệu/code rồi gửi Opus |
 | `coder` | Sonnet 5.5 | Viết code theo đặc tả Opus giao |
+| `tester` | Opus 5.5 | Kiểm thử tổng thể và rà lỗ hổng bảo mật sau khi coder xong, theo `docs/testing-guide.md` |
 
 - Opus gọi `researcher` trước khi quyết định; không tự đọc hàng loạt file.
 - Opus giao `coder` bằng đặc tả rõ: mã FR, tác nhân, luồng, file liên quan, tiêu chí xong.
 - `coder` thiếu thông tin thì trả câu hỏi về cho Opus, không tự đoán.
+- Nhiều issue có thể giao song song cho nhiều `coder`; hai coder không sửa cùng file (chồng file thì dùng worktree riêng hoặc làm tuần tự).
+- Khi mọi `coder` của đợt xong, Opus gom kết quả rồi giao **một** `tester` kiểm thử tổng thể cả đợt: danh sách issue/FR, file đã đổi, tiêu chí xong.
+- `tester` chỉ viết test, không sửa code sản phẩm; lỗi và lỗ hổng trả về Opus để giao lại `coder`, sửa xong thì `tester` chạy lại.
 - Định nghĩa agent ở `.claude/agents/`.
