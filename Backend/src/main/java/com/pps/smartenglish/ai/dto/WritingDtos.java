@@ -15,7 +15,8 @@ public final class WritingDtos {
 
     private WritingDtos() {}
 
-    public record CreateSessionRequest(@NotNull(message = "Bắt buộc") Long questionId) {}
+    /** assignmentId: làm trong ngữ cảnh bài giáo viên giao (FR-ASG-02, D-130). */
+    public record CreateSessionRequest(@NotNull(message = "Bắt buộc") Long questionId, Long assignmentId) {}
 
     public record AnswerRequest(
             @NotBlank(message = "Không được để trống") @Size(max = MAX_CHARS, message = "Tối đa 5000 ký tự") String text) {}

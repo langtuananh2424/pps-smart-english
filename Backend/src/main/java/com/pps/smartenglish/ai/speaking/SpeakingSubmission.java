@@ -24,6 +24,8 @@ public class SpeakingSubmission extends Auditable {
     public static final String UNCLEAR = "UNCLEAR";
     public static final String FAILED = "FAILED";
     public static final String EXPIRED = "EXPIRED";
+    /** Đã nộp và đang hoặc đã có điểm; UNCLEAR, FAILED không có kết quả nên bài giao cho nộp lại. */
+    public static final java.util.List<String> SUBMITTED_OK = java.util.List.of(GRADING, GRADED);
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -65,6 +67,14 @@ public class SpeakingSubmission extends Auditable {
     @JdbcTypeCode(SqlTypes.JSON)
     private JsonNode result;
 
+    /** Bài giáo viên giao (FR-ASG-02); null với lượt luyện tập thường. */
+    @Column(name = "assignment_id", updatable = false)
+    private Long assignmentId;
+
+    /** Lúc xác nhận nộp chấm; chỉ ghi qua claimUpload. */
+    @Column(name = "submitted_at")
+    private Instant submittedAt;
+
     @Column(name = "audio_deleted_at")
     private Instant audioDeletedAt;
 
@@ -81,7 +91,15 @@ public class SpeakingSubmission extends Auditable {
         this.uploadExpiresAt = uploadExpiresAt;
     }
 
+    public SpeakingSubmission(Long userId, Long questionId, Long courseId, String objectKey, int maxSeconds, long maxBytes,
+                              Instant uploadExpiresAt, Long assignmentId) {
+        this(userId, questionId, courseId, objectKey, maxSeconds, maxBytes, uploadExpiresAt);
+        this.assignmentId = assignmentId;
+    }
+
     public Long getId() { return id; }
+    public Long getAssignmentId() { return assignmentId; }
+    public Instant getSubmittedAt() { return submittedAt; }
     public Long getUserId() { return userId; }
     public Long getQuestionId() { return questionId; }
     public Long getCourseId() { return courseId; }

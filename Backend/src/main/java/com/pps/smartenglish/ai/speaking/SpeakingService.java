@@ -2,6 +2,7 @@ package com.pps.smartenglish.ai.speaking;
 
 import com.pps.smartenglish.ai.domain.AiTask;
 import com.pps.smartenglish.ai.service.AiGuard;
+import com.pps.smartenglish.ai.service.AssignedAiWork;
 import com.pps.smartenglish.ai.service.AiQuotaService;
 import com.pps.smartenglish.ai.speaking.SpeakingDtos.CompleteResponse;
 import com.pps.smartenglish.ai.speaking.SpeakingDtos.QuestionView;
@@ -44,19 +45,21 @@ public class SpeakingService {
     private final SpeakingEnqueuer enqueuer;
     private final ObjectStorage storage;
     private final AiQuotaService quota;
+    private final AssignedAiWork assigned;
     private final AiGuard guard;
     private final EmailVerification emailVerification;
     private final SpeakingProperties props;
     private final Clock clock;
 
     SpeakingService(SpeakingSubmissionRepository submissions, SpeakingQuestionSource questions, SpeakingEnqueuer enqueuer,
-                    ObjectStorage storage, AiQuotaService quota, AiGuard guard, EmailVerification emailVerification, SpeakingProperties props,
+                    ObjectStorage storage, AiQuotaService quota, AssignedAiWork assigned, AiGuard guard, EmailVerification emailVerification, SpeakingProperties props,
                     Clock clock) {
         this.submissions = submissions;
         this.questions = questions;
         this.enqueuer = enqueuer;
         this.storage = storage;
         this.quota = quota;
+        this.assigned = assigned;
         this.guard = guard;
         this.emailVerification = emailVerification;
         this.props = props;
@@ -67,19 +70,38 @@ public class SpeakingService {
         return Math.min(ABSOLUTE_MAX_BYTES, (long) Math.ceil(maxSeconds * BYTES_PER_SECOND * 1.1) + 1024);
     }
 
-    /** Chưa trừ lượt: chỉ kiểm quyền bank, rate limit và còn đủ lượt. */
-    public UploadPermit create(long userId, long questionId) {
+    /**
+     * Chưa trừ lượt: chỉ kiểm quyền bank, rate limit và còn đủ lượt. Có assignmentId (bài giáo viên giao, D-130): không kiểm
+     * lượt, chặn khi đã nộp rồi; vẫn qua giới hạn tần suất.
+     */
+    public UploadPermit create(long userId, long questionId, Long assignmentId) {
         emailVerification.require(userId);
-        var q = questions.find(questionId, userId);
-        guard.rateLimit(userId);
-        quota.requireAvailable(userId, q.courseId(), AiTask.SPEAKING_PART);
+        if (assignmentId != null) {
+            assigned.requireRecipient(userId, assignmentId, questionId); // trước find: người không được giao nhận 404, không lộ lý do khóa
+        }
+        var q = questions.find(questionId, userId, assignmentId != null);
+        if (assignmentId == null) {
+            guard.rateLimit(userId);
+            quota.requireAvailable(userId, q.courseId(), AiTask.SPEAKING_PART);
+        } else {
+            requireNotSubmitted(assignmentId, userId, null);
+            guard.rateLimit(userId);
+        }
         Instant now = Instant.now(clock);
         long maxBytes = maxBytesFor(q.maxSeconds());
         String key = "speaking/" + userId + "/" + UUID.randomUUID() + ".wav";
         var s = submissions.save(new SpeakingSubmission(userId, q.id(), q.courseId(), key, q.maxSeconds(), maxBytes,
-                now.plus(props.uploadTtl())));
+                now.plus(props.uploadTtl()), assignmentId));
         var form = storage.presignPost(key, CONTENT_TYPE, maxBytes, props.uploadTtl());
         return new UploadPermit(s.getId(), form.url(), form.fields(), maxBytes, CONTENT_TYPE, q.maxSeconds(), s.getUploadExpiresAt());
+    }
+
+    /** Mỗi bài giao nộp một lần: lượt khác của bài này đã vào chấm hoặc có điểm thì chặn (UNCLEAR, FAILED cho nộp lại). */
+    private void requireNotSubmitted(long assignmentId, long userId, Long exceptId) {
+        if (submissions.existsByAssignmentIdAndUserIdAndStatusInAndIdNot(assignmentId, userId, SpeakingSubmission.SUBMITTED_OK,
+                exceptId == null ? -1L : exceptId)) {
+            throw new ApiException(HttpStatus.CONFLICT, "assignment_submitted", "Bạn đã nộp bài được giao này");
+        }
     }
 
     /** Idempotent: đã xác nhận rồi thì trả trạng thái hiện tại, không trừ lượt lần hai. */
@@ -94,15 +116,25 @@ public class SpeakingService {
         if (!Instant.now(clock).isBefore(s.getUploadExpiresAt())) {
             throw expired();
         }
-        var q = questions.find(s.getQuestionId(), userId);
+        var q = questions.find(s.getQuestionId(), userId, s.getAssignmentId() != null);
+        if (s.getAssignmentId() != null) {
+            assigned.requireRecipient(userId, s.getAssignmentId(), q.id());
+            requireNotSubmitted(s.getAssignmentId(), userId, s.getId());
+        }
         var audio = inspect(s);
         enqueuer.enqueue(s, q, audio.size(), audio.duration());
         return response(load(userId, id));
     }
 
-    /** Cùng cổng quyền với create: câu của bộ thi khóa hoặc bộ bị khóa không xem được đề (D-82). */
-    public QuestionView question(long userId, long questionId) {
-        var q = questions.find(questionId, userId);
+    /**
+     * Cùng cổng quyền với create: câu của bộ thi khóa hoặc bộ bị khóa không xem được đề (D-82). Có assignmentId (bài giao đúng câu này)
+     * thì xem được đề dù unit chưa mở.
+     */
+    public QuestionView question(long userId, long questionId, Long assignmentId) {
+        if (assignmentId != null) {
+            assigned.requireRecipient(userId, assignmentId, questionId);
+        }
+        var q = questions.find(questionId, userId, assignmentId != null);
         return new QuestionView(q.id(), q.part(), q.prompt(), q.cueCard(), q.maxSeconds());
     }
 

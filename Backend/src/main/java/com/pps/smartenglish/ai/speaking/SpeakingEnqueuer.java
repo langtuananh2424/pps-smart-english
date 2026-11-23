@@ -12,11 +12,12 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.Instant;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Một transaction: trừ lượt + tạo job SPEAKING_GRADE + đánh dấu GRADING. Tách bean riêng để I/O kho nằm ngoài transaction. */
+/** Một transaction: trừ lượt (trừ bài giao) + tạo job SPEAKING_GRADE + đánh dấu GRADING. Tách bean riêng để I/O kho nằm ngoài transaction. */
 @Component
 class SpeakingEnqueuer {
 
@@ -47,10 +48,19 @@ class SpeakingEnqueuer {
         in.put("courseTitle", q.courseTitle());
         var cue = in.putArray("cueCard");
         q.cueCard().forEach(cue::add);
-        long jobId = aiJobs.enqueueCharged(s.getUserId(), AiJobKind.SPEAKING_GRADE, in, null, null, AiTask.SPEAKING_PART, q.courseId())
-                .orElseThrow(quota::exhausted);
+        // D-130: bài giáo viên giao không trừ lượt, vẫn qua giới hạn tần suất và hàng đợi
+        long jobId = s.getAssignmentId() != null
+                ? aiJobs.enqueueUncharged(s.getUserId(), AiJobKind.SPEAKING_GRADE, in, null)
+                : aiJobs.enqueueCharged(s.getUserId(), AiJobKind.SPEAKING_GRADE, in, null, null, AiTask.SPEAKING_PART, q.courseId())
+                        .orElseThrow(quota::exhausted);
         BigDecimal duration = BigDecimal.valueOf(durationSec).setScale(2, RoundingMode.HALF_UP);
-        if (submissions.claimUpload(s.getId(), jobId, sizeBytes, duration, Instant.now(clock)) == 0) {
+        int claimed;
+        try {
+            claimed = submissions.claimUpload(s.getId(), jobId, sizeBytes, duration, Instant.now(clock));
+        } catch (DataIntegrityViolationException e) { // uq_speaking_assignment_submitted (PostgreSQL): hai lượt cùng nộp một bài giao
+            throw new ApiException(HttpStatus.CONFLICT, "assignment_submitted", "Bạn đã nộp bài được giao này");
+        }
+        if (claimed == 0) {
             throw new ApiException(HttpStatus.CONFLICT, "submission_busy", "Lượt nói này đang được xác nhận");
         }
         return jobId;

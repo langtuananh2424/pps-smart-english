@@ -6,6 +6,7 @@ import com.pps.smartenglish.classroom.repository.ClassSettingsRepository;
 import com.pps.smartenglish.retention.service.NotificationService;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,13 +20,15 @@ public class AssignmentReminderService {
     private final ClassSettingsRepository settings;
     private final AssignmentRepository assignments;
     private final ClassService classes;
+    private final AiAssignmentSubmissions aiSubmissions;
     private final NotificationService notifications;
 
     AssignmentReminderService(ClassSettingsRepository settings, AssignmentRepository assignments, ClassService classes,
-                              NotificationService notifications) {
+                              AiAssignmentSubmissions aiSubmissions, NotificationService notifications) {
         this.settings = settings;
         this.assignments = assignments;
         this.classes = classes;
+        this.aiSubmissions = aiSubmissions;
         this.notifications = notifications;
     }
 
@@ -37,8 +40,10 @@ public class AssignmentReminderService {
         int sent = 0;
         for (Assignment a : assignments.dueForReminder(now, until)) {
             if (assignments.claimReminder(a.getId(), now) == 1) {
-                // r[2] null = chưa có lượt đã nộp
-                assignments.progress(a.getId(), a.getClassId()).stream().filter(r -> r[2] == null)
+                // r[2] null = chưa có lượt đã nộp; bài Viết/Nói thì người đã nộp lấy từ phiên viết, lượt nói
+                Set<Long> submitted = a.isAiQuestion() ? aiSubmissions.latestByUser(a).keySet() : Set.of();
+                assignments.progress(a.getId(), a.getClassId()).stream()
+                        .filter(r -> r[2] == null && !submitted.contains(((Number) r[0]).longValue()))
                         .forEach(r -> notifications.assignmentDue(((Number) r[0]).longValue(), a.getClassId(), a.getId()));
                 sent++;
             }

@@ -9,7 +9,12 @@ import java.util.List;
 public interface SpeakingQuestionSource {
 
     /** Không tồn tại thì 404, không phải SPEAKING thì 400, không có quyền vào bộ câu hỏi thì 403. */
-    SpeakingQuestion find(long questionId, long userId);
+    default SpeakingQuestion find(long questionId, long userId) {
+        return find(questionId, userId, false);
+    }
+
+    /** inAssignment: người gọi đã kiểm là người nhận bài giao đúng câu này, nên bỏ khóa unit tuần tự cho riêng câu đó (FR-ASG-01). */
+    SpeakingQuestion find(long questionId, long userId, boolean inAssignment);
 
     /** maxSeconds đã áp mặc định theo part (D-43). cueCard rỗng nếu không phải part 2. */
     record SpeakingQuestion(long id, int part, String prompt, List<String> cueCard, int maxSeconds, String courseTitle, Long courseId) {}

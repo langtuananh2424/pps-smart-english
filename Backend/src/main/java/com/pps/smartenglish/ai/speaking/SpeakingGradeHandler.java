@@ -82,7 +82,9 @@ class SpeakingGradeHandler implements AiJobHandler {
             // D-48: không chấm thì không trừ lượt, hoàn trong cùng transaction hoàn tất job
             return new Completion(result, engineUsage, j -> {
                 finish(submissionId, result);
-                quota.refund(j);
+                if (j.isCharged()) { // bài giao (D-130) chưa trừ nên không có gì để hoàn
+                    quota.refund(j);
+                }
             });
         }
 

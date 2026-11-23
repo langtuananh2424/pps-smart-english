@@ -16,6 +16,8 @@ public class Assignment extends Auditable {
 
     public static final String ACTIVE = "ACTIVE";
     public static final String CANCELLED = "CANCELLED";
+    public static final String WRITING = "WRITING";
+    public static final String SPEAKING = "SPEAKING";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,6 +28,14 @@ public class Assignment extends Auditable {
 
     @Column(name = "bank_id", nullable = false, updatable = false)
     private Long bankId;
+
+    /** Giao riêng câu Viết/Nói chấm AI (D-130); null khi giao cả bộ câu hỏi. bank_id vẫn là bộ chứa câu. */
+    @Column(name = "question_id", updatable = false)
+    private Long questionId;
+
+    /** WRITING hoặc SPEAKING khi có questionId. */
+    @Column(name = "question_type", updatable = false)
+    private String questionType;
 
     @Column(name = "due_at", nullable = false, updatable = false)
     private Instant dueAt;
@@ -53,7 +63,18 @@ public class Assignment extends Auditable {
         this.liveKey = classId + ":" + bankId + ":" + dueAt.toEpochMilli();
     }
 
+    /** Giao một câu Viết/Nói: live_key có thêm câu để hai câu cùng bộ, cùng hạn không bị coi là trùng. */
+    public Assignment(Long classId, Long bankId, Long questionId, String questionType, Instant dueAt, Long createdBy) {
+        this(classId, bankId, dueAt, createdBy);
+        this.questionId = questionId;
+        this.questionType = questionType;
+        this.liveKey = classId + ":" + bankId + ":q" + questionId + ":" + dueAt.toEpochMilli();
+    }
+
     public Long getId() { return id; }
+    public Long getQuestionId() { return questionId; }
+    public String getQuestionType() { return questionType; }
+    public boolean isAiQuestion() { return questionId != null; }
     public Long getClassId() { return classId; }
     public Long getBankId() { return bankId; }
     public Instant getDueAt() { return dueAt; }

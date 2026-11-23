@@ -9,8 +9,11 @@ import com.pps.smartenglish.classroom.dto.AssignmentDtos.CreateAssignment;
 import com.pps.smartenglish.classroom.repository.AssignmentRepository;
 import com.pps.smartenglish.classroom.repository.AssignmentTargetRepository;
 import com.pps.smartenglish.classroom.repository.ClassMemberRepository;
+import com.pps.smartenglish.exercise.domain.QuestionBank;
+import com.pps.smartenglish.exercise.domain.QuestionType;
 import com.pps.smartenglish.exercise.dto.AttemptStarted;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
+import com.pps.smartenglish.exercise.repository.QuestionRepository;
 import com.pps.smartenglish.exercise.service.AttemptService;
 import com.pps.smartenglish.retention.service.NotificationService;
 import com.pps.smartenglish.shared.audit.AuditRecorder;
@@ -29,7 +32,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * FR-ASG-01, FR-ASG-02: giáo viên, trợ giảng giao một bộ câu hỏi đã xuất bản của khóa cho cả lớp hoặc một số học viên, kèm hạn.
+ * FR-ASG-01, FR-ASG-02: giáo viên, trợ giảng giao một bộ câu hỏi hoặc một câu Viết/Nói chấm AI (D-130) đã xuất bản của khóa cho cả lớp
+ * hoặc một số học viên, kèm hạn.
  * Không giao trùng (cùng bài, lớp, hạn) nhờ unique ở DB. Học viên làm qua luồng lượt làm bài thường; bài giao không trừ lượt AI
  * (D-130) và được mở riêng dù unit chưa mở (BankGate hỏi AssignedBanks).
  */
@@ -44,13 +48,16 @@ public class AssignmentService {
     private final ClassService classes;
     private final ClassMemberRepository members;
     private final QuestionBankRepository banks;
+    private final QuestionRepository questions;
+    private final AiAssignmentSubmissions aiSubmissions;
     private final AttemptService attempts;
     private final NotificationService notifications;
     private final CmsWrites writes;
     private final AuditRecorder audit;
 
     AssignmentService(AssignmentRepository assignments, AssignmentTargetRepository targets, ClassAccess access, ClassService classes,
-                      ClassMemberRepository members, QuestionBankRepository banks, AttemptService attempts,
+                      ClassMemberRepository members, QuestionBankRepository banks, QuestionRepository questions,
+                      AiAssignmentSubmissions aiSubmissions, AttemptService attempts,
                       NotificationService notifications, CmsWrites writes, AuditRecorder audit) {
         this.assignments = assignments;
         this.targets = targets;
@@ -58,6 +65,8 @@ public class AssignmentService {
         this.classes = classes;
         this.members = members;
         this.banks = banks;
+        this.questions = questions;
+        this.aiSubmissions = aiSubmissions;
         this.attempts = attempts;
         this.notifications = notifications;
         this.writes = writes;
@@ -71,10 +80,19 @@ public class AssignmentService {
         if (!req.dueAt().isAfter(classes.now())) {
             throw ApiException.validation("dueAt", "Hạn nộp phải ở tương lai");
         }
+        if ((req.bankId() == null) == (req.questionId() == null)) {
+            throw ApiException.validation("bankId", "Chọn một bộ câu hỏi hoặc một câu Viết/Nói");
+        }
+        var question = req.questionId() == null ? null : aiQuestion(req.questionId());
+        long bankId = question == null ? req.bankId() : question.getBankId();
+        String field = question == null ? "bankId" : "questionId";
         // findInfo chỉ trả bộ câu hỏi mà cả chuỗi bài, unit, level, khóa đều đã xuất bản
-        banks.findInfo(req.bankId()).orElseThrow(() -> ApiException.validation("bankId", "Bộ câu hỏi không tồn tại hoặc chưa xuất bản"));
-        if (!room.getCourseId().equals(banks.findCourseId(req.bankId()).orElse(null))) {
-            throw ApiException.validation("bankId", "Bộ câu hỏi không thuộc khóa của lớp");
+        var info = banks.findInfo(bankId).orElseThrow(() -> ApiException.validation(field, "Bộ câu hỏi không tồn tại hoặc chưa xuất bản"));
+        if (!room.getCourseId().equals(banks.findCourseId(bankId).orElse(null))) {
+            throw ApiException.validation(field, "Bộ câu hỏi không thuộc khóa của lớp");
+        }
+        if (question != null && QuestionBank.EXAM.equals(info.mode())) { // D-82: câu của bài thi không luyện, không giao riêng
+            throw ApiException.validation(field, "Câu thuộc bài thi, không giao riêng được");
         }
         Set<Long> chosen = req.studentIds() == null ? Set.of() : new HashSet<>(req.studentIds());
         Set<Long> active = new HashSet<>();
@@ -82,13 +100,24 @@ public class AssignmentService {
         if (!active.containsAll(chosen)) {
             throw ApiException.validation("studentIds", "Có học viên không thuộc lớp");
         }
-        var a = writes.save(assignments, new Assignment(classId, req.bankId(), req.dueAt(), callerId), "assignment_duplicate",
+        var entity = question == null ? new Assignment(classId, bankId, req.dueAt(), callerId)
+                : new Assignment(classId, bankId, question.getId(), question.getType().name(), req.dueAt(), callerId);
+        var a = writes.save(assignments, entity, "assignment_duplicate",
                 "Bài này đã được giao cho lớp với cùng hạn nộp");
         targets.saveAll(chosen.stream().map(u -> new AssignmentTarget(a.getId(), u)).toList());
         (chosen.isEmpty() ? active : chosen).forEach(u -> notifications.assignmentNew(u, classId, a.getId()));
         var view = views(List.of(a), 0).get(0);
         audit.record("ASSIGNMENT_CREATE", "CLASS", classId, null, view);
         return view;
+    }
+
+    /** Câu phải tồn tại và là Viết hoặc Nói: hai dạng chấm AI chạy phiên riêng, không làm trong lượt làm bài. */
+    private com.pps.smartenglish.exercise.domain.Question aiQuestion(long questionId) {
+        var q = questions.findById(questionId).orElseThrow(() -> ApiException.validation("questionId", "Câu hỏi không tồn tại"));
+        if (q.getType() != QuestionType.WRITING && q.getType() != QuestionType.SPEAKING) {
+            throw ApiException.validation("questionId", "Chỉ giao riêng được câu Viết hoặc Nói");
+        }
+        return q;
     }
 
     /** Hủy bài giao (idempotent): lượt đã nộp vẫn còn, bài không hiện cho học viên nữa. */
@@ -127,6 +156,9 @@ public class AssignmentService {
         if (!assignments.isRecipient(assignmentId, userId)) {
             throw notFound();
         }
+        if (a.isAiQuestion()) {
+            throw new ApiException(HttpStatus.CONFLICT, "assignment_not_attemptable", "Bài Viết/Nói làm ở màn Viết/Nói, gửi kèm assignmentId");
+        }
         return attempts.startAssigned(a.getBankId(), userId, assignmentId);
     }
 
@@ -150,13 +182,18 @@ public class AssignmentService {
         Set<Long> withTargets = new HashSet<>();
         targets.findByAssignmentIdIn(ids).forEach(t -> withTargets.add(t.getAssignmentId()));
         Instant now = classes.now();
-        return rows.stream().map(a -> new AssignmentView(a.getId(), a.getClassId(), a.getBankId(), titles.get(a.getBankId()), a.getDueAt(),
-                a.getStatus(), !withTargets.contains(a.getId()), viewerId > 0 ? myStatus(a, viewerId, now) : null)).toList();
+        return rows.stream().map(a -> new AssignmentView(a.getId(), a.getClassId(), a.getBankId(), titles.get(a.getBankId()), a.getQuestionId(),
+                a.getQuestionType(), a.getDueAt(), a.getStatus(), !withTargets.contains(a.getId()), viewerId > 0 ? myStatus(a, viewerId, now) : null)).toList();
     }
 
     private String myStatus(Assignment a, long userId, Instant now) {
-        var row = assignments.latestSubmitted(a.getId(), userId);
-        Instant submittedAt = row.isEmpty() ? null : SqlTimes.instant(row.get(0)[1]);
+        Instant submittedAt;
+        if (a.isAiQuestion()) {
+            submittedAt = aiSubmissions.latestOf(a, userId).map(AssignmentSubmission::submittedAt).orElse(null);
+        } else {
+            var row = assignments.latestSubmitted(a.getId(), userId);
+            submittedAt = row.isEmpty() ? null : SqlTimes.instant(row.get(0)[1]);
+        }
         return AssignmentProgressService.status(a.getDueAt(), submittedAt, now);
     }
 }

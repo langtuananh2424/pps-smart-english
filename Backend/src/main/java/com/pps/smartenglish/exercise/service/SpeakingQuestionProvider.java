@@ -32,13 +32,13 @@ class SpeakingQuestionProvider implements SpeakingQuestionSource {
 
     @Override
     @Transactional(readOnly = true)
-    public SpeakingQuestion find(long questionId, long userId) {
+    public SpeakingQuestion find(long questionId, long userId, boolean inAssignment) {
         var q = questions.findById(questionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "question_not_found", "Không tìm thấy câu hỏi"));
         if (q.getType() != QuestionType.SPEAKING) {
             throw ApiException.validation("questionId", "Không phải câu hỏi nói");
         }
-        gate.requirePracticable(q.getBankId(), userId);
+        gate.requirePracticable(q.getBankId(), userId, inAssignment);
         JsonNode p = q.getPayload();
         int part = p.path("part").asInt();
         int max = p.path("maxSeconds").isIntegralNumber() ? p.path("maxSeconds").asInt() : part == 2 ? PART2_SECONDS : SHORT_PART_SECONDS;

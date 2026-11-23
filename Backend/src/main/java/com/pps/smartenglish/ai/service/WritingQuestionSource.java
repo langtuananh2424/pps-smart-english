@@ -10,7 +10,12 @@ import com.pps.smartenglish.ai.domain.AiTask;
 public interface WritingQuestionSource {
 
     /** Câu hỏi không tồn tại thì 404, không phải dạng WRITING thì 400, không có quyền vào bộ câu hỏi thì 403. */
-    WritingQuestion find(long questionId, long userId);
+    default WritingQuestion find(long questionId, long userId) {
+        return find(questionId, userId, false);
+    }
+
+    /** inAssignment: người gọi đã kiểm là người nhận bài giao đúng câu này, nên bỏ khóa unit tuần tự cho riêng câu đó (FR-ASG-01). */
+    WritingQuestion find(long questionId, long userId, boolean inAssignment);
 
     /**
      * prompt: câu hỏi gốc do Admin soạn. task: đề bài chấm (payload.task, mặc định là prompt).

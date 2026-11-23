@@ -61,9 +61,15 @@ public class AiJobService {
     /** Job chấm bài không trừ lượt (bài giáo viên giao, D-130): vẫn giới hạn tần suất và kiểm hàng đợi như job thường. */
     @Transactional
     public long enqueueUncharged(long userId, AiJobKind kind, JsonNode input, Long attemptId) {
+        return enqueueUncharged(userId, kind, input, null, attemptId);
+    }
+
+    /** Như trên, kèm phiên viết (WRITING_GRADE của bài giao cần sessionId để ghi kết quả). */
+    @Transactional
+    public long enqueueUncharged(long userId, AiJobKind kind, JsonNode input, Long sessionId, Long attemptId) {
         guard.rateLimit(userId);
         guard.requireCapacity();
-        return jobs.save(new AiJob(userId, kind, input, null, attemptId, false, Instant.now(clock))).getId();
+        return jobs.save(new AiJob(userId, kind, input, sessionId, attemptId, false, Instant.now(clock))).getId();
     }
 
     /**

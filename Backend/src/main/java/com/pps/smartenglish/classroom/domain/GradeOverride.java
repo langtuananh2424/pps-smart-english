@@ -18,8 +18,15 @@ public class GradeOverride {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "attempt_id", nullable = false, updatable = false)
+    /** Đúng một trong ba: lượt làm bài, phiên viết hoặc lượt nói của bài giao. */
+    @Column(name = "attempt_id", updatable = false)
     private Long attemptId;
+
+    @Column(name = "writing_session_id", updatable = false)
+    private Long writingSessionId;
+
+    @Column(name = "speaking_submission_id", updatable = false)
+    private Long speakingSubmissionId;
 
     @Column(updatable = false)
     private BigDecimal score;
@@ -43,8 +50,24 @@ public class GradeOverride {
         this.gradedAt = gradedAt;
     }
 
+    /** Sửa điểm cho bài Viết/Nói; questionType là Assignment.getQuestionType(), null thì submissionId là lượt làm bài. */
+    public static GradeOverride of(String questionType, Long submissionId, BigDecimal score, String comment, Long gradedBy, Instant gradedAt) {
+        var o = new GradeOverride(null, score, comment, gradedBy, gradedAt);
+        if (Assignment.WRITING.equals(questionType)) {
+            o.writingSessionId = submissionId;
+        } else if (Assignment.SPEAKING.equals(questionType)) {
+            o.speakingSubmissionId = submissionId;
+        } else {
+            o.attemptId = submissionId;
+        }
+        return o;
+    }
+
     public Long getId() { return id; }
-    public Long getAttemptId() { return attemptId; }
+    /** Id của lượt làm bài, phiên viết hoặc lượt nói mà dòng này chấm. */
+    public Long getSubmissionId() {
+        return attemptId != null ? attemptId : writingSessionId != null ? writingSessionId : speakingSubmissionId;
+    }
     public BigDecimal getScore() { return score; }
     public String getComment() { return comment; }
     public Long getGradedBy() { return gradedBy; }

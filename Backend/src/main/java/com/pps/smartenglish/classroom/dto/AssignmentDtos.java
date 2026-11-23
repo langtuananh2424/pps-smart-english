@@ -12,17 +12,24 @@ public final class AssignmentDtos {
 
     private AssignmentDtos() {}
 
-    /** studentIds trống hoặc vắng = cả lớp. */
+    /**
+     * Giao một bộ câu hỏi (bankId) hoặc một câu Viết/Nói chấm AI (questionId), đúng một trong hai (D-130).
+     * studentIds trống hoặc vắng = cả lớp.
+     */
     public record CreateAssignment(
-            @NotNull(message = "Bộ câu hỏi là bắt buộc") Long bankId,
+            Long bankId,
+            Long questionId,
             @NotNull(message = "Hạn nộp là bắt buộc") Instant dueAt,
             @Size(max = 200, message = "Tối đa 200 học viên") List<Long> studentIds) {}
 
-    /** myStatus chỉ điền khi người xem là học viên. */
-    public record AssignmentView(Long id, Long classId, Long bankId, String bankTitle, Instant dueAt, String status, boolean wholeClass,
-                                 String myStatus) {}
+    /** questionId, questionType (WRITING, SPEAKING): bài giao câu Viết/Nói, null khi giao cả bộ. myStatus chỉ điền khi người xem là học viên. */
+    public record AssignmentView(Long id, Long classId, Long bankId, String bankTitle, Long questionId, String questionType, Instant dueAt,
+                                 String status, boolean wholeClass, String myStatus) {}
 
-    /** status: NOT_SUBMITTED, SUBMITTED, LATE (nộp sau hạn), OVERDUE (quá hạn chưa nộp). finalScore = điểm giáo viên sửa mới nhất, không có thì điểm AI. */
+    /**
+     * status: NOT_SUBMITTED, SUBMITTED, LATE (nộp sau hạn), OVERDUE (quá hạn chưa nộp). finalScore = điểm giáo viên sửa mới nhất, không có thì điểm AI.
+     * attemptId: id lượt làm bài; với bài giao câu Viết là id phiên viết, câu Nói là id lượt nói. Thang điểm bài Viết 100, bài Nói 9 band.
+     */
     public record ProgressRow(Long userId, String displayName, String status, Long attemptId, Instant submittedAt, BigDecimal aiScore,
                               Integer maxScore, BigDecimal finalScore, String teacherComment) {}
 

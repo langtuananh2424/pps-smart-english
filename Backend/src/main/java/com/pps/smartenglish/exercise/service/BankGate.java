@@ -30,13 +30,21 @@ class BankGate {
     }
 
     BankInfo require(Long bankId, Long userId) {
+        return require(bankId, userId, false);
+    }
+
+    /**
+     * inAssignment: người gọi đã kiểm họ là người nhận bài giao đúng câu này (FR-ASG-01): bỏ khóa unit tuần tự cho câu đó,
+     * các policy quyền vẫn áp. Không mở cả bộ: chỗ khác của bộ vẫn gọi require thường.
+     */
+    BankInfo require(Long bankId, Long userId, boolean inAssignment) {
         var bank = banks.findInfo(bankId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "bank_not_found", "Không tìm thấy bộ câu hỏi"));
         if (policies.stream().noneMatch(p -> p.allows(userId, bank))) {
             throw new ApiException(HttpStatus.FORBIDDEN, "bank_locked", "Bạn chưa có quyền làm bộ câu hỏi này");
         }
         // Học tuần tự (FR-LMS-04); bài thi cuối khóa mở theo tỷ lệ học (ExamService), không theo thứ tự unit.
-        if (courses.findByExamBankId(bankId).isEmpty() && !assigned.isAssigned(userId, bankId)) {
+        if (courses.findByExamBankId(bankId).isEmpty() && !inAssignment && !assigned.isAssigned(userId, bankId)) {
             unitUnlock.requireUnlocked(userId, bank.topicId());
         }
         return bank;
@@ -44,10 +52,14 @@ class BankGate {
 
     /** D-82: Viết/Nói luyện tập không nhận câu của bộ thi khóa (làm cùng luồng thi). */
     BankInfo requirePracticable(Long bankId, Long userId) {
+        return requirePracticable(bankId, userId, false);
+    }
+
+    BankInfo requirePracticable(Long bankId, Long userId, boolean inAssignment) {
         // Kiểm mode trước quyền: bộ thi chưa mở sẽ bị bank_locked che mất lý do thật.
         if (banks.findInfo(bankId).filter(b -> QuestionBank.EXAM.equals(b.mode())).isPresent()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "exam_question_not_practicable", "Câu này thuộc bài thi, không luyện tập riêng được");
         }
-        return require(bankId, userId);
+        return require(bankId, userId, inAssignment);
     }
 }

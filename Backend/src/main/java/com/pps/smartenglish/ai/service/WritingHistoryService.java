@@ -43,7 +43,7 @@ public class WritingHistoryService {
     public SessionView view(long userId, long sessionId) {
         var s = sessions.findByIdAndUserId(sessionId, userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "session_not_found", "Không tìm thấy phiên viết"));
-        var q = questions.find(s.getQuestionId(), userId);
+        var q = questions.find(s.getQuestionId(), userId, s.getAssignmentId() != null);
         List<TurnView> turns = new ArrayList<>();
         s.getTurns().forEach(t -> turns.add(new TurnView(
                 WritingService.ASSISTANT.equals(t.path("role").asText()) ? "CAM" : "STUDENT", t.path("text").asText())));

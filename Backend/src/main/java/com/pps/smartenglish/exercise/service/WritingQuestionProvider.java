@@ -26,13 +26,13 @@ class WritingQuestionProvider implements WritingQuestionSource {
 
     @Override
     @Transactional(readOnly = true)
-    public WritingQuestion find(long questionId, long userId) {
+    public WritingQuestion find(long questionId, long userId, boolean inAssignment) {
         var q = questions.findById(questionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "question_not_found", "Không tìm thấy câu hỏi"));
         if (q.getType() != QuestionType.WRITING) {
             throw ApiException.validation("questionId", "Không phải câu hỏi viết");
         }
-        gate.requirePracticable(q.getBankId(), userId);
+        gate.requirePracticable(q.getBankId(), userId, inAssignment);
         var payload = q.getPayload();
         String task = payload != null && payload.path("task").isTextual() && !payload.path("task").asText().isBlank()
                 ? payload.path("task").asText() : q.getPrompt();

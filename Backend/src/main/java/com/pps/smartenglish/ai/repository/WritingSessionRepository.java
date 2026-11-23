@@ -26,10 +26,23 @@ public interface WritingSessionRepository extends JpaRepository<WritingSession, 
     java.util.List<Object[]> lastSubmitted(@Param("userId") Long userId,
                                            @Param("questionIds") java.util.Collection<Long> questionIds);
 
+    /** Phiên đang làm dở của bài giao: dùng lại thay vì mở thêm phiên (mỗi bài giao nộp một lần). */
+    Optional<WritingSession> findFirstByAssignmentIdAndUserIdAndStatusInOrderByIdDesc(Long assignmentId, Long userId,
+                                                                                      java.util.Collection<String> statuses);
+
+    List<WritingSession> findByAssignmentIdAndStatus(Long assignmentId, String status);
+
+    List<WritingSession> findByAssignmentIdAndUserIdAndStatus(Long assignmentId, Long userId, String status);
+
+    /** Đã nộp bài giao này mà chấm không lỗi (job lỗi hẳn thì cho nộp lại). */
+    @Query("select count(s) > 0 from WritingSession s where s.assignmentId = :assignmentId and s.userId = :userId "
+            + "and s.status = 'SUBMITTED' and not exists (select 1 from AiJob j where j.id = s.gradeJobId and j.status = 'FAILED')")
+    boolean hasSubmittedAssignment(@Param("assignmentId") Long assignmentId, @Param("userId") Long userId);
+
     /** Nộp từ ACTIVE hoặc READY đúng một lần; 0 dòng = đã nộp (nộp đồng thời bằng hai khóa khác nhau). */
     @Transactional
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("update WritingSession s set s.status = 'SUBMITTED', s.gradeJobId = :jobId, s.updatedAt = :now "
+    @Query("update WritingSession s set s.status = 'SUBMITTED', s.gradeJobId = :jobId, s.updatedAt = :now, s.submittedAt = :now "
             + "where s.id = :id and s.status in ('ACTIVE', 'READY')")
     int claimSubmit(@Param("id") Long id, @Param("jobId") Long jobId, @Param("now") Instant now);
 }

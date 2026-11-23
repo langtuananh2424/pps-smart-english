@@ -37,8 +37,15 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
             + "or exists (select 1 from AssignmentTarget t where t.assignmentId = a.id and t.userId = :userId))")
     boolean isRecipient(@Param("id") Long id, @Param("userId") Long userId);
 
-    /** Học viên có bài còn hiệu lực dùng bộ câu hỏi này (mở riêng bài đó dù unit chưa mở, FR-ASG-01). */
-    @Query("select count(a) > 0 from Assignment a where a.bankId = :bankId and a.status = 'ACTIVE' "
+    /** Như isRecipient, và bài phải giao đúng câu Viết/Nói này (D-130). */
+    @Query("select count(a) > 0 from Assignment a where a.id = :id and a.questionId = :questionId and a.status = 'ACTIVE' "
+            + "and a.classId in (select m.classId from ClassMember m where m.userId = :userId and m.status = 'ACTIVE') "
+            + "and (not exists (select 1 from AssignmentTarget t where t.assignmentId = a.id) "
+            + "or exists (select 1 from AssignmentTarget t where t.assignmentId = a.id and t.userId = :userId))")
+    boolean isRecipientOfQuestion(@Param("id") Long id, @Param("userId") Long userId, @Param("questionId") Long questionId);
+
+    /** Học viên có bài giao cả bộ còn hiệu lực cho bộ này (mở riêng bài đó dù unit chưa mở, FR-ASG-01). Bài giao một câu không mở cả bộ. */
+    @Query("select count(a) > 0 from Assignment a where a.bankId = :bankId and a.questionId is null and a.status = 'ACTIVE' "
             + "and a.classId in (select m.classId from ClassMember m where m.userId = :userId and m.status = 'ACTIVE') "
             + "and (not exists (select 1 from AssignmentTarget t where t.assignmentId = a.id) "
             + "or exists (select 1 from AssignmentTarget t where t.assignmentId = a.id and t.userId = :userId))")

@@ -40,13 +40,14 @@ public class WritingService {
     private final AiQuotaService quota;
     private final AiGuard guard;
     private final WritingQuestionSource questions;
+    private final AssignedAiWork assigned;
     private final EmailVerification emailVerification;
     private final IdempotencyService idempotency;
     private final ObjectMapper mapper;
     private final Clock clock;
 
     WritingService(WritingSessionRepository sessions, AiJobRepository jobs, AiJobService aiJobs, AiQuotaService quota,
-                   AiGuard guard, WritingQuestionSource questions, EmailVerification emailVerification,
+                   AiGuard guard, WritingQuestionSource questions, AssignedAiWork assigned, EmailVerification emailVerification,
                    IdempotencyService idempotency, ObjectMapper mapper, Clock clock) {
         this.sessions = sessions;
         this.jobs = jobs;
@@ -54,21 +55,38 @@ public class WritingService {
         this.quota = quota;
         this.guard = guard;
         this.questions = questions;
+        this.assigned = assigned;
         this.emailVerification = emailVerification;
         this.idempotency = idempotency;
         this.mapper = mapper;
         this.clock = clock;
     }
 
-    /** Không gọi AI. */
+    /**
+     * Không gọi AI. Có assignmentId (bài giáo viên giao, D-130): không kiểm lượt, dùng lại phiên đang làm dở của bài đó,
+     * và chặn khi đã nộp rồi; vẫn qua giới hạn tần suất.
+     */
     @Transactional
-    public SessionCreated create(long userId, long questionId) {
+    public SessionCreated create(long userId, long questionId, Long assignmentId) {
         emailVerification.require(userId);
-        WritingQuestion q = questions.find(questionId, userId);
-        guard.rateLimit(userId);
-        quota.requireAvailable(userId, q.courseId(), q.aiTask());
+        if (assignmentId != null) {
+            assigned.requireRecipient(userId, assignmentId, questionId); // trước find: người không được giao nhận 404, không lộ lý do khóa
+        }
+        WritingQuestion q = questions.find(questionId, userId, assignmentId != null);
+        if (assignmentId == null) {
+            guard.rateLimit(userId);
+            quota.requireAvailable(userId, q.courseId(), q.aiTask());
+        } else {
+            var open = sessions.findFirstByAssignmentIdAndUserIdAndStatusInOrderByIdDesc(assignmentId, userId,
+                    java.util.List.of(WritingSession.ACTIVE, WritingSession.READY));
+            if (open.isPresent()) {
+                return new SessionCreated(open.get().getId(), new RootQuestion(q.id(), q.prompt(), q.payload()));
+            }
+            requireNotSubmitted(assignmentId, userId);
+            guard.rateLimit(userId);
+        }
         ArrayNode turns = mapper.createArrayNode().add(turn(ASSISTANT, q.prompt()));
-        var s = sessions.save(new WritingSession(userId, q.id(), turns));
+        var s = sessions.save(new WritingSession(userId, q.id(), turns, assignmentId));
         return new SessionCreated(s.getId(), new RootQuestion(q.id(), q.prompt(), q.payload()));
     }
 
@@ -79,8 +97,8 @@ public class WritingService {
             throw new ApiException(HttpStatus.CONFLICT, "session_not_active", "Phiên viết không còn nhận câu trả lời");
         }
         guard.rateLimit(userId);
-        WritingQuestion q = questions.find(s.getQuestionId(), userId);
-        quota.requireAvailable(userId, q.courseId(), q.aiTask());
+        WritingQuestion q = questions.find(s.getQuestionId(), userId, s.getAssignmentId() != null);
+        requireAllowance(s, q, userId);
         requireIdle(s);
         s.setTurns(append(s.getTurns(), STUDENT, text));
         if (s.getStep() >= MAX_FOLLOWUPS) {
@@ -102,8 +120,8 @@ public class WritingService {
             throw new ApiException(HttpStatus.CONFLICT, "session_not_ready", "Chưa đủ câu trả lời để tạo bản nháp");
         }
         guard.rateLimit(userId);
-        WritingQuestion q = questions.find(s.getQuestionId(), userId);
-        quota.requireAvailable(userId, q.courseId(), q.aiTask());
+        WritingQuestion q = questions.find(s.getQuestionId(), userId, s.getAssignmentId() != null);
+        requireAllowance(s, q, userId);
         requireIdle(s);
         guard.requireCapacity();
         ObjectNode in = baseInput(s, q);
@@ -123,13 +141,20 @@ public class WritingService {
         if (WritingSession.SUBMITTED.equals(s.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "session_submitted", "Phiên viết này đã được nộp");
         }
-        WritingQuestion q = questions.find(s.getQuestionId(), userId);
+        WritingQuestion q = questions.find(s.getQuestionId(), userId, s.getAssignmentId() != null);
         ObjectNode in = baseInput(s, q);
         in.put("text", finalText);
         in.put("wordCount", WordStats.count(finalText));
         in.put("copiedWords", WordStats.copiedFromPrompt(finalText, q.task()));
-        Long jobId = aiJobs.enqueueCharged(userId, AiJobKind.WRITING_GRADE, in, s.getId(), null, q.aiTask(), q.courseId())
-                .orElseThrow(quota::exhausted);
+        Long jobId;
+        if (s.getAssignmentId() == null) {
+            jobId = aiJobs.enqueueCharged(userId, AiJobKind.WRITING_GRADE, in, s.getId(), null, q.aiTask(), q.courseId())
+                    .orElseThrow(quota::exhausted);
+        } else { // D-130: bài giao không trừ lượt, vẫn qua giới hạn tần suất và hàng đợi
+            assigned.requireRecipient(userId, s.getAssignmentId(), q.id());
+            requireNotSubmitted(s.getAssignmentId(), userId);
+            jobId = aiJobs.enqueueUncharged(userId, AiJobKind.WRITING_GRADE, in, s.getId(), null);
+        }
         // chặn nộp đồng thời bằng hai khóa khác nhau: bên thua rollback, kéo theo cả lượt đã trừ
         if (sessions.claimSubmit(s.getId(), jobId, Instant.now(clock)) == 0) {
             throw new ApiException(HttpStatus.CONFLICT, "session_submitted", "Phiên viết này đã được nộp");
@@ -140,6 +165,21 @@ public class WritingService {
     private WritingSession load(long userId, long sessionId) {
         return sessions.findByIdAndUserId(sessionId, userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "session_not_found", "Không tìm thấy phiên viết"));
+    }
+
+    /** Phiên của bài giao: không kiểm lượt mà kiểm bài còn giao cho học viên; phiên thường: còn đủ lượt (Q-15). */
+    private void requireAllowance(WritingSession s, WritingQuestion q, long userId) {
+        if (s.getAssignmentId() == null) {
+            quota.requireAvailable(userId, q.courseId(), q.aiTask());
+        } else {
+            assigned.requireRecipient(userId, s.getAssignmentId(), q.id());
+        }
+    }
+
+    private void requireNotSubmitted(long assignmentId, long userId) {
+        if (sessions.hasSubmittedAssignment(assignmentId, userId)) {
+            throw new ApiException(HttpStatus.CONFLICT, "assignment_submitted", "Bạn đã nộp bài được giao này");
+        }
     }
 
     private void requireIdle(WritingSession s) {

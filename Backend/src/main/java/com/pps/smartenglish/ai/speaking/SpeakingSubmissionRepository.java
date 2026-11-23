@@ -21,11 +21,18 @@ public interface SpeakingSubmissionRepository extends JpaRepository<SpeakingSubm
 
     List<SpeakingSubmission> findByUserIdAndQuestionIdAndIdLessThanOrderByIdDesc(Long userId, Long questionId, Long before, Pageable page);
 
+    List<SpeakingSubmission> findByAssignmentIdAndStatusIn(Long assignmentId, java.util.Collection<String> statuses);
+
+    List<SpeakingSubmission> findByAssignmentIdAndUserIdAndStatusIn(Long assignmentId, Long userId, java.util.Collection<String> statuses);
+
+    /** Đã nộp bài giao này (trừ lượt `exceptId`). */
+    boolean existsByAssignmentIdAndUserIdAndStatusInAndIdNot(Long assignmentId, Long userId, java.util.Collection<String> statuses, Long id);
+
     /** Xác nhận đúng một lần: 0 dòng nghĩa là có request khác đã xác nhận trước. */
     @Transactional
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update SpeakingSubmission s set s.status = 'GRADING', s.jobId = :jobId, s.sizeBytes = :size, s.durationSec = :duration, "
-            + "s.updatedAt = :now where s.id = :id and s.status = 'AWAITING_UPLOAD'")
+            + "s.updatedAt = :now, s.submittedAt = :now where s.id = :id and s.status = 'AWAITING_UPLOAD'")
     int claimUpload(@Param("id") Long id, @Param("jobId") Long jobId, @Param("size") long size,
                     @Param("duration") BigDecimal duration, @Param("now") Instant now);
 

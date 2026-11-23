@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -46,12 +47,25 @@ public class WritingSession extends Auditable {
     @Column(name = "grade_job_id")
     private Long gradeJobId;
 
+    /** Bài giáo viên giao (FR-ASG-02); null với phiên luyện tập thường. */
+    @Column(name = "assignment_id", updatable = false)
+    private Long assignmentId;
+
+    /** Lúc nộp chấm; chỉ ghi qua claimSubmit. */
+    @Column(name = "submitted_at")
+    private Instant submittedAt;
+
     protected WritingSession() {}
 
     public WritingSession(Long userId, Long questionId, JsonNode turns) {
         this.userId = userId;
         this.questionId = questionId;
         this.turns = turns;
+    }
+
+    public WritingSession(Long userId, Long questionId, JsonNode turns, Long assignmentId) {
+        this(userId, questionId, turns);
+        this.assignmentId = assignmentId;
     }
 
     public void setTurns(JsonNode turns) { this.turns = turns; }
@@ -67,4 +81,6 @@ public class WritingSession extends Auditable {
     public String getDraft() { return draft; }
     public String getStatus() { return status; }
     public Long getGradeJobId() { return gradeJobId; }
+    public Long getAssignmentId() { return assignmentId; }
+    public Instant getSubmittedAt() { return submittedAt; }
 }
