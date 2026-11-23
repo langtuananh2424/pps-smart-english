@@ -30,6 +30,14 @@ public class Question extends Auditable {
     private String type;
     private String prompt;
 
+    /** HTML đã làm sạch (D-133); null = chỉ có prompt chữ thường. prompt luôn được server suy ra từ đây. */
+    @Column(name = "prompt_html")
+    private String promptHtml;
+
+    /** Nhóm dùng chung bài đọc (D-133); null = câu lẻ. */
+    @Column(name = "group_id")
+    private Long groupId;
+
     /** Câu hướng dẫn ngắn (D-70), tùy chọn; không có thì web hiện tên dạng câu. */
     private String instruction;
 
@@ -69,6 +77,8 @@ public class Question extends Auditable {
     public Long getBankId() { return bankId; }
     public QuestionType getType() { return QuestionType.valueOf(type); }
     public String getPrompt() { return prompt; }
+    public String getPromptHtml() { return promptHtml; }
+    public Long getGroupId() { return groupId; }
     public String getInstruction() { return instruction; }
     public void setInstruction(String instruction) { this.instruction = instruction; }
     public JsonNode getPayload() { return payload; }
@@ -81,6 +91,8 @@ public class Question extends Auditable {
 
     public void setType(QuestionType type) { this.type = type.name(); }
     public void setPrompt(String prompt) { this.prompt = prompt; }
+    public void setPromptHtml(String promptHtml) { this.promptHtml = promptHtml; }
+    public void setGroupId(Long groupId) { this.groupId = groupId; }
     public void setPayload(JsonNode payload) { this.payload = payload; }
     public void setAnswerKey(JsonNode answerKey) { this.answerKey = answerKey; }
     public void setExplanation(String explanation) { this.explanation = explanation; }

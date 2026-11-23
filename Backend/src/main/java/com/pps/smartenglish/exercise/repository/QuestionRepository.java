@@ -24,6 +24,8 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     boolean existsByBankId(Long bankId);
 
+    boolean existsByGroupId(Long groupId);
+
     long countByBankId(Long bankId);
 
     /** [bankId, số câu] cho nhiều bộ trong một truy vấn (danh sách CMS). */

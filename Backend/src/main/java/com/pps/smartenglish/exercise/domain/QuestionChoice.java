@@ -22,6 +22,10 @@ public class QuestionChoice {
     private String label;
     private String content;
 
+    /** HTML đã làm sạch (D-133); null = chỉ có chữ thường. */
+    @Column(name = "content_html")
+    private String contentHtml;
+
     @Column(name = "is_correct")
     private boolean correct;
 
@@ -29,10 +33,12 @@ public class QuestionChoice {
 
     protected QuestionChoice() {}
 
-    public QuestionChoice(Long questionId, String label, String content, boolean correct, String explanation) {
+    public QuestionChoice(Long questionId, String label, String content, String contentHtml, boolean correct,
+                          String explanation) {
         this.questionId = questionId;
         this.label = label;
         this.content = content;
+        this.contentHtml = contentHtml;
         this.correct = correct;
         this.explanation = explanation;
     }
@@ -41,12 +47,14 @@ public class QuestionChoice {
     public Long getQuestionId() { return questionId; }
     public String getLabel() { return label; }
     public String getContent() { return content; }
+    public String getContentHtml() { return contentHtml; }
     public boolean isCorrect() { return correct; }
     public String getExplanation() { return explanation; }
 
     /** Sửa tại chỗ để id lựa chọn không đổi: student_answers lưu choiceId. */
-    public void update(String content, boolean correct, String explanation) {
+    public void update(String content, String contentHtml, boolean correct, String explanation) {
         this.content = content;
+        this.contentHtml = contentHtml;
         this.correct = correct;
         this.explanation = explanation;
     }

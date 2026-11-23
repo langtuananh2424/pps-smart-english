@@ -21,6 +21,7 @@
         <anthropic.sdk.version>3.2.0</anthropic.sdk.version>
         <webpush.version>5.1.2</webpush.version>
         <scrimage.version>4.3.5</scrimage.version>
+        <jsoup.version>1.24.1</jsoup.version>
         <!-- surefire đọc thuộc tính argLine: test chạy ở UTC giống CI, ghi đè được bằng -DargLine="-Duser.timezone=..." -->
         <argLine>-Duser.timezone=UTC</argLine>
     </properties>
@@ -106,6 +107,11 @@
             <groupId>org.bitbucket.b_c</groupId>
             <artifactId>jose4j</artifactId>
             <version>0.9.6</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>${jsoup.version}</version>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>

@@ -33,10 +33,12 @@ public class CmsBankService {
     private final CatalogReferences catalog;
     private final QuestionDetails details;
     private final CmsWrites writes;
+    private final CmsGroupService groups;
     private final AuditRecorder audit;
 
     CmsBankService(QuestionBankRepository banks, QuestionRepository questions, GrammarElementRepository grammar,
-                   CatalogReferences catalog, QuestionDetails details, CmsWrites writes, AuditRecorder audit) {
+                   CatalogReferences catalog, QuestionDetails details, CmsWrites writes, AuditRecorder audit, CmsGroupService groups) {
+        this.groups = groups;
         this.audit = audit;
         this.banks = banks;
         this.questions = questions;
@@ -86,7 +88,7 @@ public class CmsBankService {
     public BankDetail get(long id) {
         QuestionBank bank = find(id);
         var rows = questions.findByBankIdOrderBySortOrderAscIdAsc(id);
-        return new BankDetail(view(bank, rows.size()), details.of(rows));
+        return new BankDetail(view(bank, rows.size()), details.of(rows), groups.ofBank(id));
     }
 
     @Transactional

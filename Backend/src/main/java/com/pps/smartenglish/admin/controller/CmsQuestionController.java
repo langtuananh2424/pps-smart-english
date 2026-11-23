@@ -10,7 +10,11 @@ import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.PatchQuestion;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.QuestionDetail;
 import com.pps.smartenglish.exercise.dto.QuestionMediaDtos.QuestionMediaView;
 import com.pps.smartenglish.exercise.dto.QuestionMediaDtos.ReplaceMedia;
+import com.pps.smartenglish.exercise.dto.QuestionGroupDtos.CreateGroup;
+import com.pps.smartenglish.exercise.dto.QuestionGroupDtos.GroupView;
+import com.pps.smartenglish.exercise.dto.QuestionGroupDtos.PatchGroup;
 import com.pps.smartenglish.exercise.service.CmsBankService;
+import com.pps.smartenglish.exercise.service.CmsGroupService;
 import com.pps.smartenglish.exercise.service.CmsQuestionService;
 import com.pps.smartenglish.exercise.service.QuestionMediaService;
 import com.pps.smartenglish.shared.web.PathId;
@@ -39,8 +43,11 @@ class CmsQuestionController {
     private final CmsBankService banks;
     private final CmsQuestionService questions;
     private final QuestionMediaService media;
+    private final CmsGroupService groups;
 
-    CmsQuestionController(CmsBankService banks, CmsQuestionService questions, QuestionMediaService media) {
+    CmsQuestionController(CmsBankService banks, CmsQuestionService questions, QuestionMediaService media,
+                          CmsGroupService groups) {
+        this.groups = groups;
         this.banks = banks;
         this.questions = questions;
         this.media = media;
@@ -87,6 +94,24 @@ class CmsQuestionController {
     @ResponseStatus(HttpStatus.CREATED)
     QuestionDetail createQuestion(@PathVariable String id, @Valid @RequestBody CreateQuestion req) {
         return questions.create(id(id, "bank_not_found"), req);
+    }
+
+    /** D-133: nhóm câu hỏi dùng chung bài đọc. */
+    @PostMapping("/banks/{id}/groups")
+    @ResponseStatus(HttpStatus.CREATED)
+    GroupView createGroup(@PathVariable String id, @Valid @RequestBody CreateGroup req) {
+        return groups.create(id(id, "bank_not_found"), req);
+    }
+
+    @PatchMapping("/groups/{id}")
+    GroupView patchGroup(@PathVariable String id, @Valid @RequestBody PatchGroup req) {
+        return groups.patch(id(id, "group_not_found"), req);
+    }
+
+    @DeleteMapping("/groups/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void deleteGroup(@PathVariable String id) {
+        groups.delete(id(id, "group_not_found"));
     }
 
     @PatchMapping("/questions/{id}")

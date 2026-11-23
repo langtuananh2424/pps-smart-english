@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.pps.smartenglish.exercise.domain.GrammarElement;
 import com.pps.smartenglish.exercise.domain.Question;
 import com.pps.smartenglish.exercise.domain.QuestionBank;
+import com.pps.smartenglish.exercise.content.RichText;
 import com.pps.smartenglish.exercise.domain.QuestionChoice;
 import com.pps.smartenglish.exercise.domain.QuestionTag;
 import com.pps.smartenglish.exercise.domain.QuestionType;
@@ -15,6 +16,7 @@ import com.pps.smartenglish.exercise.grading.GraderRegistry;
 import com.pps.smartenglish.exercise.repository.GrammarElementRepository;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
 import com.pps.smartenglish.exercise.repository.QuestionChoiceRepository;
+import com.pps.smartenglish.exercise.repository.QuestionGroupRepository;
 import com.pps.smartenglish.exercise.repository.QuestionRepository;
 import com.pps.smartenglish.exercise.repository.QuestionTagRepository;
 import com.pps.smartenglish.exercise.repository.StudentAnswerRepository;
@@ -25,6 +27,7 @@ import com.pps.smartenglish.shared.audit.AuditRecorder;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.persistence.CmsWrites;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +45,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class CmsQuestionService {
 
+    /** Giới hạn cột chữ thuần: questions.prompt (DTO cũng 5000) và question_choices.content varchar(500). */
+    private static final int QUESTION_TEXT_MAX = 5000;
+    private static final int CHOICE_TEXT_MAX = 500;
+
     private final QuestionRepository questions;
     private final QuestionBankRepository banks;
     private final QuestionChoiceRepository choices;
@@ -53,11 +60,15 @@ public class CmsQuestionService {
     private final CmsWrites writes;
     private final AuditRecorder audit;
     private final GraderRegistry graders;
+    private final QuestionGroupRepository groups;
+    private final RichText rich;
 
     CmsQuestionService(QuestionRepository questions, QuestionBankRepository banks, QuestionChoiceRepository choices,
                        QuestionTagRepository tags, GrammarElementRepository grammar, StudentAnswerRepository answers,
                        QuestionValidators validators, QuestionDetails details, CmsWrites writes, AuditRecorder audit,
-                       GraderRegistry graders) {
+                       GraderRegistry graders, QuestionGroupRepository groups, RichText rich) {
+        this.groups = groups;
+        this.rich = rich;
         this.audit = audit;
         this.graders = graders;
         this.questions = questions;
@@ -77,15 +88,21 @@ public class CmsQuestionService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "bank_not_found", "Không tìm thấy bộ câu hỏi"));
         QuestionType type = parseType(req.type());
         requireSkillRules(bank, type, req.skill());
+        Set<Long> assets = new LinkedHashSet<>();
+        Text prompt = text("promptHtml", "prompt", req.prompt(), req.promptHtml(), QUESTION_TEXT_MAX, assets);
+        requireGroupInBank(req.groupId(), bankId);
         var draft = new QuestionDraft(QuestionValidators.normalize(req.payload()), QuestionValidators.normalize(req.answerKey()),
-                drafts(req.choices()));
+                drafts(req.choices(), assets));
+        rich.requireReady(assets);
         Map<String, GrammarElement> elements = elements();
         validators.validate(type, draft, elements.keySet());
         Set<Long> tagIds = tagIds(req.grammarElementCodes(), elements);
 
-        var entity = new Question(bankId, type, req.prompt().strip(), draft.payload(), draft.answerKey(), req.explanation(),
+        var entity = new Question(bankId, type, prompt.plain(), draft.payload(), draft.answerKey(), req.explanation(),
                 req.sortOrder() == null ? 0 : req.sortOrder());
         entity.setSkill(req.skill());
+        entity.setPromptHtml(prompt.html());
+        entity.setGroupId(req.groupId());
         entity.setInstruction(blankToNull(req.instruction()));
         var question = writes.save(questions, entity, "conflict", "Không lưu được câu hỏi");
         saveChoices(question.getId(), draft.choices());
@@ -106,17 +123,19 @@ public class CmsQuestionService {
         String skill = req.skill() != null ? req.skill() : q.getSkill();
         requireSkillRules(banks.findById(q.getBankId()).orElseThrow(), req.type() != null ? parseType(req.type()) : q.getType(), skill);
         q.setSkill(skill);
+        Set<Long> assets = new LinkedHashSet<>();
         List<QuestionChoice> oldChoices = choices.findByQuestionIdInOrderByLabelAscIdAsc(List.of(id));
         boolean touchesContent = req.type() != null || req.payload() != null || req.answerKey() != null || req.choices() != null;
         if (touchesContent) {
             QuestionType type = req.type() != null ? parseType(req.type()) : q.getType();
             JsonNode payload = QuestionValidators.normalize(req.payload() != null ? req.payload() : q.getPayload());
             JsonNode key = QuestionValidators.normalize(req.answerKey() != null ? req.answerKey() : q.getAnswerKey());
-            List<ChoiceDraft> newChoices = req.choices() != null ? drafts(req.choices()) : draftsOf(oldChoices);
+            List<ChoiceDraft> newChoices = req.choices() != null ? drafts(req.choices(), assets) : draftsOf(oldChoices);
 
             boolean contentChanged = !Objects.equals(payload, QuestionValidators.normalize(q.getPayload()))
                     || !Objects.equals(key, QuestionValidators.normalize(q.getAnswerKey())) || !sameChoices(newChoices, oldChoices);
             if (type != q.getType() || contentChanged) {
+                rich.requireReady(assets);
                 requireUnlocked(id, q, type, newChoices, oldChoices);
                 validators.validate(type, new QuestionDraft(payload, key, newChoices), elements().keySet());
                 q.setType(type);
@@ -128,8 +147,18 @@ public class CmsQuestionService {
                 }
             }
         }
-        if (req.prompt() != null) {
+        if (req.promptHtml() != null) {
+            Set<Long> promptAssets = new LinkedHashSet<>();
+            Text prompt = text("promptHtml", "prompt", null, req.promptHtml(), QUESTION_TEXT_MAX, promptAssets);
+            rich.requireReady(promptAssets);
+            q.setPrompt(prompt.plain());
+            q.setPromptHtml(prompt.html());
+        } else if (req.prompt() != null) {
             q.setPrompt(req.prompt().strip());
+            q.setPromptHtml(null); // sửa chữ thuần thì bản HTML cũ không còn đúng
+        }
+        if (req.groupId() != null) {
+            q.setGroupId(groupIdOf(req.groupId(), q.getBankId()));
         }
         if (req.instruction() != null) {
             q.setInstruction(blankToNull(req.instruction())); // chuỗi rỗng = xóa
@@ -247,9 +276,9 @@ public class CmsQuestionService {
             kept.add(label);
             QuestionChoice existing = byLabel.get(label);
             if (existing == null) {
-                added.add(new QuestionChoice(questionId, label, d.content(), d.correct(), d.explanation()));
+                added.add(new QuestionChoice(questionId, label, d.content(), d.contentHtml(), d.correct(), d.explanation()));
             } else {
-                existing.update(d.content(), d.correct(), d.explanation());
+                existing.update(d.content(), d.contentHtml(), d.correct(), d.explanation());
             }
         }
         choices.deleteAll(old.stream().filter(c -> !kept.contains(c.getLabel())).toList());
@@ -258,22 +287,66 @@ public class CmsQuestionService {
 
     private void saveChoices(long questionId, List<ChoiceDraft> drafts) {
         choices.saveAll(drafts.stream()
-                .map(c -> new QuestionChoice(questionId, c.label().strip(), c.content(), c.correct(), c.explanation())).toList());
+                .map(c -> new QuestionChoice(questionId, c.label().strip(), c.content(), c.contentHtml(), c.correct(), c.explanation()))
+                .toList());
     }
 
-    private static List<ChoiceDraft> drafts(List<ChoiceInput> in) {
-        return (in == null ? List.<ChoiceInput>of() : in).stream()
-                .map(c -> new ChoiceDraft(c.label(), c.content(), Boolean.TRUE.equals(c.isCorrect()), c.explanation())).toList();
+    private List<ChoiceDraft> drafts(List<ChoiceInput> in, Set<Long> assets) {
+        List<ChoiceInput> rows = in == null ? List.of() : in;
+        List<ChoiceDraft> out = new java.util.ArrayList<>();
+        for (int i = 0; i < rows.size(); i++) {
+            ChoiceInput c = rows.get(i);
+            String at = "choices[" + i + "].content";
+            Text t = text(at, at, c.content(), c.contentHtml(), CHOICE_TEXT_MAX, assets);
+            out.add(new ChoiceDraft(c.label(), t.plain(), t.html(), Boolean.TRUE.equals(c.isCorrect()), c.explanation()));
+        }
+        return out;
+    }
+
+    /** Chữ thuần + HTML đã làm sạch (null nếu người soạn chỉ gửi chữ thuần). */
+    private record Text(String plain, String html) {}
+
+    /** Có html: làm sạch và suy chữ thuần từ đó (D-133). Không có: bắt buộc chữ thuần, không HTML. */
+    private Text text(String htmlField, String plainField, String plain, String html, int max, Set<Long> assets) {
+        if (html != null) {
+            var s = rich.sanitizeRequiringText(htmlField, html, max);
+            assets.addAll(s.assetIds());
+            return new Text(s.text(), s.html());
+        }
+        if (plain == null || plain.isBlank()) {
+            throw ApiException.validation(plainField, "Không được để trống");
+        }
+        return new Text(plain.strip(), null);
+    }
+
+    private void requireGroupInBank(Long groupId, long bankId) {
+        if (groupId != null && groups.findById(groupId).filter(g -> g.getBankId() == bankId).isEmpty()) {
+            throw ApiException.validation("groupId", "Nhóm không tồn tại hoặc thuộc bộ câu hỏi khác");
+        }
+    }
+
+    /** JSON null = bỏ khỏi nhóm; số = chuyển nhóm. */
+    private Long groupIdOf(JsonNode node, long bankId) {
+        if (node.isNull()) {
+            return null;
+        }
+        if (!node.isIntegralNumber()) {
+            throw ApiException.validation("groupId", "Phải là số hoặc null");
+        }
+        requireGroupInBank(node.asLong(), bankId);
+        return node.asLong();
     }
 
     private static List<ChoiceDraft> draftsOf(List<QuestionChoice> rows) {
-        return rows.stream().map(c -> new ChoiceDraft(c.getLabel(), c.getContent(), c.isCorrect(), c.getExplanation())).toList();
+        return rows.stream()
+                .map(c -> new ChoiceDraft(c.getLabel(), c.getContent(), c.getContentHtml(), c.isCorrect(), c.getExplanation())).toList();
     }
 
     /** So sánh không phụ thuộc thứ tự gửi lên. */
     private static boolean sameChoices(List<ChoiceDraft> wanted, List<QuestionChoice> current) {
         Comparator<ChoiceDraft> byLabel = Comparator.comparing(c -> c.label().strip());
-        return wanted.stream().map(c -> new ChoiceDraft(c.label().strip(), c.content(), c.correct(), c.explanation())).sorted(byLabel)
+        return wanted.stream().map(c -> new ChoiceDraft(c.label().strip(), c.content(), c.contentHtml(), c.correct(), c.explanation()))
+                .sorted(byLabel)
                 .toList().equals(draftsOf(current).stream().sorted(byLabel).toList());
     }
 
