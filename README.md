@@ -7,6 +7,8 @@
 | `Mobile/` | Flutter |
 | DB | PostgreSQL 17 |
 
+Thiết kế giao diện: [Figma PPS Smart English](https://www.figma.com/design/CYuJRLBrMAXMwlLe43uZyy/PPS-Smart-English?m=auto&t=2MJ7jl8hjpoGj9tn-1). Dữ liệu trong Figma (tên khóa, đề, đáp án) là mẫu, chỉ lấy bố cục và hành vi.
+
 ## Chạy bằng Docker Compose
 
 ```bash
@@ -32,8 +34,14 @@ Mobile (cần Flutter SDK). Lần đầu tạo thư mục nền tảng android/i
 ```bash
 cd Mobile
 flutter create . --platforms=android,ios --project-name pps_smart_english
-flutter run
+flutter run --dart-define API_BASE_URL=http://10.0.2.2:8080/api   # mặc định đã là giá trị này
 ```
+
+Ghi chú Mobile (thư mục `android/` chưa có trong repo, thêm sau `flutter create`):
+
+- Android cần quyền `<uses-permission android:name="android.permission.INTERNET"/>` trong `AndroidManifest.xml` và `android:usesCleartextTraffic="true"` ở thẻ `<application>` khi dev với `http://`; bỏ cờ này ở bản phát hành. `flutter_secure_storage` cần `minSdkVersion 23`.
+- Thiết bị thật: đặt `API_BASE_URL` về IP máy dev hoặc domain staging.
+- Phông Nunito chưa đóng gói (theme chỉ khai báo `fontFamily: 'Nunito'`); thêm file phông vào `assets/fonts/` và khai báo trong `pubspec.yaml` khi cần.
 
 ## Test
 
