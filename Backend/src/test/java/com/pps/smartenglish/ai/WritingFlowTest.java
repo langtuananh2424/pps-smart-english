@@ -72,6 +72,17 @@ class WritingFlowTest extends AiTestSupport {
     }
 
     @Test
+    void archivedQuestionRejectsNewSessionsButOldSessionStillSubmits() throws Exception {
+        var u = student(3);
+        long q = writingQuestion(bank(true));
+        long old = newSession(u, q);
+        jdbc.update("update questions set archived_at = CURRENT_TIMESTAMP where id = ?", q);
+        postJson("/api/writing/sessions", u, Map.of("questionId", q)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("question_archived"));
+        submit(u, old, ESSAY, UUID.randomUUID().toString()); // phiên đã mở trước đó vẫn đi tiếp, lịch sử giữ nguyên
+    }
+
+    @Test
     void concurrentSubmitsOnLastQuotaNeverGoNegative() throws Exception {
         addonProduct();
         var u = student(1);

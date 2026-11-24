@@ -14,6 +14,7 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -40,6 +41,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ApiError> unreadable(HttpMessageNotReadableException e) {
         return build(HttpStatus.BAD_REQUEST, "malformed_request", "Nội dung yêu cầu không đọc được", Map.of());
+    }
+
+    /** Vượt trần multipart của servlet (spring.servlet.multipart): báo 400 cùng mã với trần của chính tính năng nhập file. */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ApiError> tooLarge(MaxUploadSizeExceededException e) {
+        return build(HttpStatus.BAD_REQUEST, "import_file_too_large", "File quá lớn", Map.of());
     }
 
     /** Các lỗi MVC có sẵn mã HTTP (404 không có route, 405, 415...). */

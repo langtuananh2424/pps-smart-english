@@ -13,6 +13,11 @@ spring:
     enabled: true
     # DEMO_FLYWAY_LOCATION=",classpath:db/demo" nạp dữ liệu demo; mặc định rỗng (production)
     locations: classpath:db/migration,classpath:db/migration-pg${DEMO_FLYWAY_LOCATION:}
+  servlet:
+    multipart:
+      # trần phía servlet cao hơn app.import.max-file-bytes một chút để lỗi quá lớn do ImportService báo rõ mã
+      max-file-size: 3MB
+      max-request-size: 4MB
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -163,6 +168,14 @@ app:
     batch-size: 200
     # trần job AI chấm lại đang chạy cùng lúc, để việc của Admin không nuốt hàng đợi của học viên
     max-ai-pending: 20
+  # nhập hàng loạt câu hỏi (FR-ADM-02, D-138): mọi con số là cấu hình, đây là giá trị mặc định
+  import:
+    max-file-bytes: 2097152
+    max-rows: 500
+    max-paste-chars: 200000
+    max-entry-bytes: 20971520
+    min-inflate-ratio: 0.01
+    max-hash-fill: 2000
 
 logging:
   structured:

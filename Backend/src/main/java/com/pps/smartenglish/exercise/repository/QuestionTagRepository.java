@@ -10,4 +10,6 @@ public interface QuestionTagRepository extends JpaRepository<QuestionTag, Questi
     List<QuestionTag> findByQuestionIdIn(Collection<Long> questionIds);
 
     void deleteByQuestionId(Long questionId);
+
+    void deleteByQuestionIdIn(Collection<Long> questionIds);
 }

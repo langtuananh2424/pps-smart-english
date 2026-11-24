@@ -36,6 +36,20 @@ class WritingQuestionProvider implements WritingQuestionSource {
         return toQuestion(q);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public WritingQuestion findForNewSession(long questionId, long userId, boolean inAssignment) {
+        var q = find(questionId, userId, inAssignment);
+        requireNotArchived(questions.findById(questionId).orElseThrow());
+        return q;
+    }
+
+    static void requireNotArchived(com.pps.smartenglish.exercise.domain.Question q) {
+        if (q.getArchivedAt() != null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "question_archived", "Câu hỏi đã bị ẩn, không còn dùng được");
+        }
+    }
+
     /** D-141: giáo viên đọc bài nộp; người gọi đã kiểm bài nộp thuộc đúng bài giao của lớp mình, không xét quyền khóa của học viên. */
     @Override
     @Transactional(readOnly = true)

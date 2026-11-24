@@ -47,4 +47,12 @@ class SpeakingQuestionProvider implements SpeakingQuestionSource {
         return new SpeakingQuestion(q.getId(), part, p.path("prompt").asText(), cue, max,
                 banks.findCourseTitle(q.getBankId()).orElse(""), banks.findCourseId(q.getBankId()).orElse(null));
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SpeakingQuestion findForNewSession(long questionId, long userId, boolean inAssignment) {
+        var q = find(questionId, userId, inAssignment);
+        WritingQuestionProvider.requireNotArchived(questions.findById(questionId).orElseThrow());
+        return q;
+    }
 }

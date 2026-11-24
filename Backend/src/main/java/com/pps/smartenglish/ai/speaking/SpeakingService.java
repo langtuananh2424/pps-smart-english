@@ -80,7 +80,7 @@ public class SpeakingService {
         if (assignmentId != null) {
             assigned.requireRecipient(userId, assignmentId, questionId); // trước find: người không được giao nhận 404, không lộ lý do khóa
         }
-        var q = questions.find(questionId, userId, assignmentId != null);
+        var q = questions.findForNewSession(questionId, userId, assignmentId != null);
         if (assignmentId == null) {
             guard.rateLimit(userId);
             quota.requireAvailable(userId, q.courseId(), AiTask.SPEAKING_PART);
@@ -135,7 +135,7 @@ public class SpeakingService {
         if (assignmentId != null) {
             assigned.requireRecipient(userId, assignmentId, questionId);
         }
-        var q = questions.find(questionId, userId, assignmentId != null);
+        var q = questions.findForNewSession(questionId, userId, assignmentId != null);
         return new QuestionView(q.id(), q.part(), q.prompt(), q.cueCard(), q.maxSeconds());
     }
 

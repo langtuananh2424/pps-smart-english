@@ -111,6 +111,16 @@ class SpeakingFlowTest extends AiTestSupport {
     }
 
     @Test
+    void archivedQuestionIsNotOpenedForNewSubmissions() throws Exception {
+        var u = student(2);
+        long q = speakingQuestion(bank(true), 1, null);
+        jdbc.update("update questions set archived_at = CURRENT_TIMESTAMP where id = ?", q);
+        postJson("/api/speaking/submissions", u, Map.of("questionId", q)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("question_archived"));
+        getJson("/api/speaking/questions/" + q, u).andExpect(status().isBadRequest());
+    }
+
+    @Test
     void permitCarriesPolicyAndRefusesLockedBankNoQuotaAndWrongType() throws Exception {
         var u = student(2);
         long bank = bank(true);

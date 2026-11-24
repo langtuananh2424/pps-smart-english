@@ -189,6 +189,20 @@ class AssignmentAiApiTest extends AiTestSupport {
     }
 
     @Test
+    void archivedQuestionAndEmptyBankCannotBeAssigned() throws Exception {
+        var f = fixture();
+        Instant due = inHours(48);
+        jdbc.update("update questions set archived_at = CURRENT_TIMESTAMP where id = ?", f.qB());
+        assign(f, f.teacher(), f.qB(), due, null).andExpect(status().isBadRequest()).andExpect(jsonPath("$.error.details.questionId").exists());
+        assign(f, f.teacher(), f.sB(), due, null).andExpect(status().isCreated()); // câu khác cùng bộ vẫn giao được
+        jdbc.update("update questions set archived_at = CURRENT_TIMESTAMP where bank_id = (select bank_id from questions where id = ?)", f.sB());
+        var body = new java.util.HashMap<String, Object>();
+        body.put("bankId", jdbc.queryForObject("select bank_id from questions where id = ?", Long.class, f.sB()));
+        body.put("dueAt", due.toString());
+        call(HttpMethod.POST, base(f), f.teacher().accessToken(), body).andExpect(status().isBadRequest());
+    }
+
+    @Test
     void teacherAssignsWritingQuestionAndValidates() throws Exception {
         var f = fixture();
         var s = member(f);

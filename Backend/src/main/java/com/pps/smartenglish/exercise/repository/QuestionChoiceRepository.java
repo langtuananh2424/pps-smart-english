@@ -10,4 +10,6 @@ public interface QuestionChoiceRepository extends JpaRepository<QuestionChoice, 
     List<QuestionChoice> findByQuestionIdInOrderByLabelAscIdAsc(Collection<Long> questionIds);
 
     void deleteByQuestionId(Long questionId);
+
+    void deleteByQuestionIdIn(Collection<Long> questionIds);
 }

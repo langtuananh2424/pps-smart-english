@@ -22,6 +22,7 @@
         <webpush.version>5.1.2</webpush.version>
         <scrimage.version>4.3.5</scrimage.version>
         <jsoup.version>1.24.1</jsoup.version>
+        <poi.version>5.4.1</poi.version>
         <!-- surefire đọc thuộc tính argLine: test chạy ở UTC giống CI, ghi đè được bằng -DargLine="-Duser.timezone=..." -->
         <argLine>-Duser.timezone=UTC</argLine>
     </properties>
@@ -112,6 +113,12 @@
             <groupId>org.jsoup</groupId>
             <artifactId>jsoup</artifactId>
             <version>${jsoup.version}</version>
+        </dependency>
+        <!-- Excel nhập hàng loạt (FR-ADM-02): Apache 2.0, còn bảo trì, ZipSecureFile chống zip bomb, parser XML chặn XXE -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>

@@ -72,7 +72,7 @@ public class WritingService {
         if (assignmentId != null) {
             assigned.requireRecipient(userId, assignmentId, questionId); // trước find: người không được giao nhận 404, không lộ lý do khóa
         }
-        WritingQuestion q = questions.find(questionId, userId, assignmentId != null);
+        WritingQuestion q = questions.findForNewSession(questionId, userId, assignmentId != null);
         if (assignmentId == null) {
             guard.rateLimit(userId);
             quota.requireAvailable(userId, q.courseId(), q.aiTask());

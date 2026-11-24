@@ -17,6 +17,9 @@ public interface WritingQuestionSource {
     /** inAssignment: người gọi đã kiểm là người nhận bài giao đúng câu này, nên bỏ khóa unit tuần tự cho riêng câu đó (FR-ASG-01). */
     WritingQuestion find(long questionId, long userId, boolean inAssignment);
 
+    /** Mở phiên MỚI: như find nhưng câu đã lưu trữ (D-138) bị 400 question_archived; phiên cũ vẫn dùng find để xem lại. */
+    WritingQuestion findForNewSession(long questionId, long userId, boolean inAssignment);
+
     /** D-141: như find nhưng không kiểm quyền vào bộ câu hỏi; chỉ dùng khi người gọi đã kiểm quyền đọc bài nộp (giáo viên của lớp). */
     WritingQuestion findForStaff(long questionId);
 
