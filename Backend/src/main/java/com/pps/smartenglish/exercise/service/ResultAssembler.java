@@ -28,8 +28,10 @@ class ResultAssembler {
 
     private final GraderRegistry graders;
     private final ObjectMapper mapper;
+    private final ResultShapers shapers;
 
-    ResultAssembler(GraderRegistry graders, ObjectMapper mapper) {
+    ResultAssembler(GraderRegistry graders, ObjectMapper mapper, ResultShapers shapers) {
+        this.shapers = shapers;
         this.graders = graders;
         this.mapper = mapper;
     }
@@ -43,8 +45,9 @@ class ResultAssembler {
         Map<Long, JsonNode> gradingByAnswer = gradings.stream()
                 .collect(Collectors.toMap(AnswerGrading::getAnswerId, AnswerGrading::getResult, (a, b) -> a));
         var results = set.questions().stream().map(q -> result(q, set, byQuestion.get(q.getId()), gradingByAnswer)).toList();
-        return new AttemptResponse(attempt.getId(), attempt.getBankId(), attempt.getStartedAt(), submittedAt, score, maxScore,
-                results, pendingJobs, quotaProducts == null ? null : Boolean.TRUE, quotaProducts, null);
+        var full = new AttemptResponse(attempt.getId(), attempt.getBankId(), attempt.getStartedAt(), submittedAt, score, maxScore,
+                results, pendingJobs, quotaProducts == null ? null : Boolean.TRUE, quotaProducts, null, null);
+        return shapers.shape(full, attempt, set, answers); // Nghe ép: ẩn đáp án theo result_mode
     }
 
     private QuestionResult result(Question q, QuestionSet set, StudentAnswer stored, Map<Long, JsonNode> gradingByAnswer) {

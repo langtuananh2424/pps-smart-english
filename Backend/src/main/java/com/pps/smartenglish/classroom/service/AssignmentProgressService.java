@@ -45,10 +45,13 @@ public class AssignmentProgressService {
     private final com.pps.smartenglish.classroom.repository.ClassRepository classRepo;
     private final NotificationService notifications;
     private final AuditRecorder audit;
+    private final com.pps.smartenglish.exercise.listening.ForcedAssignmentProgress forced;
 
     AssignmentProgressService(AssignmentService assignmentService, AssignmentRepository assignments, GradeOverrideRepository overrides,
                               AiAssignmentSubmissions aiSubmissions, ClassAccess access, ClassService classes, com.pps.smartenglish.classroom.repository.ClassRepository classRepo,
-                              NotificationService notifications, AuditRecorder audit) {
+                              NotificationService notifications, AuditRecorder audit,
+                              com.pps.smartenglish.exercise.listening.ForcedAssignmentProgress forced) {
+        this.forced = forced;
         this.assignmentService = assignmentService;
         this.assignments = assignments;
         this.overrides = overrides;
@@ -82,15 +85,19 @@ public class AssignmentProgressService {
         List<AssignmentSubmission> subs = rows.stream().map(r -> a.isAiQuestion() ? ai.get(((Number) r[0]).longValue()) : attempt(r)).toList();
         Map<Long, Latest> latest = latest(a, subs.stream().filter(Objects::nonNull).map(AssignmentSubmission::id).toList());
         Instant now = classes.now();
+        // D-143: tiến độ Nghe ép chỉ dựng cho bài giao đã chốt Nghe ép lúc giao; D-142: ẩn điểm theo result_mode của từng lượt
+        var forcedByUser = a.isForcedListening() ? forced.byUser(a.getBankId(), a.getId()) : Map.<Long, com.pps.smartenglish.exercise.listening.ListeningDtos.ForcedProgress>of();
         List<ProgressRow> out = new ArrayList<>();
         for (int i = 0; i < rows.size(); i++) {
             Object[] r = rows.get(i);
             AssignmentSubmission s = subs.get(i);
             Latest l = s == null ? null : latest.get(s.id());
+            boolean noScore = !a.isAiQuestion() && "COUNT_ONLY".equals(r[6]);
             BigDecimal fin = l != null && l.score != null ? l.score : s == null ? null : s.score();
             out.add(new ProgressRow(((Number) r[0]).longValue(), (String) r[1], status(a.getDueAt(), s == null ? null : s.submittedAt(), now),
-                    s == null ? null : s.id(), s == null ? null : s.submittedAt(), s == null ? null : s.score(), s == null ? null : s.max(), fin,
-                    l == null ? null : l.comment));
+                    s == null ? null : s.id(), s == null ? null : s.submittedAt(), noScore || s == null ? null : s.score(),
+                    noScore || s == null ? null : s.max(), noScore ? null : fin, l == null ? null : l.comment,
+                    forcedByUser.get(((Number) r[0]).longValue())));
         }
         return out;
     }
@@ -114,8 +121,11 @@ public class AssignmentProgressService {
         }
         AssignmentSubmission r = sub.get();
         Latest l = latest(a, List.of(r.id())).get(r.id());
-        return new MyResult(assignmentId, status(a.getDueAt(), r.submittedAt(), classes.now()), r.id(), r.submittedAt(), r.score(), r.max(),
-                l != null && l.score != null ? l.score : r.score(), l == null ? null : l.comment);
+        // D-142: lượt Nghe ép chỉ biết số câu đúng, không có điểm hệ thống; điểm giáo viên tự chấm (nếu có) vẫn hiện
+        boolean noScore = !a.isAiQuestion() && assignments.resultModeOf(r.id()).contains("COUNT_ONLY");
+        BigDecimal aiScore = noScore ? null : r.score();
+        return new MyResult(assignmentId, status(a.getDueAt(), r.submittedAt(), classes.now()), r.id(), r.submittedAt(), aiScore,
+                noScore ? null : r.max(), l != null && l.score != null ? l.score : aiScore, l == null ? null : l.comment);
     }
 
     /** Bài nộp mới nhất của một học viên cho bài giao. */
@@ -141,6 +151,9 @@ public class AssignmentProgressService {
     public GradeView grade(long callerId, long classId, long assignmentId, long attemptId, GradeRequest req) {
         access.requireStaff(callerId, classId);
         Assignment a = assignmentService.require(classId, assignmentId);
+        if (!a.isAiQuestion() && assignments.resultModeOf(attemptId).contains("COUNT_ONLY")) { // D-142: lượt Nghe ép không có điểm để sửa
+            throw new ApiException(HttpStatus.CONFLICT, "grade_not_supported", "Bài giao Nghe ép không có điểm nên không sửa điểm được");
+        }
         String comment = req.comment() == null || req.comment().isBlank() ? null : req.comment().strip();
         if (req.score() == null && comment == null) {
             throw ApiException.validation("score", "Cần điểm hoặc nhận xét");

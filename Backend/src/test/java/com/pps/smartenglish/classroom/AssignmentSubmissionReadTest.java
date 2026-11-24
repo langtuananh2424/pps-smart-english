@@ -89,8 +89,13 @@ class AssignmentSubmissionReadTest extends AiTestSupport {
         long qA = writingQuestion(bank);
         long sA = question(bank, "SPEAKING", 2, "Describe a trip.", "{\"part\":1,\"prompt\":\"Describe a trip.\"}", "{}");
         long cls = insert("classes", Map.of("course_id", c, "name", "Lớp " + UUID.randomUUID().toString().substring(0, 4),
-                "starts_on", LocalDate.now().minusDays(10), "ends_on", LocalDate.now().plusDays(60), "mode", "ONLINE", "capacity", 20));
-        return new Fx(c, cls, qA, sA, staffOf(cls, "TEACHER", LocalDate.now().minusDays(10), null));
+                "starts_on", today().minusDays(10), "ends_on", today().plusDays(60), "mode", "ONLINE", "capacity", 20));
+        return new Fx(c, cls, qA, sA, staffOf(cls, "TEACHER", today().minusDays(10), null));
+    }
+
+    /** Ngày theo múi giờ của phân hệ lớp (ClassService.VN), không theo múi giờ máy chạy test: tránh lệch ở biên ngày. */
+    private static LocalDate today() {
+        return LocalDate.now(com.pps.smartenglish.classroom.service.ClassService.VN);
     }
 
     private Account staffOf(long classId, String role, LocalDate from, LocalDate to) throws Exception {
@@ -203,14 +208,14 @@ class AssignmentSubmissionReadTest extends AiTestSupport {
         long speak = speakAssigned(s, f.sA(), asgS);
         runner.runDueNow();
 
-        var assistant = staffOf(f.classId(), "ASSISTANT", LocalDate.now().minusDays(5), null);
+        var assistant = staffOf(f.classId(), "ASSISTANT", today().minusDays(5), null);
         read(f, assistant.accessToken(), asgS, speak).andExpect(status().isOk()).andExpect(jsonPath("$.speaking.audioUrl").isNotEmpty());
 
-        var expired = staffOf(f.classId(), "ASSISTANT", LocalDate.now().minusDays(20), LocalDate.now().minusDays(1));
+        var expired = staffOf(f.classId(), "ASSISTANT", today().minusDays(20), today().minusDays(1));
         read(f, expired.accessToken(), asgS, speak).andExpect(status().isNotFound()).andExpect(jsonPath("$.speaking").doesNotExist());
-        var future = staffOf(f.classId(), "ASSISTANT", LocalDate.now().plusDays(1), null);
+        var future = staffOf(f.classId(), "ASSISTANT", today().plusDays(1), null);
         read(f, future.accessToken(), asgS, speak).andExpect(status().isNotFound());
-        var revoked = staffOf(f.classId(), "TEACHER", LocalDate.now().minusDays(5), null);
+        var revoked = staffOf(f.classId(), "TEACHER", today().minusDays(5), null);
         jdbc.update("update class_staff set revoked_at = CURRENT_TIMESTAMP where user_id = ?", revoked.id());
         read(f, revoked.accessToken(), asgS, speak).andExpect(status().isNotFound());
         // học viên cùng lớp đọc bài của bạn

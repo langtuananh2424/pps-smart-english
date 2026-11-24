@@ -11,6 +11,7 @@ import com.pps.smartenglish.classroom.repository.AssignmentTargetRepository;
 import com.pps.smartenglish.classroom.repository.ClassMemberRepository;
 import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.domain.QuestionType;
+import com.pps.smartenglish.exercise.listening.ForcedRules;
 import com.pps.smartenglish.exercise.dto.AttemptStarted;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
 import com.pps.smartenglish.exercise.repository.QuestionRepository;
@@ -54,11 +55,13 @@ public class AssignmentService {
     private final NotificationService notifications;
     private final CmsWrites writes;
     private final AuditRecorder audit;
+    private final ForcedRules forcedRules;
 
     AssignmentService(AssignmentRepository assignments, AssignmentTargetRepository targets, ClassAccess access, ClassService classes,
                       ClassMemberRepository members, QuestionBankRepository banks, QuestionRepository questions,
                       AiAssignmentSubmissions aiSubmissions, AttemptService attempts,
-                      NotificationService notifications, CmsWrites writes, AuditRecorder audit) {
+                      NotificationService notifications, CmsWrites writes, AuditRecorder audit, ForcedRules forcedRules) {
+        this.forcedRules = forcedRules;
         this.assignments = assignments;
         this.targets = targets;
         this.access = access;
@@ -91,6 +94,12 @@ public class AssignmentService {
         if (!room.getCourseId().equals(banks.findCourseId(bankId).orElse(null))) {
             throw ApiException.validation(field, "Bộ câu hỏi không thuộc khóa của lớp");
         }
+        if (question != null && question.getArchivedAt() != null) {
+            throw ApiException.validation("questionId", "Câu hỏi đã bị ẩn (hoàn tác nhập), không giao được");
+        }
+        if (question == null && questions.countByBankId(bankId) == 0) { // chỉ tính câu chưa lưu trữ
+            throw ApiException.validation("bankId", "Bộ câu hỏi chưa có câu nào còn hiệu lực");
+        }
         if (question != null && QuestionBank.EXAM.equals(info.mode())) { // D-82: câu của bài thi không luyện, không giao riêng
             throw ApiException.validation(field, "Câu thuộc bài thi, không giao riêng được");
         }
@@ -100,11 +109,23 @@ public class AssignmentService {
         if (!active.containsAll(chosen)) {
             throw ApiException.validation("studentIds", "Có học viên không thuộc lớp");
         }
+        if (req.forcedListening() != null && question != null) {
+            throw ApiException.validation("forcedListening", "Chỉ ghi đè luật Nghe ép khi giao cả bộ câu hỏi");
+        }
         var entity = question == null ? new Assignment(classId, bankId, req.dueAt(), callerId)
                 : new Assignment(classId, bankId, question.getId(), question.getType().name(), req.dueAt(), callerId);
+        boolean forced = question == null && banks.findById(bankId).map(b -> QuestionBank.LOCKED.equals(b.getPlaybackMode())).orElse(false);
+        if (forced) {
+            entity.forcedListening(); // D-143: chốt chế độ Nghe ép tại lúc giao
+        }
         var a = writes.save(assignments, entity, "assignment_duplicate",
                 "Bài này đã được giao cho lớp với cùng hạn nộp");
         targets.saveAll(chosen.stream().map(u -> new AssignmentTarget(a.getId(), u)).toList());
+        if (forced || req.forcedListening() != null) {
+            // chụp luật lúc giao (kể cả khi không ghi đè) để bài nhất quán dù bộ đổi luật hoặc đổi chế độ sau đó; 409 nếu bộ không LOCKED
+            forcedRules.createForAssignment(a.getId(), bankId, req.forcedListening() != null ? req.forcedListening()
+                    : new com.pps.smartenglish.exercise.listening.ListeningDtos.RuleInput(null, null, null, null, null));
+        }
         (chosen.isEmpty() ? active : chosen).forEach(u -> notifications.assignmentNew(u, classId, a.getId()));
         var view = views(List.of(a), 0).get(0);
         audit.record("ASSIGNMENT_CREATE", "CLASS", classId, null, view);
@@ -159,7 +180,7 @@ public class AssignmentService {
         if (a.isAiQuestion()) {
             throw new ApiException(HttpStatus.CONFLICT, "assignment_not_attemptable", "Bài Viết/Nói làm ở màn Viết/Nói, gửi kèm assignmentId");
         }
-        return attempts.startAssigned(a.getBankId(), userId, assignmentId);
+        return attempts.startAssigned(a.getBankId(), userId, assignmentId, a.isForcedListening());
     }
 
     Assignment require(long classId, long assignmentId) {

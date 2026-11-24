@@ -86,30 +86,51 @@ public class CmsQuestionService {
     public QuestionDetail create(long bankId, CreateQuestion req) {
         QuestionBank bank = banks.findById(bankId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "bank_not_found", "Không tìm thấy bộ câu hỏi"));
+        var question = insert(bank, prepare(bank, req, elements()), req.sortOrder() == null ? 0 : req.sortOrder(), null);
+        var after = one(question);
+        audit.record("CREATE", "QUESTION", question.getId(), null, after);
+        return after;
+    }
+
+    /** Kết quả kiểm tra một câu: đủ để ghi mà không phải kiểm lại. Nhập hàng loạt dùng chung với create (cùng một bộ luật). */
+    public record Prepared(CreateQuestion req, QuestionType type, String prompt, String promptHtml, QuestionDraft draft,
+                           Set<Long> tagIds) {}
+
+    /** Danh mục yếu tố ngữ pháp theo mã; nạp một lần cho cả lô thay vì mỗi câu. */
+    public Map<String, GrammarElement> grammarElements() {
+        return elements();
+    }
+
+    /** Kiểm tra toàn bộ như khi tạo câu đơn lẻ (làm sạch HTML, validator theo dạng, thẻ) nhưng chưa ghi gì. */
+    public Prepared prepare(QuestionBank bank, CreateQuestion req, Map<String, GrammarElement> elements) {
         QuestionType type = parseType(req.type());
         requireSkillRules(bank, type, req.skill());
         Set<Long> assets = new LinkedHashSet<>();
         Text prompt = text("promptHtml", "prompt", req.prompt(), req.promptHtml(), QUESTION_TEXT_MAX, assets);
-        requireGroupInBank(req.groupId(), bankId);
+        requireGroupInBank(req.groupId(), bank.getId());
         var draft = new QuestionDraft(QuestionValidators.normalize(req.payload()), QuestionValidators.normalize(req.answerKey()),
                 drafts(req.choices(), assets));
         rich.requireReady(assets);
-        Map<String, GrammarElement> elements = elements();
         validators.validate(type, draft, elements.keySet());
-        Set<Long> tagIds = tagIds(req.grammarElementCodes(), elements);
+        return new Prepared(req, type, prompt.plain(), prompt.html(), draft, tagIds(req.grammarElementCodes(), elements));
+    }
 
-        var entity = new Question(bankId, type, prompt.plain(), draft.payload(), draft.answerKey(), req.explanation(),
-                req.sortOrder() == null ? 0 : req.sortOrder());
+    /** Ghi câu đã kiểm tra; không ghi nhật ký (người gọi ghi một lần cho cả thao tác). batchId null = soạn tay. */
+    @Transactional
+    public Question insert(QuestionBank bank, Prepared p, int sortOrder, Long batchId) {
+        var req = p.req();
+        var entity = new Question(bank.getId(), p.type(), p.prompt(), p.draft().payload(), p.draft().answerKey(), req.explanation(),
+                sortOrder);
         entity.setSkill(req.skill());
-        entity.setPromptHtml(prompt.html());
+        entity.setPromptHtml(p.promptHtml());
         entity.setGroupId(req.groupId());
         entity.setInstruction(blankToNull(req.instruction()));
+        entity.setTranscriptExcerpt(blankToNull(req.transcriptExcerpt()));
+        entity.setImportBatchId(batchId);
         var question = writes.save(questions, entity, "conflict", "Không lưu được câu hỏi");
-        saveChoices(question.getId(), draft.choices());
-        saveTags(question.getId(), tagIds);
-        var after = one(question);
-        audit.record("CREATE", "QUESTION", question.getId(), null, after);
-        return after;
+        saveChoices(question.getId(), p.draft().choices());
+        saveTags(question.getId(), p.tagIds());
+        return question;
     }
 
     /**
@@ -162,6 +183,9 @@ public class CmsQuestionService {
         }
         if (req.instruction() != null) {
             q.setInstruction(blankToNull(req.instruction())); // chuỗi rỗng = xóa
+        }
+        if (req.transcriptExcerpt() != null) {
+            q.setTranscriptExcerpt(blankToNull(req.transcriptExcerpt())); // chuỗi rỗng = xóa
         }
         if (req.explanation() != null) {
             q.setExplanation(req.explanation());

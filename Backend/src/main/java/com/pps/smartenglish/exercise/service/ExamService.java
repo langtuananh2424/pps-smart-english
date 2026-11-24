@@ -185,6 +185,7 @@ public class ExamService {
 
     private ExamStatus.LastResult lastResult(long userId, long bankId) {
         return attempts.findFirstByUserIdAndBankIdAndSubmittedAtIsNotNullOrderBySubmittedAtDesc(userId, bankId)
-                .map(a -> new ExamStatus.LastResult(a.getScore(), a.getMaxScore(), a.getSubmittedAt())).orElse(null);
+                .map(a -> new ExamStatus.LastResult(a.isCountOnly() ? null : a.getScore(), a.isCountOnly() ? null : a.getMaxScore(),
+                        a.getSubmittedAt())).orElse(null);
     }
 }

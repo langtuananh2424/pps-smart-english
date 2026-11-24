@@ -37,10 +37,12 @@ public class AttemptService {
     private final ExamService exam;
     private final LearningStatsService stats;
     private final Clock clock;
+    private final ForcedAttempts forced;
 
     AttemptService(BankGate gate, StudentAttemptRepository attempts, StudentAnswerRepository answers,
                    AnswerGradingRepository gradings, AiJobService aiJobs, QuestionLoader loader, ResultAssembler assembler,
-                   ExamService exam, LearningStatsService stats, Clock clock) {
+                   ExamService exam, LearningStatsService stats, Clock clock, ForcedAttempts forced) {
+        this.forced = forced;
         this.stats = stats;
         this.gate = gate;
         this.attempts = attempts;
@@ -57,7 +59,7 @@ public class AttemptService {
     public AttemptStarted start(Long bankId, long userId) {
         exam.guardStart(userId, bankId); // trước gate để người chưa mua nhận exam_requires_enrollment thay vì bank_locked
         var bank = gate.require(bankId, userId);
-        var a = attempts.save(new StudentAttempt(userId, bankId, Instant.now(clock), bank.timeLimitSec()));
+        var a = attempts.save(forced.applySelfStudy(new StudentAttempt(userId, bankId, Instant.now(clock), bank.timeLimitSec())));
         return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec());
     }
 
@@ -66,8 +68,9 @@ public class AttemptService {
      * (BankGate mở riêng bộ này, FR-ASG-01) và các luật thi lại của bài thi thường. Mỗi bài giao chỉ nộp một lần.
      */
     @Transactional
-    public AttemptStarted startAssigned(Long bankId, long userId, long assignmentId) {
-        if (attempts.existsByAssignmentIdAndUserIdAndSubmittedAtIsNotNull(assignmentId, userId)) {
+    public AttemptStarted startAssigned(Long bankId, long userId, long assignmentId, boolean forcedAssignment) {
+        // D-143: bài giao Nghe ép (chốt lúc giao) làm lại không giới hạn; bài giao thường vẫn nộp một lần (FR-ASG-02)
+        if (attempts.existsByAssignmentIdAndUserIdAndSubmittedAtIsNotNull(assignmentId, userId) && !forcedAssignment) {
             throw new ApiException(HttpStatus.CONFLICT, "assignment_submitted", "Bạn đã nộp bài được giao này");
         }
         var open = attempts.findFirstByAssignmentIdAndUserIdAndSubmittedAtIsNullOrderByIdDesc(assignmentId, userId);
@@ -76,7 +79,8 @@ public class AttemptService {
             return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec());
         }
         var bank = gate.require(bankId, userId);
-        var a = attempts.save(new StudentAttempt(userId, bankId, Instant.now(clock), bank.timeLimitSec(), assignmentId));
+        var a = attempts.save(forced.applyAssigned(new StudentAttempt(userId, bankId, Instant.now(clock), bank.timeLimitSec(), assignmentId),
+                assignmentId, forcedAssignment));
         return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec());
     }
 
@@ -86,15 +90,17 @@ public class AttemptService {
         var a = attempts.findByIdAndUserId(attemptId, userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "attempt_not_found", "Không tìm thấy lượt làm bài"));
         if (a.getSubmittedAt() == null) {
-            return new AttemptResponse(a.getId(), a.getBankId(), a.getStartedAt(), null, null, null, null, null, null, null, null);
+            return new AttemptResponse(a.getId(), a.getBankId(), a.getStartedAt(), null, null, null, null, null, null, null, null, null);
         }
         var stored = answers.findByAttemptId(a.getId());
         var gradingRows = stored.isEmpty() ? List.<AnswerGrading>of()
                 : gradings.findByAnswerIdIn(stored.stream().map(StudentAnswer::getId).toList());
-        var base = assembler.submitted(a, a.getSubmittedAt(), a.getScore(), a.getMaxScore(), loader.load(a.getBankId()), stored,
+        var base = assembler.submitted(a, a.getSubmittedAt(), a.getScore(), a.getMaxScore(),
+                loader.loadForHistory(a.getBankId(), stored.stream().map(StudentAnswer::getQuestionId).toList()), stored,
                 gradingRows, aiJobs.pendingIds(a.getId()), null);
         return new AttemptResponse(base.id(), base.bankId(), base.startedAt(), base.submittedAt(), base.score(), base.maxScore(),
-                base.results(), base.pendingJobs(), base.aiQuotaRequired(), base.products(), stats.breakdown(userId, attemptId));
+                base.results(), base.pendingJobs(), base.aiQuotaRequired(), base.products(),
+                a.isCountOnly() ? null : stats.breakdown(userId, attemptId), base.forced());
     }
 
     /** Mới nhất trước; con trỏ là id của phần tử cuối trang, mã hóa mờ. */
@@ -110,7 +116,7 @@ public class AttemptService {
         boolean more = rows.size() > size;
         List<StudentAttempt> page = more ? rows.subList(0, size) : rows;
         var data = page.stream().map(a -> new AttemptSummary(a.getId(), a.getBankId(), a.getStartedAt(),
-                a.getSubmittedAt(), a.getScore(), a.getMaxScore())).toList();
+                a.getSubmittedAt(), a.isCountOnly() ? null : a.getScore(), a.isCountOnly() ? null : a.getMaxScore())).toList();
         return new CursorPage<>(data, more ? Cursors.encode(page.get(size - 1).getId()) : null);
     }
 }

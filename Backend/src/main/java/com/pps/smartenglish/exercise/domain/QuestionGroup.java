@@ -29,6 +29,14 @@ public class QuestionGroup extends Auditable {
     @Column(name = "passage_html")
     private String passageHtml;
 
+    /** Audio của part (media_assets kind AUDIO); học viên chỉ nghe qua AudioPlayService. */
+    @Column(name = "audio_asset_id")
+    private Long audioAssetId;
+
+    /** Script của part (đã làm sạch), dùng cho Nghe ép; không trả cho học viên trừ ScriptService. */
+    @Column(name = "transcript_html")
+    private String transcriptHtml;
+
     protected QuestionGroup() {}
 
     public QuestionGroup(Long bankId, int sortOrder, String title, String instruction, String passageHtml) {
@@ -46,6 +54,10 @@ public class QuestionGroup extends Auditable {
     public String getInstruction() { return instruction; }
     public String getPassageHtml() { return passageHtml; }
 
+    public Long getAudioAssetId() { return audioAssetId; }
+    public String getTranscriptHtml() { return transcriptHtml; }
+    public void setAudioAssetId(Long audioAssetId) { this.audioAssetId = audioAssetId; }
+    public void setTranscriptHtml(String transcriptHtml) { this.transcriptHtml = transcriptHtml; }
     public void setSortOrder(int sortOrder) { this.sortOrder = sortOrder; }
     public void setTitle(String title) { this.title = title; }
     public void setInstruction(String instruction) { this.instruction = instruction; }

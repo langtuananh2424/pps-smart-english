@@ -19,6 +19,7 @@ public final class CmsQuestionDtos {
 
     private static final String NOT_BLANK = ".*\\S.*";
     private static final String SKILL = "LISTENING|READING|GRAMMAR";
+    private static final String PLAYBACK = "FREE|EXAM|LOCKED";
 
     private CmsQuestionDtos() {}
 
@@ -26,12 +27,16 @@ public final class CmsQuestionDtos {
 
     public record CreateBank(@NotBlank @Size(max = 200) String title, Long lessonId, Boolean isTrial,
                              @Min(value = 1, message = "Phải từ 1 giây trở lên") Integer timeLimitSec,
-                             @Pattern(regexp = "PRACTICE|EXAM", message = "Chế độ phải là PRACTICE hoặc EXAM") String mode) {}
+                             @Pattern(regexp = "PRACTICE|EXAM", message = "Chế độ phải là PRACTICE hoặc EXAM") String mode,
+                             @Pattern(regexp = PLAYBACK, message = "Chế độ phát phải là FREE, EXAM hoặc LOCKED") String playbackMode,
+                             @Min(value = 1, message = "Phải từ 1 lần trở lên") Integer playLimit) {}
 
     public record PatchBank(@Size(max = 200) @Pattern(regexp = NOT_BLANK, message = "Không được để trống") String title,
                             Long lessonId, Boolean isTrial,
                             @Min(value = 1, message = "Phải từ 1 giây trở lên") Integer timeLimitSec,
-                            @Pattern(regexp = "PRACTICE|EXAM", message = "Chế độ phải là PRACTICE hoặc EXAM") String mode) {}
+                            @Pattern(regexp = "PRACTICE|EXAM", message = "Chế độ phải là PRACTICE hoặc EXAM") String mode,
+                            @Pattern(regexp = PLAYBACK, message = "Chế độ phát phải là FREE, EXAM hoặc LOCKED") String playbackMode,
+                            @Min(value = 1, message = "Phải từ 1 lần trở lên") Integer playLimit) {}
 
     public record CreatePlacementBank(@NotBlank @Size(max = 200) String title,
                                       @NotNull @Min(value = 1, message = "Phải từ 1 giây trở lên") Integer timeLimitSec) {}
@@ -52,7 +57,8 @@ public final class CmsQuestionDtos {
             @Min(0) Integer sortOrder,
             @Size(max = 8) List<String> grammarElementCodes,
             @Pattern(regexp = SKILL, message = "Chỉ nhận LISTENING, READING hoặc GRAMMAR") String skill,
-            @Size(max = 300) String instruction) {}
+            @Size(max = 300) String instruction,
+            @Size(max = 5000) String transcriptExcerpt) {}
 
     public record PatchQuestion(
             String type,
@@ -67,12 +73,14 @@ public final class CmsQuestionDtos {
             @Min(0) Integer sortOrder,
             @Size(max = 8) List<String> grammarElementCodes,
             @Pattern(regexp = SKILL, message = "Chỉ nhận LISTENING, READING hoặc GRAMMAR") String skill,
-            @Size(max = 300) String instruction) {}
+            @Size(max = 300) String instruction,
+            /** Vắng mặt = giữ; chuỗi rỗng = xóa (về dùng script của nhóm). */
+            @Size(max = 5000) String transcriptExcerpt) {}
 
     // ---- phản hồi ----
 
     public record BankView(Long id, Long topicId, Long lessonId, String title, boolean isTrial, String status, long questionCount,
-                           Integer timeLimitSec, String mode, String purpose) {}
+                           Integer timeLimitSec, String mode, String purpose, String playbackMode, Integer playLimit) {}
 
     public record ChoiceView(Long id, String label, String content, String contentHtml, boolean isCorrect, String explanation) {}
 
@@ -80,7 +88,7 @@ public final class CmsQuestionDtos {
     public record QuestionDetail(Long id, Long bankId, String type, String prompt, JsonNode payload, JsonNode answerKey,
                                  List<ChoiceView> choices, String explanation, int sortOrder, List<String> grammarElementCodes,
                                  int answerVersion, boolean regradeRequired, String skill, String instruction,
-                                 List<QuestionMediaView> media, Long groupId, String promptHtml) {}
+                                 List<QuestionMediaView> media, Long groupId, String promptHtml, String transcriptExcerpt) {}
 
     public record BankDetail(BankView bank, List<QuestionDetail> questions, List<GroupView> groups) {}
 

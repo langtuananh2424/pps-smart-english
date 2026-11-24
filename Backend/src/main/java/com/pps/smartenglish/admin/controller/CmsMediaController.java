@@ -1,5 +1,8 @@
 package com.pps.smartenglish.admin.controller;
 
+import com.pps.smartenglish.exercise.listening.AudioMediaService;
+import com.pps.smartenglish.exercise.listening.ListeningDtos.AudioComplete;
+import com.pps.smartenglish.exercise.listening.ListeningDtos.AudioFile;
 import com.pps.smartenglish.media.dto.MediaDtos.MediaFile;
 import com.pps.smartenglish.media.dto.MediaDtos.UploadPermit;
 import com.pps.smartenglish.media.dto.MediaDtos.UploadRequest;
@@ -22,9 +25,24 @@ import org.springframework.web.bind.annotation.RestController;
 class CmsMediaController {
 
     private final MediaService media;
+    private final AudioMediaService audio;
 
-    CmsMediaController(MediaService media) {
+    CmsMediaController(MediaService media, AudioMediaService audio) {
         this.media = media;
+        this.audio = audio;
+    }
+
+    /** D-135: audio của part. Luồng như ảnh: xin quyền tải lên, tải thẳng lên kho, gọi complete-audio (kèm độ dài nếu biết). */
+    @PostMapping("/audio")
+    @ResponseStatus(HttpStatus.CREATED)
+    UploadPermit createAudioUpload(Authentication auth, @Valid @RequestBody UploadRequest req) {
+        return audio.createUpload(CurrentUser.id(auth), req.contentType());
+    }
+
+    @PostMapping("/{id}/complete-audio")
+    AudioFile completeAudio(Authentication auth, @PathVariable String id, @RequestBody(required = false) AudioComplete req) {
+        return audio.complete(CurrentUser.id(auth), PathId.parse(id, "media_not_found", "Không tìm thấy audio"),
+                req == null ? null : req.durationMs());
     }
 
     @PostMapping("/images")

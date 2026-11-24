@@ -47,6 +47,10 @@ public class Assignment extends Auditable {
     @Column(name = "live_key")
     private String liveKey;
 
+    /** D-143: bài giao chốt chế độ Nghe ép lúc giao (bộ LOCKED); bộ đổi chế độ sau đó không đổi bài đã giao. */
+    @Column(name = "forced_listening", nullable = false, updatable = false)
+    private boolean forcedListening;
+
     @Column(name = "reminded_at")
     private Instant remindedAt;
 
@@ -71,6 +75,12 @@ public class Assignment extends Auditable {
         this.liveKey = classId + ":" + bankId + ":q" + questionId + ":" + dueAt.toEpochMilli();
     }
 
+    public Assignment forcedListening() {
+        this.forcedListening = true;
+        return this;
+    }
+
+    public boolean isForcedListening() { return forcedListening; }
     public Long getId() { return id; }
     public Long getQuestionId() { return questionId; }
     public String getQuestionType() { return questionType; }

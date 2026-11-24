@@ -41,7 +41,8 @@ public class LearningStatsRepository {
     /** Phạm vi: mọi lượt đã nộp của một học viên, hoặc đúng một lượt (đã kiểm chủ lượt và đã nộp). */
     public record Scope(String where, long arg) {
         public static Scope user(long userId) {
-            return new Scope("t.user_id = ? and t.submitted_at is not null", userId);
+            // lượt Nghe ép không có điểm và đáp án từng câu (D-142), không gộp vào hồ sơ
+            return new Scope("t.user_id = ? and t.submitted_at is not null and t.result_mode = 'FULL'", userId);
         }
 
         public static Scope attempt(long attemptId) {
@@ -101,7 +102,7 @@ public class LearningStatsRepository {
         return jdbc.query("select t.submitted_at, sum(case when a.is_correct is not null then 1 else 0 end), "
                 + "sum(case when a.is_correct = true then 1 else 0 end) "
                 + "from student_exercise_attempts t join student_answers a on a.attempt_id = t.id "
-                + "where t.user_id = ? and t.submitted_at >= ? group by t.id, t.submitted_at",
+                + "where t.user_id = ? and t.result_mode = 'FULL' and t.submitted_at >= ? group by t.id, t.submitted_at",
                 (rs, i) -> new AttemptTotals(rs.getObject(1, OffsetDateTime.class), rs.getLong(2), rs.getLong(3)),
                 userId, since.withOffsetSameInstant(ZoneOffset.UTC));
     }

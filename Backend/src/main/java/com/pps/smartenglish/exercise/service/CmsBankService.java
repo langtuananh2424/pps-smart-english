@@ -2,6 +2,7 @@ package com.pps.smartenglish.exercise.service;
 
 import com.pps.smartenglish.catalog.service.CatalogReferences;
 import com.pps.smartenglish.exercise.domain.QuestionBank;
+import com.pps.smartenglish.exercise.listening.ListeningProperties;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.BankDetail;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.BankView;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.CreateBank;
@@ -35,9 +36,12 @@ public class CmsBankService {
     private final CmsWrites writes;
     private final CmsGroupService groups;
     private final AuditRecorder audit;
+    private final ListeningProperties listening;
 
     CmsBankService(QuestionBankRepository banks, QuestionRepository questions, GrammarElementRepository grammar,
-                   CatalogReferences catalog, QuestionDetails details, CmsWrites writes, AuditRecorder audit, CmsGroupService groups) {
+                   CatalogReferences catalog, QuestionDetails details, CmsWrites writes, AuditRecorder audit, CmsGroupService groups,
+                   ListeningProperties listening) {
+        this.listening = listening;
         this.groups = groups;
         this.audit = audit;
         this.banks = banks;
@@ -78,6 +82,7 @@ public class CmsBankService {
         if (req.mode() != null) {
             bank.setMode(req.mode());
         }
+        applyPlayback(bank, req.playbackMode(), req.playLimit());
         var after = view(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), 0);
         audit.record("CREATE", "BANK", after.id(), null, after);
         return after;
@@ -87,7 +92,7 @@ public class CmsBankService {
     @Transactional(readOnly = true)
     public BankDetail get(long id) {
         QuestionBank bank = find(id);
-        var rows = questions.findByBankIdOrderBySortOrderAscIdAsc(id);
+        var rows = questions.findActiveByBankId(id);
         return new BankDetail(view(bank, rows.size()), details.of(rows), groups.ofBank(id));
     }
 
@@ -114,9 +119,26 @@ public class CmsBankService {
         if (req.mode() != null) {
             bank.setMode(req.mode());
         }
+        applyPlayback(bank, req.playbackMode(), req.playLimit());
         var after = view(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), questions.countByBankId(id));
         audit.record("UPDATE", "BANK", id, before, after);
         return after;
+    }
+
+    /** D-135: chế độ phát audio và số lần nghe của chế độ Thi; đề kiểm tra đầu vào không có audio theo lượt nên chỉ FREE. */
+    private void applyPlayback(QuestionBank bank, String playbackMode, Integer playLimit) {
+        if (playbackMode != null) {
+            if (bank.isPlacement() && !QuestionBank.FREE.equals(playbackMode)) {
+                throw ApiException.validation("playbackMode", "Đề kiểm tra đầu vào chỉ dùng chế độ phát FREE");
+            }
+            bank.setPlaybackMode(playbackMode);
+        }
+        if (playLimit != null) {
+            if (playLimit > listening.maxPlayLimit()) {
+                throw ApiException.validation("playLimit", "Tối đa " + listening.maxPlayLimit());
+            }
+            bank.setPlayLimit(playLimit);
+        }
     }
 
     /** Còn câu hỏi, lượt làm bài... tham chiếu thì in_use; không xóa cascade. */
@@ -183,6 +205,6 @@ public class CmsBankService {
 
     public static BankView view(QuestionBank b, long questionCount) {
         return new BankView(b.getId(), b.getTopicId(), b.getLessonId(), b.getTitle(), b.isTrial(), b.getStatus(), questionCount,
-                b.getTimeLimitSec(), b.getMode(), b.getPurpose());
+                b.getTimeLimitSec(), b.getMode(), b.getPurpose(), b.getPlaybackMode(), b.getPlayLimit());
     }
 }

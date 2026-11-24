@@ -1,6 +1,7 @@
 package com.pps.smartenglish.exercise.domain;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.pps.smartenglish.exercise.content.PromptHash;
 import com.pps.smartenglish.shared.domain.Auditable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -8,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -57,8 +59,24 @@ public class Question extends Auditable {
     @Column(name = "answer_version")
     private int answerVersion = 1;
 
+    /** Script riêng của câu (FR-EX-10); null = dùng script của nhóm. Không bao giờ vào DTO của học viên trừ ScriptService. */
+    @Column(name = "transcript_excerpt")
+    private String transcriptExcerpt;
+
     /** LISTENING/READING/GRAMMAR; chỉ có ở câu của đề kiểm tra đầu vào. */
     private String skill;
+
+    /** Lô nhập hàng loạt tạo ra câu này; null = soạn tay. */
+    @Column(name = "import_batch_id", updatable = false)
+    private Long importBatchId;
+
+    /** Có giá trị = câu đã bị ẩn khi hoàn tác lô (còn lượt làm); không hiện cho lượt làm mới, lịch sử học viên vẫn giữ. */
+    @Column(name = "archived_at")
+    private Instant archivedAt;
+
+    /** Dấu vân tay chống trùng (PromptHash); câu cũ null cho tới khi được so trùng lần đầu. */
+    @Column(name = "prompt_hash")
+    private String promptHash;
 
     protected Question() {}
 
@@ -71,6 +89,7 @@ public class Question extends Auditable {
         this.answerKey = answerKey;
         this.explanation = explanation;
         this.sortOrder = sortOrder;
+        refreshHash();
     }
 
     public Long getId() { return id; }
@@ -86,16 +105,27 @@ public class Question extends Auditable {
     public String getExplanation() { return explanation; }
     public int getSortOrder() { return sortOrder; }
     public int getAnswerVersion() { return answerVersion; }
+    public Long getImportBatchId() { return importBatchId; }
+    public Instant getArchivedAt() { return archivedAt; }
+    public String getPromptHash() { return promptHash; }
+    public void setImportBatchId(Long importBatchId) { this.importBatchId = importBatchId; }
+    public void archive(Instant at) { this.archivedAt = at; }
     public String getSkill() { return skill; }
+    public String getTranscriptExcerpt() { return transcriptExcerpt; }
+    public void setTranscriptExcerpt(String transcriptExcerpt) { this.transcriptExcerpt = transcriptExcerpt; }
     public void setSkill(String skill) { this.skill = skill; }
 
     public void setType(QuestionType type) { this.type = type.name(); }
-    public void setPrompt(String prompt) { this.prompt = prompt; }
+    public void setPrompt(String prompt) { this.prompt = prompt; refreshHash(); }
     public void setPromptHtml(String promptHtml) { this.promptHtml = promptHtml; }
     public void setGroupId(Long groupId) { this.groupId = groupId; }
-    public void setPayload(JsonNode payload) { this.payload = payload; }
+    public void setPayload(JsonNode payload) { this.payload = payload; refreshHash(); }
     public void setAnswerKey(JsonNode answerKey) { this.answerKey = answerKey; }
     public void setExplanation(String explanation) { this.explanation = explanation; }
     public void setSortOrder(int sortOrder) { this.sortOrder = sortOrder; }
     public void bumpAnswerVersion() { this.answerVersion++; }
+
+    public void refreshHash() {
+        this.promptHash = PromptHash.of(prompt, payload);
+    }
 }

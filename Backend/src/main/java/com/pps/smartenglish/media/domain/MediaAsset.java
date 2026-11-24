@@ -15,6 +15,7 @@ import java.time.Instant;
 public class MediaAsset extends Auditable {
 
     public static final String IMAGE = "IMAGE";
+    public static final String AUDIO = "AUDIO";
     public static final String PENDING = "PENDING";
     public static final String READY = "READY";
 
@@ -66,6 +67,28 @@ public class MediaAsset extends Auditable {
         return a;
     }
 
+    /** Audio được tải thẳng vào khóa cuối (không xử lý lại như ảnh), nên upload_key chính là storage_key sau khi xác nhận. */
+    public static MediaAsset pendingAudio(long uploadedBy, String key, long maxBytes, Instant expiresAt) {
+        var a = new MediaAsset();
+        a.kind = AUDIO;
+        a.uploadedBy = uploadedBy;
+        a.uploadKey = key;
+        a.maxBytes = maxBytes;
+        a.uploadExpiresAt = expiresAt;
+        return a;
+    }
+
+    public void readyAudio(String mime, long sizeBytes, Integer durationMs) {
+        this.status = READY;
+        this.storageKey = uploadKey;
+        this.uploadKey = null;
+        this.uploadExpiresAt = null;
+        this.maxBytes = null;
+        this.mime = mime;
+        this.sizeBytes = sizeBytes;
+        this.durationMs = durationMs;
+    }
+
     public void ready(String storageKey, String mime, long sizeBytes, int width, int height) {
         this.status = READY;
         this.storageKey = storageKey;
@@ -90,5 +113,6 @@ public class MediaAsset extends Auditable {
     public Long getSizeBytes() { return sizeBytes; }
     public Integer getWidth() { return width; }
     public Integer getHeight() { return height; }
+    public Integer getDurationMs() { return durationMs; }
     public Long getUploadedBy() { return uploadedBy; }
 }

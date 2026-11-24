@@ -16,6 +16,9 @@ import com.pps.smartenglish.exercise.dto.BankResponse.GroupView;
 import com.pps.smartenglish.exercise.dto.BankResponse.HintView;
 import com.pps.smartenglish.exercise.dto.BankResponse.QuestionView;
 import com.pps.smartenglish.exercise.dto.QuestionMediaDtos.QuestionMediaView;
+import com.pps.smartenglish.exercise.listening.AudioMediaService;
+import com.pps.smartenglish.exercise.listening.AudioPlayService;
+import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
 import com.pps.smartenglish.exercise.repository.QuestionGroupRepository;
 import com.pps.smartenglish.exercise.repository.QuestionHintRepository;
 import java.util.List;
@@ -36,9 +39,16 @@ public class BankService {
     private final QuestionMediaService media;
     private final QuestionGroupRepository groups;
     private final RichText rich;
+    private final QuestionBankRepository banks;
+    private final AudioPlayService audioPlays;
+    private final AudioMediaService audio;
 
     BankService(BankGate gate, QuestionLoader loader, ExamService exam, QuestionHintRepository hints, QuestionMediaService media,
-                QuestionGroupRepository groups, RichText rich) {
+                QuestionGroupRepository groups, RichText rich, QuestionBankRepository banks, AudioPlayService audioPlays,
+                AudioMediaService audio) {
+        this.banks = banks;
+        this.audioPlays = audioPlays;
+        this.audio = audio;
         this.groups = groups;
         this.rich = rich;
         this.gate = gate;
@@ -59,11 +69,15 @@ public class BankService {
         var html = rich.render(Stream.of(set.questions().stream().map(Question::getPromptHtml),
                 set.choices().values().stream().flatMap(List::stream).map(QuestionChoice::getContentHtml),
                 groupRows.stream().map(QuestionGroup::getPassageHtml)).flatMap(s -> s).toList());
+        var durations = audio.durations(groupRows.stream().map(QuestionGroup::getAudioAssetId).filter(java.util.Objects::nonNull).toList());
+        var playback = banks.findById(bankId).orElseThrow(); // findInfo vừa tìm thấy bộ này
         return new BankResponse(bank.id(), bank.title(), bank.lessonId(), bank.trial(), bank.mode(),
                 bank.timeLimitSec(), questionViews(set, hintsByQuestion,
                         media.forQuestions(set.questions().stream().map(Question::getId).toList()), html),
                 groupRows.stream().map(g -> new GroupView(g.getId(), g.getTitle(), g.getInstruction(),
-                        rendered(html, g.getPassageHtml()), g.getSortOrder())).toList());
+                        rendered(html, g.getPassageHtml()), g.getSortOrder(), g.getAudioAssetId() != null && durations.containsKey(g.getAudioAssetId()),
+                        g.getAudioAssetId() == null ? null : durations.getOrDefault(g.getAudioAssetId(), java.util.Optional.empty()).orElse(null))).toList(),
+                playback.getPlaybackMode(), audioPlays.limitOf(playback));
     }
 
     /** Kiểm tra đầu vào dùng bản này: chưa có HTML giàu định dạng. */

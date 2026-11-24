@@ -79,18 +79,19 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     List<Long> recipientIds(@Param("id") Long id, @Param("classId") Long classId);
 
     /**
-     * [user_id, tên hiển thị, attempt id, nộp lúc, điểm AI, điểm tối đa] của từng người nhận; lượt đã nộp mới nhất, null nếu chưa nộp.
+     * [user_id, tên hiển thị, attempt id, nộp lúc, điểm AI, điểm tối đa, result_mode của lượt] của từng người nhận; lượt đã nộp ĐẦU TIÊN (bài thường chỉ có một; bài Nghe ép làm lại được, D-143), null nếu chưa nộp.
      * Người nhận tính như recipientIds.
      */
     @Query(nativeQuery = true, value = """
-            SELECT u.user_id, p.display_name, x.id, x.submitted_at, x.score, x.max_score FROM (
+            SELECT u.user_id, p.display_name, x.id, x.submitted_at, x.score, x.max_score, x.result_mode FROM (
               SELECT t.user_id FROM assignment_targets t WHERE t.assignment_id = :id
               UNION
               SELECT m.user_id FROM class_members m WHERE m.class_id = :classId AND m.status = 'ACTIVE'
                 AND NOT EXISTS (SELECT 1 FROM assignment_targets t2 WHERE t2.assignment_id = :id)
             ) u LEFT JOIN user_profiles p ON p.user_id = u.user_id
-            LEFT JOIN student_exercise_attempts x ON x.id = (SELECT MAX(a.id) FROM student_exercise_attempts a
-                WHERE a.assignment_id = :id AND a.user_id = u.user_id AND a.submitted_at IS NOT NULL)
+            LEFT JOIN student_exercise_attempts x ON x.id = (SELECT a.id FROM student_exercise_attempts a
+                WHERE a.assignment_id = :id AND a.user_id = u.user_id AND a.submitted_at IS NOT NULL
+                ORDER BY a.submitted_at ASC, a.id ASC LIMIT 1)
             ORDER BY u.user_id
             """)
     List<Object[]> progress(@Param("id") Long id, @Param("classId") Long classId);
@@ -102,10 +103,14 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
             """)
     List<Object[]> submittedAttempt(@Param("attemptId") Long attemptId, @Param("assignmentId") Long assignmentId);
 
-    /** [attempt id, nộp lúc, điểm AI, điểm tối đa] lượt đã nộp mới nhất của một học viên cho bài này. */
+    /** result_mode của lượt (rỗng nếu không có): Nghe ép (COUNT_ONLY) không đưa điểm cho học viên. */
+    @Query(nativeQuery = true, value = "SELECT a.result_mode FROM student_exercise_attempts a WHERE a.id = :attemptId")
+    List<String> resultModeOf(@Param("attemptId") Long attemptId);
+
+    /** [attempt id, nộp lúc, điểm AI, điểm tối đa] lượt đã nộp ĐẦU TIÊN của một học viên cho bài này (D-143: trạng thái nộp theo lượt đầu). */
     @Query(nativeQuery = true, value = """
             SELECT a.id, a.submitted_at, a.score, a.max_score FROM student_exercise_attempts a
-            WHERE a.assignment_id = :id AND a.user_id = :userId AND a.submitted_at IS NOT NULL ORDER BY a.id DESC LIMIT 1
+            WHERE a.assignment_id = :id AND a.user_id = :userId AND a.submitted_at IS NOT NULL ORDER BY a.submitted_at ASC, a.id ASC LIMIT 1
             """)
     List<Object[]> latestSubmitted(@Param("id") Long id, @Param("userId") Long userId);
 }

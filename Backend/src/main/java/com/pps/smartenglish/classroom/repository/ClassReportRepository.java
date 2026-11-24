@@ -31,9 +31,10 @@ public interface ClassReportRepository extends Repository<ClassRoom, Long> {
             """)
     List<Object[]> lessonsDone(@Param("courseId") long courseId, @Param("ids") Collection<Long> ids);
 
-    /** [user_id, topic id, điểm, điểm tối đa] của lượt kiểm tra chương đã nộp mới nhất của từng học viên ở từng unit. */
+    /** [user_id, topic id, điểm, điểm tối đa] (null với lượt Nghe ép, D-142) của lượt kiểm tra chương đã nộp mới nhất của từng học viên ở từng unit. */
     @Query(nativeQuery = true, value = """
-            SELECT a.user_id, t.id, a.score, a.max_score FROM student_exercise_attempts a
+            SELECT a.user_id, t.id, CASE WHEN a.result_mode = 'COUNT_ONLY' THEN NULL ELSE a.score END,
+                   CASE WHEN a.result_mode = 'COUNT_ONLY' THEN NULL ELSE a.max_score END FROM student_exercise_attempts a
             JOIN topics t ON t.chapter_test_bank_id = a.bank_id JOIN course_levels lv ON lv.id = t.level_id
             WHERE lv.course_id = :courseId AND a.user_id IN (:ids) AND a.submitted_at IS NOT NULL
               AND a.id = (SELECT MAX(a2.id) FROM student_exercise_attempts a2

@@ -65,6 +65,6 @@ class QuestionDetails {
                 q.getExplanation(), q.getSortOrder(), codeMap.getOrDefault(q.getId(), List.of()), q.getAnswerVersion(),
                 required.contains(q.getId()), q.getSkill(), q.getInstruction(),
                 mediaMap.getOrDefault(q.getId(), List.of()), q.getGroupId(),
-                q.getPromptHtml() == null ? null : html.get(q.getPromptHtml()))).toList();
+                q.getPromptHtml() == null ? null : html.get(q.getPromptHtml()), q.getTranscriptExcerpt())).toList();
     }
 }

@@ -61,9 +61,19 @@ public class StudentAttempt {
     @Column(name = "assignment_id", updatable = false)
     private Long assignmentId;
 
+    /** FR-EX-10: FULL hoặc COUNT_ONLY (Nghe ép), sao chép từ bộ lúc bắt đầu. rule_id: luật Nghe ép đang áp, null = mặc định cấu hình. */
+    @Column(name = "result_mode", nullable = false, updatable = false)
+    private String resultMode = FULL;
+
+    @Column(name = "rule_id", updatable = false)
+    private Long ruleId;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "draft_answers")
     private JsonNode draftAnswers;
+
+    public static final String FULL = "FULL";
+    public static final String COUNT_ONLY = "COUNT_ONLY";
 
     protected StudentAttempt() {}
 
@@ -80,6 +90,15 @@ public class StudentAttempt {
         this.assignmentId = assignmentId;
     }
 
+    /** Lượt Nghe ép: sau khi nộp chỉ biết số câu đúng. */
+    public StudentAttempt countOnly(Long ruleId) {
+        this.resultMode = COUNT_ONLY;
+        this.ruleId = ruleId;
+        return this;
+    }
+
+    public boolean isCountOnly() { return COUNT_ONLY.equals(resultMode); }
+    public Long getRuleId() { return ruleId; }
     public Long getAssignmentId() { return assignmentId; }
     public Long getId() { return id; }
     public Long getUserId() { return userId; }

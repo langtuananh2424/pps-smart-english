@@ -20,6 +20,9 @@ public class QuestionBank extends Auditable {
     /** Bộ của khóa học (có topic) hoặc đề kiểm tra đầu vào (FR-TEST-01, không topic, luôn EXAM, bắt buộc time_limit_sec). */
     public static final String COURSE = "COURSE";
     public static final String PLACEMENT = "PLACEMENT";
+    /** D-135: FREE nghe và tua tự do; EXAM tự phát, không thao tác; LOCKED = Nghe ép (FR-EX-10). */
+    public static final String FREE = "FREE";
+    public static final String LOCKED = "LOCKED";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,6 +52,13 @@ public class QuestionBank extends Auditable {
     @Column(updatable = false)
     private String purpose = COURSE;
 
+    @Column(name = "playback_mode")
+    private String playbackMode = FREE;
+
+    /** Số lần nghe chế độ EXAM; null = mặc định cấu hình. Chế độ LOCKED lấy số lần nghe từ luật Nghe ép. */
+    @Column(name = "play_limit")
+    private Integer playLimit;
+
     protected QuestionBank() {}
 
     /** Đề kiểm tra đầu vào: không topic, chế độ EXAM, có giới hạn thời gian. */
@@ -76,6 +86,8 @@ public class QuestionBank extends Auditable {
     public Integer getTimeLimitSec() { return timeLimitSec; }
     public String getMode() { return mode; }
     public String getPurpose() { return purpose; }
+    public String getPlaybackMode() { return playbackMode; }
+    public Integer getPlayLimit() { return playLimit; }
     public boolean isPlacement() { return PLACEMENT.equals(purpose); }
 
     public void setLessonId(Long lessonId) { this.lessonId = lessonId; }
@@ -84,4 +96,6 @@ public class QuestionBank extends Auditable {
     public void setStatus(String status) { this.status = status; }
     public void setTimeLimitSec(Integer timeLimitSec) { this.timeLimitSec = timeLimitSec; }
     public void setMode(String mode) { this.mode = mode; }
+    public void setPlaybackMode(String playbackMode) { this.playbackMode = playbackMode; }
+    public void setPlayLimit(Integer playLimit) { this.playLimit = playLimit; }
 }

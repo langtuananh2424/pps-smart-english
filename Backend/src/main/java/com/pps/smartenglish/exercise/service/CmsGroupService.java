@@ -5,6 +5,7 @@ import com.pps.smartenglish.exercise.domain.QuestionGroup;
 import com.pps.smartenglish.exercise.dto.QuestionGroupDtos.CreateGroup;
 import com.pps.smartenglish.exercise.dto.QuestionGroupDtos.GroupView;
 import com.pps.smartenglish.exercise.dto.QuestionGroupDtos.PatchGroup;
+import com.pps.smartenglish.exercise.listening.AudioMediaService;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
 import com.pps.smartenglish.exercise.repository.QuestionGroupRepository;
 import com.pps.smartenglish.exercise.repository.QuestionRepository;
@@ -29,9 +30,11 @@ public class CmsGroupService {
     private final RichText rich;
     private final CmsWrites writes;
     private final AuditRecorder audit;
+    private final AudioMediaService audio;
 
     CmsGroupService(QuestionGroupRepository groups, QuestionBankRepository banks, QuestionRepository questions, RichText rich,
-                    CmsWrites writes, AuditRecorder audit) {
+                    CmsWrites writes, AuditRecorder audit, AudioMediaService audio) {
+        this.audio = audio;
         this.groups = groups;
         this.banks = banks;
         this.questions = questions;
@@ -47,6 +50,8 @@ public class CmsGroupService {
         }
         var group = new QuestionGroup(bankId, req.sortOrder() == null ? 0 : req.sortOrder(), blankToNull(req.title()),
                 blankToNull(req.instruction()), passage(req.passageHtml()));
+        group.setAudioAssetId(audioId(req.audioAssetId()));
+        group.setTranscriptHtml(passage(req.transcriptHtml()));
         var after = view(writes.save(groups, group, "conflict", "Không lưu được nhóm câu hỏi"));
         audit.record("CREATE", AUDIT_TYPE, after.id(), null, after);
         return after;
@@ -64,6 +69,12 @@ public class CmsGroupService {
         }
         if (req.passageHtml() != null) {
             g.setPassageHtml(passage(req.passageHtml()));
+        }
+        if (req.audioAssetId() != null) {
+            g.setAudioAssetId(req.audioAssetId().isNull() ? null : audioId(longOf(req.audioAssetId())));
+        }
+        if (req.transcriptHtml() != null) {
+            g.setTranscriptHtml(passage(req.transcriptHtml()));
         }
         if (req.sortOrder() != null) {
             g.setSortOrder(req.sortOrder());
@@ -100,14 +111,29 @@ public class CmsGroupService {
         return s.text().isEmpty() && s.assetIds().isEmpty() ? null : s.html();
     }
 
+    /** Audio phải READY và đúng loại; null = không có audio. */
+    private Long audioId(Long id) {
+        return id == null ? null : audio.requireAudio(id).getId();
+    }
+
+    private static Long longOf(com.fasterxml.jackson.databind.JsonNode n) {
+        if (!n.isIntegralNumber() || n.asLong() <= 0) {
+            throw ApiException.validation("audioAssetId", "Phải là số nguyên dương hoặc null");
+        }
+        return n.asLong();
+    }
+
     private GroupView view(QuestionGroup g) {
         return views(List.of(g)).get(0);
     }
 
     private List<GroupView> views(List<QuestionGroup> rows) {
-        Map<String, String> html = rich.render(rows.stream().map(QuestionGroup::getPassageHtml).toList());
+        Map<String, String> html = rich.render(rows.stream().flatMap(g -> java.util.stream.Stream.of(g.getPassageHtml(), g.getTranscriptHtml())).toList());
+        var durations = audio.durations(rows.stream().map(QuestionGroup::getAudioAssetId).filter(java.util.Objects::nonNull).toList());
         return rows.stream().map(g -> new GroupView(g.getId(), g.getBankId(), g.getSortOrder(), g.getTitle(), g.getInstruction(),
-                g.getPassageHtml() == null ? null : html.get(g.getPassageHtml()))).toList();
+                g.getPassageHtml() == null ? null : html.get(g.getPassageHtml()), g.getAudioAssetId(),
+                g.getAudioAssetId() == null ? null : durations.getOrDefault(g.getAudioAssetId(), java.util.Optional.empty()).orElse(null),
+                g.getTranscriptHtml() == null ? null : html.get(g.getTranscriptHtml()))).toList();
     }
 
     private QuestionGroup find(long id) {
