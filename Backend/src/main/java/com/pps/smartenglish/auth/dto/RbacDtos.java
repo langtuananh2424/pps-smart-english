@@ -30,7 +30,12 @@ public final class RbacDtos {
 
     public record PermissionView(String code, String module, String description) {}
 
-    public record RoleView(Long id, String code, String name, List<String> permissions) {}
+    public record RoleView(Long id, String code, String name, List<String> permissions, long memberCount) {}
+
+    /** Một nhân sự trong danh sách (có ít nhất một role khác STUDENT). */
+    public record StaffView(Long id, String email, String displayName, List<String> roles) {}
+
+    public record MyPermissions(List<String> permissions) {}
 
     public record OverrideView(String permission, String effect, Instant expiresAt, Long grantedBy) {}
 

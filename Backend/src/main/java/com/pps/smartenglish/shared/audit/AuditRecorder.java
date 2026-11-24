@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.security.CurrentUser;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import org.springframework.security.core.Authentication;
@@ -11,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.util.UriUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -51,14 +53,29 @@ public class AuditRecorder {
             return null;
         }
         String reason = attrs.getRequest().getHeader(REASON_HEADER);
-        if (reason == null || reason.isBlank()) {
+        if (reason == null) {
             return null;
         }
-        reason = reason.strip();
+        reason = decode(reason).strip();
+        if (reason.isEmpty()) {
+            return null;
+        }
+        if (reason.chars().anyMatch(c -> Character.isISOControl(c) && c != '\r' && c != '\n' && c != '\t')) {
+            throw ApiException.validation(REASON_HEADER, "Lý do chứa ký tự điều khiển");
+        }
         if (reason.length() > REASON_MAX) {
             throw ApiException.validation(REASON_HEADER, "Lý do tối đa " + REASON_MAX + " ký tự");
         }
         return reason;
+    }
+
+    /** Web gửi encodeURIComponent (header không mang được ký tự ngoài Latin-1). Chỉ giải %XX, '+' giữ nguyên; sai định dạng thì giữ chuỗi gốc. */
+    static String decode(String raw) {
+        try {
+            return UriUtils.decode(raw, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return raw;
+        }
     }
 
     private JsonNode toJson(Object value) {

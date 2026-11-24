@@ -16,4 +16,9 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     List<AuditLog> search(@Param("before") Long before, @Param("actorId") Long actorId,
                           @Param("targetType") String targetType, @Param("targetId") String targetId,
                           @Param("from") Instant from, @Param("to") Instant to, Pageable page);
+
+    /** [user_id, email, tên hiển thị] của người thao tác, một query cho cả trang. */
+    @Query(value = "select u.id, u.email, p.display_name from users u left join user_profiles p on p.user_id = u.id where u.id in (:ids)",
+            nativeQuery = true)
+    List<Object[]> actorsOf(@Param("ids") java.util.Collection<Long> ids);
 }

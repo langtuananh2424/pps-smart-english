@@ -9,7 +9,9 @@ import com.pps.smartenglish.shared.web.CursorPage;
 import com.pps.smartenglish.shared.web.Cursors;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,12 +47,18 @@ public class AuditLogService {
                 start, end, PageRequest.of(0, size + 1));
         boolean more = rows.size() > size;
         List<AuditLog> page = more ? rows.subList(0, size) : rows;
-        var data = page.stream().map(AuditLogService::view).toList();
+        Map<Long, Object[]> actors = new HashMap<>();
+        var actorIds = page.stream().map(AuditLog::getActorId).distinct().toList();
+        if (!actorIds.isEmpty()) {
+            logs.actorsOf(actorIds).forEach(r -> actors.put(((Number) r[0]).longValue(), r));
+        }
+        var data = page.stream().map(a -> view(a, actors.get(a.getActorId()))).toList();
         return new CursorPage<>(data, more ? Cursors.encode(page.get(size - 1).getId()) : null);
     }
 
-    private static AuditLogView view(AuditLog a) {
-        return new AuditLogView(a.getId(), a.getActorId(), a.getAction(), a.getTargetType(), a.getTargetId(),
+    private static AuditLogView view(AuditLog a, Object[] actor) {
+        return new AuditLogView(a.getId(), a.getActorId(), actor == null ? null : (String) actor[1],
+                actor == null ? null : (String) actor[2], a.getAction(), a.getTargetType(), a.getTargetId(),
                 a.getBeforeValue(), a.getAfterValue(), a.getReason(), a.getCreatedAt());
     }
 

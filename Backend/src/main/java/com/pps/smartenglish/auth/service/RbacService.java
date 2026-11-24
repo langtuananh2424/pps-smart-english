@@ -6,6 +6,7 @@ import com.pps.smartenglish.auth.domain.Role;
 import com.pps.smartenglish.auth.dto.RbacDtos.OverrideView;
 import com.pps.smartenglish.auth.dto.RbacDtos.PermissionView;
 import com.pps.smartenglish.auth.dto.RbacDtos.RoleView;
+import com.pps.smartenglish.auth.dto.RbacDtos.StaffView;
 import com.pps.smartenglish.auth.dto.RbacDtos.UserAccess;
 import com.pps.smartenglish.auth.repository.AccessRepository;
 import com.pps.smartenglish.auth.repository.PermissionOverrideRepository;
@@ -15,9 +16,14 @@ import com.pps.smartenglish.auth.repository.UserRepository;
 import com.pps.smartenglish.shared.audit.AuditRecorder;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.security.CurrentUser;
+import com.pps.smartenglish.shared.web.CursorPage;
+import com.pps.smartenglish.shared.web.Cursors;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
@@ -61,7 +67,42 @@ public class RbacService {
 
     @Transactional(readOnly = true)
     public List<RoleView> roles() {
-        return roles.findAllByOrderByIdAsc().stream().map(this::roleView).toList();
+        var counts = memberCounts();
+        return roles.findAllByOrderByIdAsc().stream().map(r -> roleView(r, counts)).toList();
+    }
+
+    /** Nhân sự (có role khác STUDENT), id giảm dần; q khớp một phần email/tên, role lọc theo mã. */
+    @Transactional(readOnly = true)
+    public CursorPage<StaffView> staff(String q, String role, String limit, String cursor) {
+        int size = Cursors.size(limit, 20, 100);
+        String key = q == null || q.isBlank() ? null : "%" + escapeLike(q.strip().toLowerCase()) + "%";
+        var rows = access.staffPage(Cursors.decode(cursor), role == null || role.isBlank() ? null : role.strip(), key, size + 1);
+        boolean more = rows.size() > size;
+        var page = more ? rows.subList(0, size) : rows;
+        Map<Long, List<String>> rolesOf = new HashMap<>();
+        if (!page.isEmpty()) {
+            var ids = page.stream().map(r -> ((Number) r[0]).longValue()).toList();
+            for (Object[] r : access.roleCodesOfUsers(ids)) {
+                rolesOf.computeIfAbsent(((Number) r[0]).longValue(), k -> new ArrayList<>()).add((String) r[1]);
+            }
+        }
+        var data = page.stream().map(r -> {
+            long id = ((Number) r[0]).longValue();
+            return new StaffView(id, (String) r[1], (String) r[2], rolesOf.getOrDefault(id, List.of()));
+        }).toList();
+        return new CursorPage<>(data, more ? Cursors.encode(data.get(size - 1).id()) : null);
+    }
+
+    private static String escapeLike(String s) {
+        return s.replace("!", "!!").replace("%", "!%").replace("_", "!_");
+    }
+
+    private Map<Long, Long> memberCounts() {
+        Map<Long, Long> m = new HashMap<>();
+        for (Object[] r : access.roleMemberCounts()) {
+            m.put(((Number) r[0]).longValue(), ((Number) r[1]).longValue());
+        }
+        return m;
     }
 
     @Transactional
@@ -75,7 +116,7 @@ public class RbacService {
             access.addRolePermissions(role.getId(), codes);
         }
         var after = roleView(role);
-        audit.record("CREATE", "ROLE", role.getId(), null, after);
+        audit.record("CREATE", "ROLE", role.getId(), null, snapshot(after));
         return after;
     }
 
@@ -91,7 +132,7 @@ public class RbacService {
         }
         requireSomeoneCanManageRbac();
         var after = roleView(role);
-        audit.record("UPDATE", "ROLE", roleId, before, after);
+        audit.record("UPDATE", "ROLE", roleId, snapshot(before), snapshot(after));
         return after;
     }
 
@@ -162,8 +203,18 @@ public class RbacService {
                 access.effectivePermissions(userId, Instant.now(clock)).stream().sorted().toList());
     }
 
+    /** Snapshot nhật ký không có memberCount (số liệu đổi theo gán role, không phải thay đổi của role). */
+    private static Map<String, Object> snapshot(RoleView v) {
+        return Map.of("id", v.id(), "code", v.code(), "name", v.name(), "permissions", v.permissions());
+    }
+
     private RoleView roleView(Role role) {
-        return new RoleView(role.getId(), role.getCode(), role.getName(), access.permissionCodesOfRole(role.getId()).stream().sorted().toList());
+        return roleView(role, memberCounts());
+    }
+
+    private RoleView roleView(Role role, Map<Long, Long> counts) {
+        return new RoleView(role.getId(), role.getCode(), role.getName(),
+                access.permissionCodesOfRole(role.getId()).stream().sorted().toList(), counts.getOrDefault(role.getId(), 0L));
     }
 
     private OverrideView overrideView(PermissionOverride o) {
@@ -204,6 +255,7 @@ public class RbacService {
 
     /** Chặn thay đổi làm không còn ai có quyền rbac.manage (rollback cùng transaction). */
     private void requireSomeoneCanManageRbac() {
+        access.lockAdminRole(); // vì sao: hai transaction đồng thời không được cùng thấy "còn một người"
         if (access.countUsersWithPermission(RBAC, Instant.now(clock)).longValue() == 0) {
             throw new ApiException(HttpStatus.CONFLICT, "last_admin",
                     "Phải còn ít nhất một người có quyền quản lý phân quyền");

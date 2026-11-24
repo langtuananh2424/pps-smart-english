@@ -66,6 +66,17 @@ class AuditLogTest extends ApiTestBase {
     }
 
     @Test
+    void entriesCarryActorEmailAndName() throws Exception {
+        var admin = withRole("ADMIN");
+        call(MockMvcRequestBuilders.post(CMS + "/courses"), admin,
+                Map.of("slug", "ae-" + UUID.randomUUID(), "title", "Khóa", "targetType", "IELTS")).andExpect(status().isCreated());
+        JsonNode row = readBody(call(get(AUDIT).param("actorId", String.valueOf(admin.id())).param("limit", "1"), admin, null)
+                .andExpect(status().isOk())).get("data").get(0);
+        assertEquals(admin.email(), row.get("actorEmail").asText());
+        assertEquals("Học viên", row.get("actorName").asText());
+    }
+
+    @Test
     void auditLogIsReadableOnlyWithPermission() throws Exception {
         var student = register(newEmail(), PASSWORD);
         var editor = withRole("EDITOR");
@@ -120,6 +131,43 @@ class AuditLogTest extends ApiTestBase {
         assertEquals("Sửa theo yêu cầu #12", lastLogOf(admin, id).get("reason").asText());
         long blank = readBody(createCourse(admin, "   ").andExpect(status().isCreated())).get("id").asLong();
         assertTrue(lastLogOf(admin, blank).get("reason").isNull());
+    }
+
+    private static String enc(String s) {
+        return java.net.URLEncoder.encode(s, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20");
+    }
+
+    private String storedReason(String header) throws Exception {
+        var admin = withRole("ADMIN");
+        long id = readBody(createCourse(admin, header).andExpect(status().isCreated())).get("id").asLong();
+        return lastLogOf(admin, id).get("reason").asText();
+    }
+
+    @Test
+    void encodedReasonIsDecodedAndPlusAndBadPercentAreKept() throws Exception {
+        assertEquals("Sửa theo yêu cầu", storedReason(enc("Sửa theo yêu cầu")));
+        assertEquals("100%", storedReason("100%"));
+        assertEquals("a+b", storedReason("a%2Bb"));
+        assertEquals("a+b", storedReason("a+b"));
+    }
+
+    @Test
+    void reasonLimitAppliesAfterDecoding() throws Exception {
+        assertEquals(500, storedReason(enc("ế".repeat(500))).length());
+        createCourse(withRole("ADMIN"), enc("ế".repeat(501))).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void roleSnapshotHasNoMemberCount() throws Exception {
+        var admin = withRole("ADMIN");
+        String code = "R" + UUID.randomUUID().toString().replaceAll("[^A-Za-z]", "").toUpperCase();
+        long id = readBody(call(MockMvcRequestBuilders.post("/api/admin/roles"), admin,
+                Map.of("code", code, "name", "x", "permissions", java.util.List.of())).andExpect(status().isCreated()))
+                .get("id").asLong();
+        JsonNode after = readBody(call(get(AUDIT).param("targetType", "ROLE").param("targetId", String.valueOf(id)), admin, null)
+                .andExpect(status().isOk())).get("data").get(0).get("after");
+        assertEquals(code, after.get("code").asText());
+        assertFalse(after.has("memberCount"));
     }
 
     @Test

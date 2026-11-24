@@ -2,22 +2,29 @@ package com.pps.smartenglish.auth.controller;
 
 import com.pps.smartenglish.auth.dto.RbacDtos.AssignRole;
 import com.pps.smartenglish.auth.dto.RbacDtos.CreateRole;
+import com.pps.smartenglish.auth.dto.RbacDtos.MyPermissions;
 import com.pps.smartenglish.auth.dto.RbacDtos.PermissionView;
 import com.pps.smartenglish.auth.dto.RbacDtos.RoleView;
 import com.pps.smartenglish.auth.dto.RbacDtos.SetOverride;
 import com.pps.smartenglish.auth.dto.RbacDtos.SetRolePermissions;
+import com.pps.smartenglish.auth.dto.RbacDtos.StaffView;
 import com.pps.smartenglish.auth.dto.RbacDtos.UserAccess;
+import com.pps.smartenglish.auth.service.PermissionService;
 import com.pps.smartenglish.auth.service.RbacService;
 import com.pps.smartenglish.shared.error.ApiException;
+import com.pps.smartenglish.shared.security.CurrentUser;
+import com.pps.smartenglish.shared.web.CursorPage;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,14 +33,28 @@ import org.springframework.web.bind.annotation.RestController;
 class RbacController {
 
     private final RbacService rbac;
+    private final PermissionService permissionService;
 
-    RbacController(RbacService rbac) {
+    RbacController(RbacService rbac, PermissionService permissionService) {
         this.rbac = rbac;
+        this.permissionService = permissionService;
     }
 
     @GetMapping("/api/admin/permissions")
     List<PermissionView> permissions() {
         return rbac.permissions();
+    }
+
+    /** Quyền hiệu lực của chính người đăng nhập, để web dựng menu. */
+    @GetMapping("/api/me/permissions")
+    MyPermissions myPermissions(Authentication auth) {
+        return new MyPermissions(permissionService.effective(CurrentUser.id(auth)).stream().sorted().toList());
+    }
+
+    @GetMapping("/api/admin/users")
+    CursorPage<StaffView> staff(@RequestParam(required = false) String q, @RequestParam(required = false) String role,
+                                @RequestParam(required = false) String limit, @RequestParam(required = false) String cursor) {
+        return rbac.staff(q, role, limit, cursor);
     }
 
     @GetMapping("/api/admin/roles")

@@ -28,7 +28,7 @@ public interface AccessRepository extends JpaRepository<User, Long> {
             """, nativeQuery = true)
     List<String> effectivePermissions(@Param("userId") long userId, @Param("now") Instant now);
 
-    /** Số tài khoản ACTIVE đang có quyền (theo cùng luật với effectivePermissions). Dùng chặn xóa quyền quản trị cuối cùng. */
+    /** Số tài khoản ACTIVE có quyền từ nguồn bền (role, hoặc GRANT không hết hạn), không bị REVOKE còn hiệu lực. GRANT có hạn không tính: hết hạn là mất người quản trị. */
     @Query(value = """
             select count(*) from users u
             where u.status = 'ACTIVE' and (
@@ -39,10 +39,13 @@ public interface AccessRepository extends JpaRepository<User, Long> {
                                where o.user_id = u.id and p.code = :code and o.effect = 'REVOKE'
                                  and (o.expires_at is null or o.expires_at > :now)))
               or exists (select 1 from user_permission_overrides o join permissions p on p.id = o.permission_id
-                         where o.user_id = u.id and p.code = :code and o.effect = 'GRANT'
-                           and (o.expires_at is null or o.expires_at > :now)))
+                         where o.user_id = u.id and p.code = :code and o.effect = 'GRANT' and o.expires_at is null))
             """, nativeQuery = true)
     Number countUsersWithPermission(@Param("code") String code, @Param("now") Instant now);
+
+    /** Khóa dòng role ADMIN để các thay đổi RBAC chạy tuần tự (chống write-skew khi hai admin gỡ nhau). */
+    @Query(value = "select id from roles where code = 'ADMIN' for update", nativeQuery = true)
+    List<Long> lockAdminRole();
 
     @Query(value = "select r.code from roles r join user_roles ur on ur.role_id = r.id where ur.user_id = :userId", nativeQuery = true)
     List<String> roleCodesOf(@Param("userId") long userId);
@@ -50,6 +53,30 @@ public interface AccessRepository extends JpaRepository<User, Long> {
     @Query(value = "select p.code from permissions p join role_permissions rp on rp.permission_id = p.id where rp.role_id = :roleId",
             nativeQuery = true)
     List<String> permissionCodesOfRole(@Param("roleId") long roleId);
+
+    /** [role_id, số user] của mọi role có người; một query cho cả danh sách. */
+    @Query(value = "select role_id, count(*) from user_roles group by role_id", nativeQuery = true)
+    List<Object[]> roleMemberCounts();
+
+    /**
+     * [id, email, tên hiển thị] của nhân sự (có ít nhất một role khác STUDENT), id giảm dần, id < before.
+     * role/like null thì bỏ điều kiện; like đã escape bằng '!'.
+     */
+    @Query(value = """
+            select u.id, u.email, p.display_name from users u left join user_profiles p on p.user_id = u.id
+            where u.id < :before
+              and exists (select 1 from user_roles ur join roles r on r.id = ur.role_id
+                          where ur.user_id = u.id and r.code <> 'STUDENT' and (cast(:role as varchar) is null or r.code = :role))
+              and (cast(:like as varchar) is null or lower(u.email) like :like escape '!' or lower(p.display_name) like :like escape '!')
+            order by u.id desc limit :max
+            """, nativeQuery = true)
+    List<Object[]> staffPage(@Param("before") long before, @Param("role") String role, @Param("like") String like,
+                             @Param("max") int max);
+
+    /** [user_id, mã role] của các user cho trước, một query. */
+    @Query(value = "select ur.user_id, r.code from user_roles ur join roles r on r.id = ur.role_id where ur.user_id in (:ids) order by r.id",
+            nativeQuery = true)
+    List<Object[]> roleCodesOfUsers(@Param("ids") Collection<Long> ids);
 
     /** Gán role theo mã; đã có thì bỏ qua. Trả số dòng thêm mới. */
     @Modifying(flushAutomatically = true)
