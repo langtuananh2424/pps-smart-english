@@ -80,3 +80,5 @@ export const bandView = (band: { value: number } | null | undefined): BandView =
   band ? { kind: 'value', text: band.value === 0 ? '0' : band.value.toFixed(1) } : { kind: 'none' }
 
 export const quotaPeriod: Record<string, string> = { WEEK: 'tuần này', MONTH: 'tháng này' }
+
+export const bandSourceLabel: Record<string, string> = { EXAM: 'từ bài thi khóa', PLACEMENT: 'từ kiểm tra đầu vào' }

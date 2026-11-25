@@ -51,9 +51,10 @@ interface Props {
   open: boolean
   onToggle: () => void
   courseSlug: string
+  courseId: number
 }
 
-export function TopicSection({ topic, lessons, open, onToggle, courseSlug }: Props) {
+export function TopicSection({ topic, lessons, open, onToggle, courseSlug, courseId }: Props) {
   const meta = topic.skill ? skillMeta[topic.skill] : noSkill
   const badge = topicBadge(topic)
   const locked = topic.locked || topic.status === 'LOCKED'
@@ -84,10 +85,17 @@ export function TopicSection({ topic, lessons, open, onToggle, courseSlug }: Pro
         {locked ? (
           <>
             <div className="flex min-w-0 flex-1 items-center gap-3.5">{head}</div>
-            <Link to={`/thanh-toan?khoa=${courseSlug}`} className={`${btnNeutral} gap-2`}>
-              <Icon src={lock} size={16} />
-              Mua khóa học
-            </Link>
+            {topic.lockReason === 'SEQUENTIAL' ? (
+              <Link to={`/bai-giang/khoa/${courseId}/unit/${topic.id}`} className={`${btnNeutral} gap-2`}>
+                <Icon src={lock} size={16} />
+                Xem điều kiện mở
+              </Link>
+            ) : (
+              <Link to={`/thanh-toan?khoa=${courseSlug}`} className={`${btnNeutral} gap-2`}>
+                <Icon src={lock} size={16} />
+                Mua khóa học
+              </Link>
+            )}
           </>
         ) : (
           <button type="button" onClick={onToggle} aria-expanded={open} aria-controls={bodyId} className="flex min-h-12 min-w-0 flex-1 items-center gap-3.5 rounded-sm">

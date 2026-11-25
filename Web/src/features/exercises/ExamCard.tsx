@@ -8,7 +8,7 @@ import { examView } from './format'
 import type { ExamStatus } from './types'
 
 // Bài thi khóa (FR-EXAM-02). Ẩn khi không có đề; khóa thì nút vô hiệu kèm lý do.
-export function ExamCard({ status }: { status: ExamStatus | null | undefined }) {
+export function ExamCard({ status, courseId }: { status: ExamStatus | null | undefined; courseId: number }) {
   const view = examView(status)
   if (view.kind === 'hidden') return null
   const open = view.kind === 'open'
@@ -22,7 +22,7 @@ export function ExamCard({ status }: { status: ExamStatus | null | undefined }) 
       </div>
       <img src={laptop} alt="" className="pointer-events-none absolute inset-y-0 right-[190px] hidden h-full w-[260px] object-cover opacity-60 [mask-image:linear-gradient(to_right,transparent,#000_30%,#000_70%,transparent)] xl:block" />
       {open ? (
-        <Link to={`/bai-tap/${view.bankId}`} aria-label={view.label} className={`${btnPrimary} ${btn} relative bg-brand-strong shadow-edge-primary`}>
+        <Link to={`/bai-tap/${view.bankId}?khoa=${courseId}`} aria-label={view.label} className={`${btnPrimary} ${btn} relative bg-brand-strong shadow-edge-primary`}>
           <span className="max-lg:hidden">{view.label}</span>
           <Icon src={arrow} size={18} />
         </Link>

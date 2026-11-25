@@ -62,21 +62,21 @@ describe('thẻ Cam gợi ý', () => {
 describe('thẻ bài thi khóa', () => {
   test('khóa: lý do theo tiến độ, nút vô hiệu', () => {
     expect(examView(exam())).toEqual({ kind: 'locked', subtitle: 'Hoàn thành ≥ 80% bài học để mở · hiện 40%' })
-    inRouter(<ExamCard status={exam()} />)
+    inRouter(<ExamCard status={exam()} courseId={1} />)
     expect(screen.getByText('Hoàn thành ≥ 80% bài học để mở · hiện 40%')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Bài thi khóa chưa mở' })).toBeDisabled()
   })
   test('mở: Làm bài thi / Làm tiếp dẫn tới bộ đề', () => {
-    const { unmount } = inRouter(<ExamCard status={exam({ unlocked: true, reason: null })} />)
-    expect(screen.getByRole('link', { name: 'Làm bài thi' })).toHaveAttribute('href', '/bai-tap/50')
+    const { unmount } = inRouter(<ExamCard status={exam({ unlocked: true, reason: null })} courseId={1} />)
+    expect(screen.getByRole('link', { name: 'Làm bài thi' })).toHaveAttribute('href', '/bai-tap/50?khoa=1')
     unmount()
-    inRouter(<ExamCard status={exam({ unlocked: true, reason: null, inProgressAttemptId: 9 })} />)
-    expect(screen.getByRole('link', { name: 'Làm tiếp' })).toHaveAttribute('href', '/bai-tap/50')
+    inRouter(<ExamCard status={exam({ unlocked: true, reason: null, inProgressAttemptId: 9 })} courseId={1} />)
+    expect(screen.getByRole('link', { name: 'Làm tiếp' })).toHaveAttribute('href', '/bai-tap/50?khoa=1')
   })
   test('ẩn khi không có đề hoặc endpoint trả lỗi (null)', () => {
     expect(examView(null)).toEqual({ kind: 'hidden' })
     expect(examView(exam({ bankId: null, reason: 'NOT_CONFIGURED' }))).toEqual({ kind: 'hidden' })
-    const { container } = inRouter(<ExamCard status={null} />)
+    const { container } = inRouter(<ExamCard status={null} courseId={1} />)
     expect(container).toBeEmptyDOMElement()
   })
 })
@@ -85,6 +85,7 @@ describe('ô số liệu và band (D-63)', () => {
   test('có band thì hiện giá trị; chưa có thì "Chưa có" kèm link kiểm tra đầu vào', () => {
     const { unmount } = inRouter(<StatTiles stats={stats({ band: { value: 5.5, source: 'EXAM', at: '2026-11-01T00:00:00Z' } })} exam={exam()} />)
     expect(screen.getByText('5.5')).toBeInTheDocument()
+    expect(screen.getByText('từ bài thi khóa')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Làm kiểm tra đầu vào' })).toBeNull()
     expect(screen.getByText('0/2 lượt')).toBeInTheDocument()
     unmount()

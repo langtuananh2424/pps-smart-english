@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api, ApiError } from '../../lib/api'
-import type { ExamStatus, ExerciseStats } from './types'
+import type { AttemptDetail, CourseTest, ExamStatus, ExerciseStats } from './types'
 
 export const useExerciseStats = (courseId: number) =>
   useQuery({
@@ -22,3 +22,9 @@ export const useExamStatus = (courseId: number) =>
     },
     retry: false,
   })
+
+export const useCourseTests = (courseId: number) =>
+  useQuery({ queryKey: ['course', courseId, 'tests'], queryFn: () => api<CourseTest[]>(`/courses/${courseId}/tests`) })
+
+export const useAttemptDetail = (id: number) =>
+  useQuery({ queryKey: ['attempt', id, 'detail'], queryFn: () => api<AttemptDetail>(`/attempts/${id}`) })

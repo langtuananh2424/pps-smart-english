@@ -3,7 +3,7 @@ import accuracyIcon from '../../assets/exercises/stat-accuracy.svg'
 import bandIcon from '../../assets/exercises/stat-band.svg'
 import examIcon from '../../assets/exercises/stat-exam.svg'
 import questionsIcon from '../../assets/exercises/stat-questions.svg'
-import { bandView, percent } from './format'
+import { bandSourceLabel, bandView, percent } from './format'
 import type { ExamStatus, ExerciseStats } from './types'
 
 function Tile({ icon, bg, value, label, children }: { icon: string; bg: string; value: string; label: string; children?: React.ReactNode }) {
@@ -31,6 +31,7 @@ export function StatTiles({ stats, exam }: { stats: ExerciseStats; exam: ExamSta
       <Tile icon={accuracyIcon} bg="bg-success-bg" value={percent(stats.accuracy)} label="Độ chính xác" />
       <Tile icon={examIcon} bg="bg-[#e8f0ff]" value={hasExam ? `${exam.attemptsUsed}/${exam.attemptsAllowed} lượt` : '—'} label="Bài thi khóa" />
       <Tile icon={bandIcon} bg="bg-reward-bg" value={band.kind === 'value' ? band.text : 'Chưa có'} label="Band ước tính">
+        {stats.band && <p className="text-xs font-bold text-ink-muted">{bandSourceLabel[stats.band.source]}</p>}
         {band.kind === 'none' && (
           <Link to="/kiem-tra-dau-vao" className="text-xs font-extrabold text-brand-strong underline">
             Làm kiểm tra đầu vào

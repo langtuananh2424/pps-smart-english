@@ -48,7 +48,7 @@ export function ExerciseListPage() {
           <StatTiles stats={stats.data} exam={exam.data} />
         </>
       )}
-      <ExamCard status={exam.data} />
+      <ExamCard status={exam.data} courseId={courseId} />
       {noBanks && <EmptyCard courseId={courseId} />}
       {roadmap.data && <LectureList roadmap={roadmap.data} query={query} />}
       <PracticeBanner />

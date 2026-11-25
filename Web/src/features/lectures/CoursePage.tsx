@@ -139,7 +139,7 @@ export function CoursePage() {
           </div>
           <div className="flex flex-col gap-4 pb-8">
             {rows.map(({ topic, lessons }) => (
-              <TopicSection key={topic.id} topic={topic} lessons={lessons} open={isOpen(topic.id)} onToggle={() => setToggled({ ...toggled, [topic.id]: !isOpen(topic.id) })} courseSlug={course?.slug ?? ''} />
+              <TopicSection key={topic.id} topic={topic} lessons={lessons} open={isOpen(topic.id)} onToggle={() => setToggled({ ...toggled, [topic.id]: !isOpen(topic.id) })} courseSlug={course?.slug ?? ''} courseId={courseId} />
             ))}
             {!rows.length && <p className="font-bold text-ink-secondary">Không có bài giảng nào khớp bộ lọc.</p>}
           </div>
