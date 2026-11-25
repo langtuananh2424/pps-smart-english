@@ -25,6 +25,8 @@
         <poi.version>5.4.1</poi.version>
         <!-- surefire đọc thuộc tính argLine: test chạy ở UTC giống CI, ghi đè được bằng -DargLine="-Duser.timezone=..." -->
         <argLine>-Duser.timezone=UTC</argLine>
+        <!-- 3 JVM song song, mỗi JVM có H2 riêng: toàn bộ test từ ~14 xuống ~9 phút; -DforkCount=1 để chạy tuần tự -->
+        <forkCount>3</forkCount>
     </properties>
 
     <dependencies>
