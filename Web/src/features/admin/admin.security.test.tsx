@@ -81,7 +81,7 @@ describe('menu theo quyền', () => {
   })
 
   test('quyền lạ không mở thêm menu nào', async () => {
-    mockAdmin(['order.view', 'RBAC.MANAGE', 'rbac.manage '])
+    mockAdmin(['order.manage', 'RBAC.MANAGE', 'rbac.manage '])
     renderAt('/quan-tri')
     expect(await screen.findByRole('heading', { name: FORBIDDEN })).toBeInTheDocument()
     expect(menuLinks()).toHaveLength(0)

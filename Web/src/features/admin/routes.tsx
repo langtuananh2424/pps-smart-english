@@ -2,6 +2,8 @@ import { NavLink, Outlet, type RouteObject } from 'react-router'
 import { PlaceholderPage } from '../../routes/PlaceholderPage'
 import { AdminIndex, AdminShell } from './AdminShell'
 import { AuditPage } from './AuditPage'
+import { OrderDetailPage } from './OrderDetailPage'
+import { OrdersPage } from './OrdersPage'
 import { RequirePermission } from './guards'
 import { STAFF_TABS } from './menu'
 import { useMyPermissions } from './api'
@@ -10,6 +12,8 @@ import { RoleDetailPage } from './RoleDetailPage'
 import { RolesPage } from './RolesPage'
 import { StaffAccessPage } from './StaffAccessPage'
 import { StaffPage } from './StaffPage'
+import { StudentProfilePage } from './StudentProfilePage'
+import { StudentsPage } from './StudentsPage'
 
 // Tab của nhóm Nhân sự, chỉ hiện tab người dùng có quyền.
 function StaffTabs() {
@@ -46,6 +50,14 @@ export const adminRoutes: RouteObject = {
     todo('report.view', 'tong-quan', 'Tổng quan'),
     todo('product.manage', 'goi-ban', 'Gói bán'),
     todo('activation.manage', 'link-kich-hoat', 'Link kích hoạt'),
+    guarded('order.view', [
+      { path: 'don-hang', element: <OrdersPage /> },
+      { path: 'don-hang/:id', element: <OrderDetailPage /> },
+    ]),
+    guarded('student.view', [
+      { path: 'hoc-vien', element: <StudentsPage /> },
+      { path: 'hoc-vien/:id', element: <StudentProfilePage /> },
+    ]),
     todo('cms.content', 'cms', 'CMS'),
     {
       element: <RequirePermission any={STAFF_TABS.map((t) => t.perm)} />,

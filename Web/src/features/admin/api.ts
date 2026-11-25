@@ -74,7 +74,7 @@ const query = (params: Record<string, string>, cursor: string) => {
   return p.toString()
 }
 
-function useCursorList<T>(key: string, path: string, params: Record<string, string>, limit: number, enabled = true) {
+export function useCursorList<T>(key: string, path: string, params: Record<string, string>, limit: number, enabled = true) {
   return useInfiniteQuery({
     queryKey: ['admin', key, params],
     queryFn: ({ pageParam }) => api<Page<T>>(`${path}?${query({ ...params, limit: String(limit) }, pageParam)}`),

@@ -13,10 +13,10 @@ export const labelCls = 'text-sm font-extrabold text-ink'
 
 export const reasonSchema = z.object({ reason: z.string().trim().min(1, 'Vui lòng nhập lý do thay đổi').max(500, 'Lý do tối đa 500 ký tự') })
 
-export function PageHead({ title, sub }: { title: string; sub?: string }) {
+export function PageHead({ title, sub, kicker = 'Quản trị' }: { title: string; sub?: string; kicker?: string }) {
   return (
     <header className="flex flex-col gap-1.5">
-      <p className="text-sm font-semibold text-brand-strong">Quản trị</p>
+      <p className="text-sm font-semibold text-brand-strong">{kicker}</p>
       <h1 className="text-2xl font-black leading-[30px] text-ink lg:text-3xl lg:leading-[38px]">{title}</h1>
       {sub && <p className="font-semibold text-ink-secondary">{sub}</p>}
     </header>
@@ -43,7 +43,7 @@ export function Loading({ text = 'Đang tải...' }: { text?: string }) {
 }
 
 // Lỗi tải: 403 báo không có quyền, 4xx khác hiện thông điệp máy chủ (thử lại vô ích); lỗi mạng/5xx mới có nút Thử lại.
-export function RetryError({ onRetry, error }: { onRetry: () => void; error?: unknown }) {
+export function RetryError({ onRetry, error, title }: { onRetry: () => void; error?: unknown; title?: string }) {
   if (error instanceof ApiError && error.status < 500) {
     return (
       <p role="alert" className="font-bold text-ink-secondary">
@@ -53,6 +53,7 @@ export function RetryError({ onRetry, error }: { onRetry: () => void; error?: un
   }
   return (
     <p role="alert" className="font-bold text-ink-secondary">
+      {title && <strong>{title}. </strong>}
       {NETWORK_ERROR}{' '}
       <button type="button" onClick={onRetry} className="min-h-11 font-extrabold text-brand-strong underline">
         Thử lại

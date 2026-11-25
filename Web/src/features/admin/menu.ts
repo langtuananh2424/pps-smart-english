@@ -1,8 +1,10 @@
+import orders from '../../assets/icons/star.svg'
 import cms from '../../assets/icons/nav-exercises.svg'
 import products from '../../assets/icons/nav-courses.svg'
 import overview from '../../assets/icons/nav-home.svg'
 import links from '../../assets/icons/play.svg'
 import staff from '../../assets/icons/nav-profile.svg'
+import students from '../../assets/icons/user.svg'
 
 export interface AdminTab {
   to: string
@@ -28,6 +30,8 @@ export const adminMenu: AdminItem[] = [
   { label: 'Tổng quan', icon: overview, to: '/quan-tri/tong-quan', any: ['report.view'] },
   { label: 'Gói bán', icon: products, to: '/quan-tri/goi-ban', any: ['product.manage'] },
   { label: 'Link kích hoạt', icon: links, to: '/quan-tri/link-kich-hoat', any: ['activation.manage'] },
+  { label: 'Đơn hàng', icon: orders, to: '/quan-tri/don-hang', any: ['order.view'] },
+  { label: 'Học viên', icon: students, to: '/quan-tri/hoc-vien', any: ['student.view'] },
   { label: 'CMS', icon: cms, to: '/quan-tri/cms', any: ['cms.content'] },
   { label: 'Nhân sự', icon: staff, to: '/quan-tri/nhan-su', any: STAFF_TABS.map((t) => t.perm), tabs: STAFF_TABS },
 ]
