@@ -5,7 +5,7 @@ export const fetchQuestion = (id: number) => api<SpeakingQuestion>(`/speaking/qu
 export const latestSubmission = async (questionId: number) =>
   (await api<{ data: SubmissionView[] }>(`/me/speaking?questionId=${questionId}&limit=1`)).data[0] ?? null
 export const fetchSubmission = (id: number) => api<SubmissionView>(`/speaking/submissions/${id}`)
-export const createSubmission = (questionId: number) => postJson<UploadPermit>('/speaking/submissions', { questionId })
+export const createSubmission = (questionId: number, attemptId?: number) => postJson<UploadPermit>('/speaking/submissions', { questionId, attemptId })
 export const completeSubmission = (id: number) => postJson<Completed>(`/speaking/submissions/${id}/complete`, {})
 
 // Lỗi tải lên MinIO: status 0 là lỗi mạng hoặc CORS (trình duyệt không cho biết nguyên nhân).

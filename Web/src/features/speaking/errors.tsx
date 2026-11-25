@@ -2,7 +2,7 @@ import { Link } from 'react-router'
 import { ApiError } from '../../lib/api'
 import { Card } from '../practice/StatusCard'
 import { pillNeutral, pillPrimary } from '../practice/questions/ui'
-import { QuotaCard } from '../writing/errors'
+import { inlineMessage, inOpenAttempt, QuotaCard, ResumeAttemptLink } from '../writing/errors'
 import { UploadError } from './api'
 import { AudioError } from './wav'
 import type { RecorderError } from './useRecorder'
@@ -13,7 +13,8 @@ export function BlockingError({ error, onRetry }: { error: unknown; onRetry?: ()
   const e = error instanceof ApiError ? error : null
   let title = 'Không tải được bài nói'
   let body = 'Kiểm tra kết nối rồi thử lại.'
-  if (e?.status === 404) [title, body] = ['Không tìm thấy bài nói', 'Câu hỏi hoặc bài nói này không tồn tại.']
+  if (inOpenAttempt(e)) [title, body] = ['Câu này đang nằm trong bài bạn chưa nộp', 'Hãy làm tiếp câu này trong bài đang làm dở.']
+  else if (e?.status === 404) [title, body] = ['Không tìm thấy bài nói', 'Câu hỏi hoặc bài nói này không tồn tại.']
   else if (e?.code === 'exam_question_not_practicable') [title, body] = ['Câu thuộc bài thi khóa', 'Câu này chỉ làm trong bài thi, không luyện tập riêng được.']
   else if (e?.status === 403 && e.code === 'email_not_verified') [title, body] = ['Cần xác thực email', e.message]
   else if (e?.status === 403) [title, body] = ['Bộ bài tập đang khóa', 'Bạn cần đăng ký khóa học chứa câu này để làm bài.']
@@ -22,6 +23,7 @@ export function BlockingError({ error, onRetry }: { error: unknown; onRetry?: ()
   else if (e) body = e.status === 429 ? 'Bạn thao tác nhanh quá, thử lại sau ít giây.' : e.message
   return (
     <Card title={title} body={body}>
+      {e && inOpenAttempt(e) && <ResumeAttemptLink error={e} />}
       {onRetry && (!e || e.status >= 500 || e.status === 429) && <button type="button" onClick={onRetry} className={pillPrimary}>Thử lại</button>}
       <Link to="/bai-tap" className={pillNeutral}>Về danh sách bài tập</Link>
       <Link to="/khoa-hoc" className={pillNeutral}>Xem khóa học</Link>
@@ -58,6 +60,7 @@ export function submitMessage(e: unknown): string {
     : `Tải bản ghi lên thất bại (mã ${e.status}). Bấm nộp lại để thử lần nữa.`
   if (!(e instanceof ApiError)) return 'Mất kết nối, kiểm tra mạng rồi thử lại.'
   if (AUDIO[e.code]) return AUDIO[e.code]
+  if (e.code.startsWith('attempt_')) return inlineMessage(e)
   if (e.status === 410) return 'Phiên tải lên đã hết hạn. Bấm nộp lại để tạo phiên mới.'
   if (e.status === 409) return 'Bản ghi đang được xử lý, vui lòng chờ.'
   if (e.status === 429) return 'Bạn thao tác nhanh quá, thử lại sau ít giây.'
@@ -66,7 +69,7 @@ export function submitMessage(e: unknown): string {
 }
 
 // Lỗi chặn khi nộp: hết lượt, câu bị khóa, không tồn tại.
-export const isBlocking = (e: unknown): e is ApiError => e instanceof ApiError && [402, 403, 404].includes(e.status)
+export const isBlocking = (e: unknown): e is ApiError => e instanceof ApiError && [402, 403, 404].includes(e.status) && e.code !== 'attempt_not_found'
 
 export const UNCLEAR: Record<UnclearReason, string> = {
   too_short: 'Bản ghi quá ngắn để chấm.',

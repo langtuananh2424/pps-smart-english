@@ -11,6 +11,11 @@ export const typeLabel: Record<string, string> = {
   GRAMMAR_SPOT_FIX: 'Tìm và sửa lỗi',
   GRAMMAR_BUILD: 'Xếp khối tạo câu',
   GRAMMAR_REWRITE: 'Viết lại câu theo cấu trúc',
+  CHOICE_MULTI: 'Chọn nhiều đáp án',
+  TRUE_FALSE: 'Đúng hoặc sai',
+  FILL_TEXT: 'Điền từ',
+  WORD_BANK: 'Chọn từ trong hộp',
+  MATCH_OPTIONS: 'Chọn mục từ đáp án chung',
   WRITING: 'Viết tự luận',
   SPEAKING: 'Luyện nói',
 }

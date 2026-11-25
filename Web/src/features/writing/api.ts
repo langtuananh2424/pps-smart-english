@@ -4,7 +4,8 @@ import type { AnswerAccepted, Created, JobView, SessionSummary, SessionView, Sub
 export const latestSession = async (questionId: number) =>
   (await api<{ data: SessionSummary[] }>(`/me/writing?questionId=${questionId}&limit=1`)).data[0] ?? null
 export const fetchSession = (id: number) => api<SessionView>(`/writing/sessions/${id}`)
-export const createSession = (questionId: number) => postJson<Created>('/writing/sessions', { questionId })
+// attemptId (D-145): mở từ trong lượt đang làm của bộ, điểm AI cộng vào lượt.
+export const createSession = (questionId: number, attemptId?: number) => postJson<Created>('/writing/sessions', { questionId, attemptId })
 export const sendAnswer = (id: number, text: string) => postJson<AnswerAccepted>(`/writing/sessions/${id}/answer`, { text })
 export const requestDraft = (id: number) => postJson<{ jobId: number }>(`/writing/sessions/${id}/draft`, {})
 export const fetchJob = (id: number) => api<JobView>(`/ai/jobs/${id}`)

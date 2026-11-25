@@ -2,15 +2,19 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useRef, useState } from 'react'
 import { ApiError } from '../../lib/api'
 import { pillPrimary } from './questions/ui'
-import { labelOf } from '../exercises/format'
+import { isAiType, labelOf } from '../exercises/format'
+import { AiQuestion } from './ai/AiQuestion'
+import { useAiRefs } from './ai/useAiRefs'
 import { fetchProgress, fromItems, pauseAttempt, resumeAttempt, submitOrFetch } from './api'
 import { BottomBar } from './BottomBar'
 import { CamHint } from './CamHint'
 import { ConfirmDialog } from './ConfirmDialog'
+import { GroupPassage } from './GroupPassage'
+import { GroupAudio } from './listening/GroupAudio'
 import { PlayHeader } from './PlayHeader'
 import { ErrorCard } from './StatusCard'
 import { isAnswerable, isAnswered, rendererOf } from './questions/registry'
-import type { Answer, Answers, AttemptResult, Bank, Progress } from './types'
+import type { AiSession, Answer, Answers, AttemptResult, Bank, Progress } from './types'
 import { useCountdown } from './useCountdown'
 import { useDraft } from './useDraft'
 
@@ -43,6 +47,7 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const submitting = useRef(false)
+  const ai = useAiRefs(attemptId)
   const question = bank.questions[index]
   const paused = progress.paused
   const canPause = bank.mode === 'PRACTICE' && bank.timeLimitSec != null // D-67
@@ -78,24 +83,37 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
   }
 
   const doable = bank.questions.filter((x) => isAnswerable(x.type))
-  const answered = bank.questions.map((x) => isAnswered(x.type, answers[x.id]))
-  const unanswered = doable.filter((x) => !isAnswered(x.type, answers[x.id])).length
+  // D-147: phiên mở mà chưa nộp chấm (NOT_SUBMITTED) tính 0 điểm nên cũng là chưa làm, như chưa mở phiên.
+  const aiDone = (id: number) => ai.refs[id] != null && ai.refs[id].status !== 'NOT_SUBMITTED'
+  const answered = bank.questions.map((x) => (isAiType(x.type) ? aiDone(x.id) : isAnswered(x.type, answers[x.id])))
+  const unanswered = doable.filter((x) => !isAnswered(x.type, answers[x.id])).length + bank.questions.filter((x) => isAiType(x.type) && !aiDone(x.id)).length
   const { Component } = rendererOf(question.type)
+  const group = question.groupId != null ? bank.groups?.find((g) => g.id === question.groupId) : undefined
+  const twoCol = !!group?.passageHtml // Figma 10.15: bài đọc bên trái, thẻ câu bên phải từ md
   const onChange = (v: Answer | undefined) => setAnswers((a) => ({ ...a, [question.id]: v }))
 
   return (
     <div className="min-h-dvh bg-page pb-[72px]">
       <PlayHeader title={bank.title} secondsLeft={secondsLeft} draft={draft.status} canPause={canPause} paused={paused} onPause={() => toggle(pauseAttempt)} />
-      <main className="relative mx-auto max-w-[900px] px-4 py-3 md:py-3">
+      <main className={`relative mx-auto px-4 py-3 md:py-3 ${twoCol ? 'max-w-[1200px]' : 'max-w-[900px]'}`}>
         <h2 className="mb-2.5 text-lg font-black leading-6 text-ink md:hidden">{bank.title}</h2>
         {error && !confirm && <p role="alert" className="mb-3 rounded-md bg-danger-bg px-4 py-2 text-sm font-bold text-danger">{error}</p>}
+        <div className={twoCol ? 'grid items-start gap-3 md:grid-cols-2' : 'flex flex-col gap-3'}>
+          {group && twoCol && <GroupPassage group={group} />}
+          <div className="flex flex-col gap-3">
+            {group && !twoCol && <GroupPassage group={group} />}
+            {group?.hasAudio && <GroupAudio key={group.id} attemptId={attemptId} group={group} mode={bank.playbackMode ?? 'FREE'} defaultLimit={bank.playLimit} disabled={paused || busy} />}
         <article aria-label={`Câu ${index + 1}`} className="flex flex-col gap-3 rounded-lg border-[1.5px] border-line bg-surface p-4 md:p-6">
           <p className="text-[13px] font-extrabold leading-[18px] text-brand-strong">
             Câu {index + 1}/{bank.questions.length} · {question.instruction ?? labelOf(question.type)}
           </p>
           <p className="text-lg font-black leading-6 text-ink md:text-2xl md:leading-[30px]">{question.prompt}</p>
-          <Component key={question.id} question={question} value={answers[question.id]} onChange={onChange} disabled={paused || busy} />
+          {isAiType(question.type)
+            ? <AiQuestion key={question.id} question={question} attemptId={attemptId} session={ai.refs[question.id]} onRef={(id, status) => ai.set(question.id, id, question.type as AiSession['kind'], status)} onClose={ai.refresh} loaded={ai.ready} disabled={paused || busy} />
+            : <Component key={question.id} question={question} value={answers[question.id]} onChange={onChange} disabled={paused || busy} />}
         </article>
+          </div>
+        </div>
         {paused && (
           <div className="absolute inset-0 z-10 grid place-items-center rounded-lg bg-page/95 px-4 backdrop-blur-sm">
             <div className="flex flex-col items-center gap-3 text-center">

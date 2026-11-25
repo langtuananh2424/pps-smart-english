@@ -165,7 +165,7 @@ describe('màn kết quả', () => {
     expect(screen.getByText('Đúng')).toBeInTheDocument()
     expect(screen.getByText('Vì so')).toBeInTheDocument()
     expect(screen.getAllByText('A. So')).toHaveLength(2)
-    expect(screen.getByText(/không tính điểm ở đây/)).toBeInTheDocument()
+    expect(screen.getByText(/điểm bài đã nộp trong lượt này/)).toBeInTheDocument()
   })
   test('không có bài làm trong phiên thì ẩn dòng Bài làm', () => {
     mockApi({ '/api/grammar-elements': () => json(200, elements) })
@@ -181,8 +181,16 @@ describe('màn kết quả', () => {
   })
   test('đang chấm AI và hết lượt AI', () => {
     view(result({ pendingJobs: [3], aiQuotaRequired: true, products: [{ id: 1, name: 'Gói 10 lượt' }] }))
-    expect(screen.getByText('Đang chấm…')).toBeInTheDocument()
+    // D-145 hướng b: còn câu AI đang chấm thì chưa hiện điểm hay kết quả từng câu
+    expect(screen.getByRole('status')).toHaveTextContent('Đang chấm câu AI')
+    expect(screen.queryByText('1.5')).not.toBeInTheDocument()
+    expect(screen.queryByText('Đúng')).not.toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent('Gói 10 lượt')
+  })
+  test('chưa có passed (còn câu AI chưa chấm) thì không hiện Đạt hay Chưa đạt', () => {
+    view(result({ aiQuotaRequired: true, passPct: 70, products: [{ id: 1, name: 'Gói 10 lượt' }] }))
+    expect(screen.queryByText(/Chưa đạt/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Đạt yêu cầu/)).not.toBeInTheDocument()
   })
 })
 
@@ -208,7 +216,7 @@ describe('trang làm bài', () => {
     expect(screen.getByText(/Chọn từ nối thích hợp\./)).toBeInTheDocument() // instruction thay tên dạng
     await userEvent.click(screen.getByRole('button', { name: 'Câu 3' }))
     await userEvent.click(screen.getByRole('button', { name: 'Nộp bài' }))
-    expect(screen.getByText(/Bạn còn 1 câu chưa làm/)).toBeInTheDocument() // Viết không tính, câu 2 chưa làm
+    expect(screen.getByText(/Bạn còn 2 câu chưa làm/)).toBeInTheDocument() // câu 2 chưa làm + câu Viết chưa mở phiên (sẽ tính 0 điểm)
     await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Nộp bài' }))
     expect(await screen.findByLabelText('Điểm')).toHaveTextContent('1.5/2')
     expect(calls.filter((c) => c === '/api/banks/7/attempts')).toHaveLength(1)
@@ -222,6 +230,22 @@ describe('trang làm bài', () => {
     renderAt('/bai-tap/7')
     expect(await screen.findByRole('radio', { name: /So/ })).toHaveAttribute('aria-checked', 'true')
     expect(calls).not.toContain('/api/banks/7/attempts')
+  })
+
+  test('D-146: tải lại bộ bài sau khi bắt đầu lượt và sau khi Làm lại', async () => {
+    const calls = wire({ '/api/attempts/9/submit': () => json(200, result()) })
+    renderAt('/bai-tap/7')
+    const banks = () => calls.filter((c) => c === '/api/banks/7').length
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
+    await screen.findByRole('radio', { name: /So/ })
+    expect(banks()).toBe(2) // lần đầu (seed 0) + sau khi lượt mở
+    await userEvent.click(screen.getByRole('button', { name: 'Câu 3' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Nộp bài' }))
+    await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Nộp bài' }))
+    await userEvent.click(await screen.findByRole('button', { name: /Làm lại/ }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
+    await screen.findByRole('radio', { name: /So/ })
+    expect(banks()).toBe(3)
   })
 
   test.each([
@@ -249,5 +273,30 @@ describe('trang làm bài', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Nộp bài' }))
     await waitFor(() => expect(screen.getByRole('alertdialog')).toHaveTextContent('Hệ thống đang bận'))
     expect(within(dialog).getByRole('button', { name: 'Nộp bài' })).not.toBeDisabled()
+  })
+
+  test.each([
+    ['/bai-tap/7?khoa=3', '/bai-tap/khoa/3/kiem-tra/9/ket-qua'],
+    ['/bai-tap/7', '/bai-tap/7'],
+  ])('nộp xong từ %s đi tới %s', async (from, to) => {
+    wire()
+    const router = renderAt(from)
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Câu 3' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Nộp bài' }))
+    await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Nộp bài' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe(to))
+    if (to === from) expect(await screen.findByLabelText('Điểm')).toBeInTheDocument()
+  })
+
+  test('có ?khoa nhưng là Nghe ép thì vẫn hiện kết quả Nghe ép', async () => {
+    wire({ '/api/attempts/9/submit': () => json(200, { id: 9, bankId: 7, forced: { correctCount: 1, totalCount: 2, percent: 50, passed: false, parts: [], attemptNo: 1, hintEveryN: 3 } }) })
+    const router = renderAt('/bai-tap/7?khoa=3')
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Câu 3' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Nộp bài' }))
+    await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Nộp bài' }))
+    expect(await screen.findByText('Chưa đạt yêu cầu')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/bai-tap/7')
   })
 })

@@ -28,5 +28,5 @@ export interface ExamStatus {
   attemptsUsed: number
   attemptsAllowed: number
   inProgressAttemptId: number | null
-  lastResult: { score: number; maxScore: number | null; submittedAt: string } | null
+  lastResult: { score?: number; maxScore?: number | null; submittedAt: string } | null // score vắng khi còn câu AI chấm dở (D-147)
 }

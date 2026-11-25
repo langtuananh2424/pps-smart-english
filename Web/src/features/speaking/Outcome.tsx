@@ -7,6 +7,7 @@ import { card, Frame } from '../writing/Frame'
 import { JobWaiter } from '../writing/JobWaiter'
 import { fetchSubmission } from './api'
 import { BlockingError, UNCLEAR } from './errors'
+import { Sealed } from '../practice/ai/Sealed'
 import { Prompt } from './Prompt'
 import { SpeakingResultView } from './SpeakingResult'
 import type { SpeakingQuestion } from './types'
@@ -15,7 +16,8 @@ const POLL_MS = 5000
 const GRADING_TEXT = 'Đang chấm bài nói, vài phút nữa có kết quả…'
 
 // Một bản nộp đã có: chờ chấm (SSE khi biết jobId, đồng thời hỏi lại định kỳ), rồi hiện kết quả / không rõ / lỗi.
-export function Outcome({ question, id, jobId, onRedo }: { question: SpeakingQuestion; id: number; jobId: number | null; onRedo: () => void }) {
+// sealed: câu trong lượt làm bài, chưa lộ điểm trước khi nộp bộ (D-145).
+export function Outcome({ question, id, jobId, onRedo, sealed }: { question: SpeakingQuestion; id: number; jobId: number | null; onRedo: () => void; sealed?: boolean }) {
   const [waiting, setWaiting] = useState(jobId != null)
   const [failed, setFailed] = useState<JobView | null>(null)
   const q = useQuery({
@@ -26,6 +28,7 @@ export function Outcome({ question, id, jobId, onRedo }: { question: SpeakingQue
   if (!q.data) return <p role="status" className="p-10 text-center font-bold text-ink-secondary">Đang tải…</p>
   const s = q.data
 
+  if (s.status === 'GRADED' && sealed) return <Sealed title="Luyện nói" onRedo={onRedo} />
   if (s.status === 'GRADED') return <SpeakingResultView question={question} sub={s} onRedo={onRedo} />
 
   let body: ReactNode
