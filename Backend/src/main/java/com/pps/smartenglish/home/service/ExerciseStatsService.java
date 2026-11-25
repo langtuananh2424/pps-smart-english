@@ -2,6 +2,7 @@ package com.pps.smartenglish.home.service;
 
 import com.pps.smartenglish.catalog.repository.CourseRepository;
 import com.pps.smartenglish.exercise.domain.QuestionType;
+import com.pps.smartenglish.exercise.service.ExamBands;
 import com.pps.smartenglish.home.config.ExerciseStatsProperties;
 import com.pps.smartenglish.home.dto.CourseRow;
 import com.pps.smartenglish.home.dto.HomeDtos.Band;
@@ -32,9 +33,11 @@ public class ExerciseStatsService {
     private final HomeReadRepository reads;
     private final PlacementAttemptRepository placements;
     private final ExerciseStatsProperties props;
+    private final ExamBands examBands;
 
     ExerciseStatsService(CourseRepository courses, HomeReadRepository reads, PlacementAttemptRepository placements,
-                         ExerciseStatsProperties props) {
+                         ExerciseStatsProperties props, ExamBands examBands) {
+        this.examBands = examBands;
         this.courses = courses;
         this.reads = reads;
         this.placements = placements;
@@ -75,11 +78,12 @@ public class ExerciseStatsService {
                 .map(t -> new Weakest(t.type(), t.accuracy(), t.answered())).orElse(null);
     }
 
-    /**
-     * D-63: bài thi khóa chưa lưu band (chỉ điểm thô) nên hiện chỉ có band kiểm tra đầu vào gần nhất.
-     * shortcut: thêm nhánh EXAM khi FR-EXAM-03 có nơi lưu band bài thi.
-     */
+    /** D-63: band bài thi khóa gần nhất (EXAM) nếu đã thi, không thì band kiểm tra đầu vào gần nhất (PLACEMENT). */
     private Band band(long userId) {
+        return examBands.latest(userId).map(l -> new Band(l.overall(), "EXAM", l.at())).orElseGet(() -> placementBand(userId));
+    }
+
+    private Band placementBand(long userId) {
         return placements.findFirstByUserIdAndSubmittedAtIsNotNullOrderBySubmittedAtDescIdDesc(userId)
                 .filter(a -> a.getOverallBand() != null)
                 .map(a -> new Band(a.getOverallBand(), "PLACEMENT", a.getSubmittedAt())).orElse(null);

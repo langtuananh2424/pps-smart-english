@@ -22,6 +22,11 @@ public interface StudentAttemptRepository extends JpaRepository<StudentAttempt, 
     List<StudentAttempt> findPage(@Param("userId") Long userId, @Param("before") Long before,
                                   @Param("bankId") Long bankId, @Param("openOnly") boolean openOnly, Pageable page);
 
+    /** D-63: lượt đã nộp gần nhất (đầy đủ kết quả) của đề có bảng quy đổi band. */
+    @Query("select a from StudentAttempt a where a.userId = :userId and a.submittedAt is not null and a.resultMode = 'FULL' "
+            + "and exists (select 1 from ExamBandRule r where r.bankId = a.bankId) order by a.submittedAt desc, a.id desc")
+    List<StudentAttempt> findLatestBanded(@Param("userId") Long userId, Pageable page);
+
     /** Nộp bài nguyên tử: chỉ một trong các request đồng thời thấy submitted_at IS NULL; 0 dòng = đã nộp rồi. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update StudentAttempt a set a.submittedAt = :now, a.score = :score, a.maxScore = :maxScore "

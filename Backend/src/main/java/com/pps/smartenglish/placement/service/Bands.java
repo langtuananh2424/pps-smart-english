@@ -8,7 +8,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /** Quy đổi điểm sang band (thuần tính toán, FR-TEST-02). */
-final class Bands {
+public final class Bands {
 
     private static final BigDecimal TWO = BigDecimal.valueOf(2);
 
@@ -22,7 +22,7 @@ final class Bands {
     }
 
     /** Trung bình band, làm tròn 0.5 gần nhất như IELTS (x.25 lên x.5, x.75 lên x+1). Làm tròn đúng một lần, không qua số lẻ trung gian. */
-    static BigDecimal overall(Collection<BigDecimal> bands) {
+    public static BigDecimal overall(Collection<BigDecimal> bands) {
         if (bands.isEmpty()) {
             return BigDecimal.ZERO.setScale(1);
         }
