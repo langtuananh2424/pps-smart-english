@@ -8,6 +8,7 @@ import { CmsHome } from './cms/CmsHome'
 import { bankRoutes } from './cms/questions/routes'
 import { examRoutes } from './cms/exams/routes'
 import { importRoutes } from './cms/import/routes'
+import { cmsRoutes } from './cms/routes'
 import { RequirePermission } from './guards'
 import { STAFF_TABS } from './menu'
 import { useMyPermissions } from './api'
@@ -63,6 +64,8 @@ export const adminRoutes: RouteObject = {
       { path: 'hoc-vien/:id', element: <StudentProfilePage /> },
     ]),
     guarded('cms.content', [{ path: 'cms', element: <CmsHome /> }]),
+    // Khóa học, bài giảng, học tuần tự (#17, #63): /quan-tri/cms/khoa-hoc.
+    guarded('cms.content', cmsRoutes),
     // Ngân hàng câu hỏi, nhập hàng loạt, đề thi (#18, #70, #24): path con của /quan-tri/cms.
     guarded('cms.content', [{ path: 'cms', children: [...bankRoutes, ...importRoutes, ...examRoutes] }]),
     {

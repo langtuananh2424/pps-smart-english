@@ -37,6 +37,7 @@ const PAGES: [string, string, string][] = [
   ['/quan-tri/goi-ban', 'product.manage', 'Gói bán'],
   ['/quan-tri/link-kich-hoat', 'activation.manage', 'Link kích hoạt'],
   ['/quan-tri/cms', 'cms.content', 'CMS'],
+  ['/quan-tri/cms/khoa-hoc', 'cms.content', 'Khóa học'],
   ['/quan-tri/vai-tro', 'rbac.manage', 'Vai trò và quyền'],
   ['/quan-tri/vai-tro/moi', 'rbac.manage', 'Tạo vai trò'],
   ['/quan-tri/vai-tro/1', 'rbac.manage', 'Chi tiết vai trò'],

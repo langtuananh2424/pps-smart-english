@@ -6,7 +6,7 @@ const links = [
   { to: '/quan-tri/cms/de-thi', label: 'Đề thi và bảng quy đổi' },
 ]
 
-// Lối vào các mục CMS nội dung; phiên CMS khóa có thể thay bằng trang tổng của họ.
+// Trang chủ CMS: lối vào khóa học, ngân hàng câu hỏi, đề thi.
 export function CmsHome() {
   return (
     <>
