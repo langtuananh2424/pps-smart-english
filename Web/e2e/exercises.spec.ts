@@ -34,5 +34,5 @@ test('khóa không có bài thi (403) thì ẩn thẻ bài thi; bài thi mở d�
 test('bài thi khóa đã mở', async ({ page }) => {
   await mockExercises(page, { examBody: { bankId: 50, progressPercent: 90, requiredPercent: 80, unlocked: true, reason: null, attemptsUsed: 1, attemptsAllowed: 2, inProgressAttemptId: 3, lastResult: null } })
   await page.goto('/bai-tap/khoa/1')
-  await expect(page.getByRole('link', { name: 'Làm tiếp' })).toHaveAttribute('href', '/bai-tap/50')
+  await expect(page.getByRole('link', { name: 'Làm tiếp' })).toHaveAttribute('href', '/bai-tap/50?khoa=1')
 })
