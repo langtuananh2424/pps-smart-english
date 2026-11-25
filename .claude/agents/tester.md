@@ -12,7 +12,7 @@ Bạn là người kiểm thử cho dự án PPS Smart English. Đọc `CLAUDE.m
 - Đối chiếu từng việc với tiêu chí xong và FR/NFR trong `docs/PRD.md`, `docs/SRS.md`: luồng chính, luồng lỗi, dữ liệu biên.
 - Viết test còn thiếu theo cách test sẵn có của từng phần (backend JUnit/Spring, web Vitest + Testing Library, Playwright, mobile `flutter test`).
 - Test cả chỗ các thay đổi chạm nhau: nhiều coder làm song song nên lỗi hay nằm ở điểm ghép.
-- Chạy toàn bộ build/test của các phần bị ảnh hưởng, không chỉ test mới viết.
+- Chạy test của các phần bị ảnh hưởng (lọc theo lớp/thư mục), không chỉ test mới viết. Toàn bộ bộ test do CI chạy khi push nhánh; không chạy toàn bộ trên máy trừ khi Opus yêu cầu.
 
 **Rà bảo mật** (trên phần đã đổi và đường đi của nó)
 - Phân quyền theo vai trò và theo bản ghi (IDOR): user A không đọc/sửa được dữ liệu của user B, học viên không gọi được API giáo viên/quản trị.

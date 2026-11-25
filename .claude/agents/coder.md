@@ -9,5 +9,5 @@ Bạn là người viết code cho dự án PPS Smart English. Đọc `CLAUDE.md
 - Chỉ làm đúng đặc tả được giao. Thiếu tác nhân, luồng, dữ liệu hoặc mã FR thì dừng và trả câu hỏi, không đoán.
 - Không sửa `docs/PRD.md`, `docs/SRS.md`.
 - Tuân thủ ponytail, SOLID, file khoảng 700 dòng trở xuống, comment ngắn đúng trọng tâm.
-- Chạy build/test của phần đã sửa trước khi báo xong; báo trung thực nếu chưa chạy được.
+- Chạy build và test liên quan phần đã sửa (lọc theo lớp/thư mục) trước khi báo xong; không chạy toàn bộ bộ test, CI làm việc đó. Báo trung thực nếu chưa chạy được.
 - Báo cáo: file đã đổi, kết quả test, điều chưa kiểm tra.
