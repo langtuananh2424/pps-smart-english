@@ -70,6 +70,45 @@ class AdminOrderExportTest extends ApiTestBase {
         return code;
     }
 
+    /** Như order() nhưng đặt hạn thanh toán: quá hạn (2020) hoặc còn hạn (2099). */
+    private String pendingOrder(long userId, long productId, String expiresAt) {
+        String code = "ORD-" + UUID.randomUUID().toString().substring(0, 8);
+        long id = insert("orders", new HashMap<>(Map.of("user_id", userId, "code", code, "status", "PENDING", "total_vnd", 1L,
+                "expires_at", at(expiresAt), "provider", "fake", "created_at", at("2007-01-01T00:00:00Z"))));
+        insert("order_items", Map.of("order_id", id, "product_id", productId, "price_vnd", 1L));
+        return code;
+    }
+
+    private String codes(Account a, String query) throws Exception {
+        return send(get("/api/admin/orders" + query), a.accessToken()).andExpect(status().isOk()).andReturn().getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+    }
+
+    @Test
+    void overduePendingShowsAsExpiredInListFiltersAndDetail() throws Exception {
+        var acc = staff("SUPPORT");
+        long u = buyer("qh-" + UUID.randomUUID() + "@example.com", "Quá hạn");
+        long p = product("Gói quá hạn", 1);
+        String late = pendingOrder(u, p, "2020-01-01T00:00:00Z");
+        String live = pendingOrder(u, p, "2099-01-01T00:00:00Z");
+        String q = "?from=2007-01-01&to=2007-01-01&email=qh-";
+
+        String pending = codes(acc, q + "&status=PENDING");
+        assertTrue(pending.contains(live));
+        assertFalse(pending.contains(late));
+        String expired = codes(acc, q + "&status=EXPIRED");
+        assertTrue(expired.contains(late));
+        assertFalse(expired.contains(live));
+        // dòng của đơn quá hạn mang trạng thái EXPIRED, DB vẫn là PENDING
+        send(get("/api/admin/orders" + q + "&status=EXPIRED"), acc.accessToken()).andExpect(jsonPath("$.data[0].status").value("EXPIRED"));
+        assertEquals("PENDING", jdbc.queryForObject("select status from orders where code = ?", String.class, late));
+
+        long id = jdbc.queryForObject("select id from orders where code = ?", Long.class, late);
+        send(get("/api/admin/orders/" + id), acc.accessToken()).andExpect(jsonPath("$.status").value("EXPIRED"));
+        long liveId = jdbc.queryForObject("select id from orders where code = ?", Long.class, live);
+        send(get("/api/admin/orders/" + liveId), acc.accessToken()).andExpect(jsonPath("$.status").value("PENDING"));
+    }
+
     private String csv(Account a, String query) throws Exception {
         var res = send(get(EXPORT + query), a.accessToken()).andExpect(status().isOk()).andReturn().getResponse();
         assertTrue(res.getContentType().startsWith("text/csv"));
@@ -166,5 +205,27 @@ class AdminOrderExportTest extends ApiTestBase {
         send(get("/api/admin/orders?email=" + mail + "&limit=1"), acc.accessToken())
                 .andExpect(jsonPath("$.data.length()").value(1)).andExpect(jsonPath("$.nextCursor").exists());
         send(get("/api/admin/orders?status=BOGUS"), acc.accessToken()).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void detailShowsItemsTransactionsWithoutRawPayloadAndNeedsPermission() throws Exception {
+        long u = buyer("ct-" + UUID.randomUUID() + "@example.com", "Khách chi tiết");
+        long p = product("Gói chi tiết", 7000);
+        String code = order(u, "PAID", "2006-01-01T05:00:00Z", p, 7000, "TX-D1");
+        long id = jdbc.queryForObject("select id from orders where code = ?", Long.class, code);
+        insert("payment_transactions", Map.of("order_id", id, "provider", "fake", "provider_ref", "TX-D2",
+                "amount_vnd", 1, "status", "MISMATCH", "raw_payload", "{\"secret\":\"x\"}"));
+
+        var res = send(get("/api/admin/orders/" + id), staff("SUPPORT").accessToken()).andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(code)).andExpect(jsonPath("$.buyer.displayName").value("Khách chi tiết"))
+                .andExpect(jsonPath("$.items[0].productType").value("AI_ADDON"))
+                .andExpect(jsonPath("$.items[0].courseTitle").doesNotExist())
+                .andExpect(jsonPath("$.items[0].priceVnd").value(7000))
+                .andExpect(jsonPath("$.transactions.length()").value(2))
+                .andExpect(jsonPath("$.transactions[1].status").value("MISMATCH")).andReturn().getResponse();
+        assertFalse(res.getContentAsString().contains("secret"));
+        assertFalse(res.getContentAsString().contains("rawPayload"));
+        send(get("/api/admin/orders/99999999"), staff("ACCOUNTANT").accessToken()).andExpect(status().isNotFound());
+        send(get("/api/admin/orders/" + id), staff("EDITOR").accessToken()).andExpect(status().isForbidden());
     }
 }

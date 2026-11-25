@@ -1,5 +1,6 @@
 package com.pps.smartenglish.commerce.service;
 
+import com.pps.smartenglish.commerce.dto.AdminOrderDetail;
 import com.pps.smartenglish.commerce.dto.AdminOrderView;
 import com.pps.smartenglish.commerce.repository.AdminOrderRepository;
 import com.pps.smartenglish.commerce.repository.AdminOrderRepository.ExportRow;
@@ -12,6 +13,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -21,6 +23,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,15 +46,17 @@ public class AdminOrderService {
     private final AdminOrderRepository orders;
     private final AuditRecorder audit;
     private final ZoneId zone;
+    private final Clock clock;
 
-    AdminOrderService(AdminOrderRepository orders, AuditRecorder audit,
+    AdminOrderService(AdminOrderRepository orders, AuditRecorder audit, Clock clock,
                       @Value("${app.reports.zone:Asia/Ho_Chi_Minh}") String zone) {
         this.orders = orders;
         this.audit = audit;
         this.zone = ZoneId.of(zone);
+        this.clock = clock;
     }
 
-    /** Lọc theo ngày tạo đơn (created_at) khi có from/to; email là khớp một phần, không phân biệt hoa thường. */
+    /** Trạng thái là trạng thái hiệu lực (PENDING quá hạn = EXPIRED). Lọc theo ngày tạo đơn (created_at) khi có from/to; email là khớp một phần, không phân biệt hoa thường. */
     @Transactional(readOnly = true)
     public CursorPage<AdminOrderView> search(String status, String from, String to, String email, String limit, String cursor) {
         int size = Cursors.size(limit, DEFAULT_LIMIT, MAX_LIMIT);
@@ -65,12 +70,19 @@ public class AdminOrderService {
             throw ApiException.validation("to", "Ngày kết thúc phải sau hoặc bằng ngày bắt đầu");
         }
         String mail = blankToNull(email);
-        var rows = orders.search(Cursors.decode(cursor), st, f == null ? null : f.atStartOfDay(zone).toInstant(),
+        var rows = orders.search(Cursors.decode(cursor), st, clock.instant(), f == null ? null : f.atStartOfDay(zone).toInstant(),
                 t == null ? null : t.plusDays(1).atStartOfDay(zone).toInstant(),
                 mail == null ? null : "%" + escapeLike(mail.toLowerCase()) + "%", size + 1);
         boolean more = rows.size() > size;
         var page = more ? rows.subList(0, size) : rows;
         return new CursorPage<>(page, more ? Cursors.encode(page.get(size - 1).id()) : null);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminOrderDetail detail(long id) {
+        var d = orders.findDetail(id, clock.instant()).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "order_not_found", "Không tìm thấy đơn hàng"));
+        return new AdminOrderDetail(d.id(), d.code(), d.status(), d.totalVnd(), d.provider(), d.createdAt(), d.expiresAt(),
+                d.paidAt(), d.buyer(), orders.items(id), orders.transactions(id));
     }
 
     /** Kiểm tra khoảng ngày (400 nếu sai) rồi ghi audit. Gọi trước khi ghi header/body để lỗi vẫn là JSON thường. */
