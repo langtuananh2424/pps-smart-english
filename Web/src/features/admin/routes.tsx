@@ -2,6 +2,10 @@ import { NavLink, Outlet, type RouteObject } from 'react-router'
 import { PlaceholderPage } from '../../routes/PlaceholderPage'
 import { AdminIndex, AdminShell } from './AdminShell'
 import { AuditPage } from './AuditPage'
+import { CmsHome } from './cms/CmsHome'
+import { bankRoutes } from './cms/questions/routes'
+import { examRoutes } from './cms/exams/routes'
+import { importRoutes } from './cms/import/routes'
 import { RequirePermission } from './guards'
 import { STAFF_TABS } from './menu'
 import { useMyPermissions } from './api'
@@ -46,7 +50,9 @@ export const adminRoutes: RouteObject = {
     todo('report.view', 'tong-quan', 'Tổng quan'),
     todo('product.manage', 'goi-ban', 'Gói bán'),
     todo('activation.manage', 'link-kich-hoat', 'Link kích hoạt'),
-    todo('cms.content', 'cms', 'CMS'),
+    guarded('cms.content', [{ path: 'cms', element: <CmsHome /> }]),
+    // Ngân hàng câu hỏi, nhập hàng loạt, đề thi (#18, #70, #24): path con của /quan-tri/cms.
+    guarded('cms.content', [{ path: 'cms', children: [...bankRoutes, ...importRoutes, ...examRoutes] }]),
     {
       element: <RequirePermission any={STAFF_TABS.map((t) => t.perm)} />,
       children: [
