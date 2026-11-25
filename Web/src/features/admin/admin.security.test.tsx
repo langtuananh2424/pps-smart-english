@@ -36,7 +36,7 @@ const PAGES: [string, string, string][] = [
   ['/quan-tri/tong-quan', 'report.view', 'Tổng quan'],
   ['/quan-tri/goi-ban', 'product.manage', 'Gói bán'],
   ['/quan-tri/link-kich-hoat', 'activation.manage', 'Link kích hoạt'],
-  ['/quan-tri/cms', 'cms.content', 'CMS'],
+  ['/quan-tri/cms', 'cms.content', 'Khóa học'],
   ['/quan-tri/vai-tro', 'rbac.manage', 'Vai trò và quyền'],
   ['/quan-tri/vai-tro/moi', 'rbac.manage', 'Tạo vai trò'],
   ['/quan-tri/vai-tro/1', 'rbac.manage', 'Chi tiết vai trò'],
@@ -75,7 +75,7 @@ describe('menu theo quyền', () => {
   test('chỉ cms.content: index chuyển tới CMS, không có mục Nhân sự', async () => {
     mockAdmin(['cms.content'])
     const router = renderAt('/quan-tri')
-    expect(await screen.findByRole('heading', { name: 'CMS' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Khóa học' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/quan-tri/cms')
     expect(menuLinks().map((a) => a.textContent)).toEqual(['CMS'])
   })

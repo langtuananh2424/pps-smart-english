@@ -2,6 +2,7 @@ import { NavLink, Outlet, type RouteObject } from 'react-router'
 import { PlaceholderPage } from '../../routes/PlaceholderPage'
 import { AdminIndex, AdminShell } from './AdminShell'
 import { AuditPage } from './AuditPage'
+import { cmsRoutes } from './cms/routes'
 import { RequirePermission } from './guards'
 import { STAFF_TABS } from './menu'
 import { useMyPermissions } from './api'
@@ -46,7 +47,7 @@ export const adminRoutes: RouteObject = {
     todo('report.view', 'tong-quan', 'Tổng quan'),
     todo('product.manage', 'goi-ban', 'Gói bán'),
     todo('activation.manage', 'link-kich-hoat', 'Link kích hoạt'),
-    todo('cms.content', 'cms', 'CMS'),
+    guarded('cms.content', cmsRoutes),
     {
       element: <RequirePermission any={STAFF_TABS.map((t) => t.perm)} />,
       children: [
