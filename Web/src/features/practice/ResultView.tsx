@@ -9,6 +9,8 @@ import { useGrammarElements } from './elements'
 import { describeAnswer } from './describe'
 import { BuildDetail, IdentifyDetail } from './ResultDetails'
 import { isAnswerable } from './questions/registry'
+import { ForcedResultView } from './listening/ForcedResultView'
+import { ResultBreakdown } from './ResultBreakdown'
 import { pillNeutral, pillPrimary } from './questions/ui'
 import type { Answers, AttemptResult, Bank, Question, QuestionResult } from './types'
 
@@ -31,12 +33,17 @@ export function ResultView({ bank, initial, answers, onRetry }: Props) {
     queryKey: ['attempt', initial.id, 'result'],
     queryFn: () => fetchAttempt(initial.id),
     initialData: initial,
-    staleTime: Infinity,
+    // initial (từ lúc nộp) chưa có breakdown: gọi lại một lần khi mở màn; giữ initialData nên điểm không chớp.
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     // Còn câu AI đang chấm thì hỏi lại mỗi 3 giây, dừng sau 2 phút.
     refetchInterval: (query) => ((query.state.data?.pendingJobs?.length ?? 0) > 0 && !gaveUp ? POLL_MS : false),
   })
   const r = q.data
   const pending = (r.pendingJobs?.length ?? 0) > 0
+  // D-147: máy chủ bỏ score khi còn câu AI chưa chốt (kể cả hết lượt AI, không có job chờ): không dựng điểm hay đáp án từ gì cả.
+  const hidden = pending || r.score == null
   useEffect(() => {
     if (!pending) return
     const t = setTimeout(() => setGaveUp(true), POLL_LIMIT_MS)
@@ -44,6 +51,7 @@ export function ResultView({ bank, initial, answers, onRetry }: Props) {
   }, [pending])
 
   const elements = useGrammarElements()
+  if (r.forced) return <ForcedResultView bank={bank} attemptId={r.id} forced={r.forced} onRetry={onRetry} />
   const byQuestion = new Map((r.results ?? []).map((x) => [x.questionId, x]))
   return (
     <div className="min-h-dvh bg-page px-4 py-4 md:px-4">
@@ -60,11 +68,21 @@ export function ResultView({ bank, initial, answers, onRetry }: Props) {
 
         <section aria-label="Điểm" className="flex flex-col items-center gap-2.5 p-6 text-center">
           <img src={cam} alt="" width={120} height={120} />
-          <p className="text-5xl font-black text-brand-strong">
-            {r.score != null ? formatScore(r.score) : '—'}
-            <span className="text-2xl text-ink-muted">/{r.maxScore ?? '—'}</span>
-          </p>
-          {pending && !gaveUp && <p role="status" className="text-lg font-black text-ink">Đang chấm câu viết lại, điểm sẽ cập nhật…</p>}
+          {/* D-145 hướng b: chấm xong hết câu AI mới hiện điểm, Đạt/Chưa đạt và nhận xét. */}
+          {!hidden && (
+            <p className="text-5xl font-black text-brand-strong">
+              {r.score != null ? formatScore(r.score) : '—'}
+              <span className="text-2xl text-ink-muted">/{r.maxScore ?? '—'}</span>
+            </p>
+          )}
+          {!hidden && r.passed != null && (
+            <p className={`text-lg font-black ${r.passed ? 'text-success-fg' : 'text-danger-fg'}`}>
+              {r.passed ? 'Đạt yêu cầu' : 'Chưa đạt yêu cầu'}
+              {r.passPct != null && <span className="text-sm font-bold text-ink-secondary"> · Ngưỡng đạt {r.passPct}%</span>}
+            </p>
+          )}
+          {!hidden && r.passed === false && <p className="text-base font-semibold text-ink-secondary">Thử lại câu cần xem nhé.</p>}
+          {pending && !gaveUp && <p role="status" className="text-lg font-black text-ink">Đang chấm câu AI (viết lại, Viết, Nói), điểm, kết quả Đạt và nhận xét sẽ hiện khi chấm xong…</p>}
           {pending && gaveUp && (
             <p className="text-base font-semibold text-ink-secondary">
               Chấm chưa xong.{' '}
@@ -79,11 +97,13 @@ export function ResultView({ bank, initial, answers, onRetry }: Props) {
           )}
         </section>
 
-        <ol className="flex flex-col gap-4">
+        {!hidden && <ResultBreakdown breakdown={r.breakdown} bank={bank} elementName={elements.name} />}
+
+        {!hidden && <ol className="flex flex-col gap-4">
           {bank.questions.map((question, i) => (
             <Row key={question.id} index={i} question={question} result={byQuestion.get(question.id)} mine={answers?.[question.id]} showMine={answers !== undefined} pending={pending} elementName={elements.name} />
           ))}
-        </ol>
+        </ol>}
 
         <div className="flex flex-wrap justify-center gap-3 pb-4">
           <button type="button" onClick={onRetry} className={`${pillPrimary} w-full md:w-[332px]`}>
@@ -114,7 +134,10 @@ function Row({ index, question, result, mine, showMine, pending, elementName }: 
       </div>
       <p className="text-lg font-black leading-6 text-ink">{question.prompt}</p>
       {skipped ? (
-        <p className="text-sm font-semibold text-ink-secondary">Câu này làm ở màn Viết/Nói, không tính điểm ở đây.</p>
+        <>
+          <p className="text-sm font-semibold text-ink-secondary">Câu này làm ở màn Viết/Nói; điểm bài đã nộp trong lượt này được cộng vào điểm tổng.</p>
+          {result?.aiFailure && <p role="status" className="text-sm font-bold text-danger-fg">Câu {index + 1} không chấm được ({result.aiFailure}), {result.aiRefunded ? 'đã hoàn lượt AI, ' : ''}tính 0 điểm.</p>}
+        </>
       ) : (
         <>
           {custom ? (

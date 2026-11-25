@@ -6,6 +6,7 @@ import com.pps.smartenglish.ai.domain.AiJobKind;
 import com.pps.smartenglish.ai.domain.AiTask;
 import com.pps.smartenglish.ai.service.AiJobService;
 import com.pps.smartenglish.ai.service.AiQuotaService;
+import com.pps.smartenglish.ai.service.AttemptLinks;
 import com.pps.smartenglish.ai.speaking.SpeakingQuestionSource.SpeakingQuestion;
 import com.pps.smartenglish.shared.error.ApiException;
 import java.math.BigDecimal;
@@ -24,10 +25,12 @@ class SpeakingEnqueuer {
     private final AiJobService aiJobs;
     private final AiQuotaService quota;
     private final SpeakingSubmissionRepository submissions;
+    private final AttemptLinks attemptLinks;
     private final ObjectMapper mapper;
     private final Clock clock;
 
-    SpeakingEnqueuer(AiJobService aiJobs, AiQuotaService quota, SpeakingSubmissionRepository submissions, ObjectMapper mapper, Clock clock) {
+    SpeakingEnqueuer(AiJobService aiJobs, AiQuotaService quota, SpeakingSubmissionRepository submissions, AttemptLinks attemptLinks, ObjectMapper mapper, Clock clock) {
+        this.attemptLinks = attemptLinks;
         this.aiJobs = aiJobs;
         this.quota = quota;
         this.submissions = submissions;
@@ -38,6 +41,7 @@ class SpeakingEnqueuer {
     /** Hết lượt thì 402 và không để lại gì; hai request xác nhận đồng thời thì bên thua rollback cả lượt đã trừ. */
     @Transactional
     public long enqueue(SpeakingSubmission s, SpeakingQuestion q, long sizeBytes, double durationSec) {
+        attemptLinks.requireOpenLocked(s.getAttemptId()); // D-147: trước khi trừ lượt, cùng transaction
         ObjectNode in = mapper.createObjectNode();
         in.put("submissionId", s.getId());
         in.put("objectKey", s.getObjectKey());
@@ -49,9 +53,9 @@ class SpeakingEnqueuer {
         var cue = in.putArray("cueCard");
         q.cueCard().forEach(cue::add);
         // D-130: bài giáo viên giao không trừ lượt, vẫn qua giới hạn tần suất và hàng đợi
-        long jobId = s.getAssignmentId() != null
-                ? aiJobs.enqueueUncharged(s.getUserId(), AiJobKind.SPEAKING_GRADE, in, null)
-                : aiJobs.enqueueCharged(s.getUserId(), AiJobKind.SPEAKING_GRADE, in, null, null, AiTask.SPEAKING_PART, q.courseId())
+        long jobId = s.getAssignmentId() != null || attemptLinks.isAssigned(s.getAttemptId())
+                ? aiJobs.enqueueUncharged(s.getUserId(), AiJobKind.SPEAKING_GRADE, in, null, s.getAttemptId())
+                : aiJobs.enqueueCharged(s.getUserId(), AiJobKind.SPEAKING_GRADE, in, null, s.getAttemptId(), AiTask.SPEAKING_PART, q.courseId())
                         .orElseThrow(quota::exhausted);
         BigDecimal duration = BigDecimal.valueOf(durationSec).setScale(2, RoundingMode.HALF_UP);
         int claimed;

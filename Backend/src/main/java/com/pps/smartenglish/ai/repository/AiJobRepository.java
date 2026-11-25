@@ -71,6 +71,13 @@ public interface AiJobRepository extends JpaRepository<AiJob, Long> {
     int markRetry(@Param("id") Long id, @Param("attempts") int attempts, @Param("runAfter") Instant runAfter,
                   @Param("error") String error, @Param("now") Instant now);
 
+    /** D-147: chấm lỗi hẳn thì làm lại từ đầu đúng một lần (attempts về 0, chạy ngay). 0 dòng = lease đã bị lấy lại. */
+    @Transactional
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update AiJob j set j.status = 'PENDING', j.attempts = 0, j.autoRetried = true, j.runAfter = :now, j.error = :error, "
+            + "j.lockedUntil = null, j.updatedAt = :now where j.id = :id and j.status = 'RUNNING' and j.attempts = :attempts")
+    int markAutoRetry(@Param("id") Long id, @Param("attempts") int attempts, @Param("error") String error, @Param("now") Instant now);
+
     @Transactional
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update AiJob j set j.status = 'FAILED', j.error = :error, j.lockedUntil = null, j.updatedAt = :now "

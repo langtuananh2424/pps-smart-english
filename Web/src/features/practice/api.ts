@@ -1,5 +1,5 @@
 import { api, ApiError, postJson, sendKeepalive } from '../../lib/api'
-import type { Answers, AnswerItem, AttemptResult, AttemptSummary, Bank, Progress, Started } from './types'
+import type { AiSession, Answers, AnswerItem, AttemptResult, AttemptSummary, Bank, PlayGrant, PlayState, Progress, ScriptView, Started } from './types'
 
 export const fetchBank = (id: number) => api<Bank>(`/banks/${id}`)
 export const fetchOpenAttempt = async (bankId: number) =>
@@ -8,12 +8,18 @@ export const startAttempt = (bankId: number) => postJson<Started>(`/banks/${bank
 export const fetchProgress = (id: number) => api<Progress>(`/attempts/${id}/progress`)
 export const pauseAttempt = (id: number) => api<Progress>(`/attempts/${id}/pause`, { method: 'POST' })
 export const resumeAttempt = (id: number) => api<Progress>(`/attempts/${id}/resume`, { method: 'POST' })
+export const fetchAiSessions = async (attemptId: number) => (await api<{ data: AiSession[] }>(`/attempts/${attemptId}/ai-sessions`)).data
 export const fetchAttempt = (id: number) => api<AttemptResult>(`/attempts/${id}`)
 export const submitAttempt = (id: number, answers: Answers) => postJson<AttemptResult>(`/attempts/${id}/submit`, { answers: toItems(answers) })
 export const saveDraft = (id: number, answers: Answers) => api<Progress>(`/attempts/${id}/draft`, { method: 'PUT', body: JSON.stringify({ answers: toItems(answers) }) })
 // Gửi khi đóng tab: keepalive để trình duyệt hoàn tất yêu cầu sau khi trang đã bỏ.
 export const saveDraftOnLeave = (id: number, answers: Answers) =>
   void sendKeepalive(`/attempts/${id}/draft`, { method: 'PUT', body: JSON.stringify({ answers: toItems(answers) }) }).catch(() => {})
+
+// Nghe audio (FR-EX-10): máy chủ đếm lượt; 403 play_limit_reached khi hết lượt.
+export const playGroup = (attemptId: number, groupId: number) => api<PlayGrant>(`/attempts/${attemptId}/groups/${groupId}/play`, { method: 'POST' })
+export const completePlay = (attemptId: number, groupId: number) => api<PlayState>(`/attempts/${attemptId}/groups/${groupId}/play/complete`, { method: 'POST' })
+export const fetchScript = (attemptId: number, questionId: number) => api<ScriptView>(`/attempts/${attemptId}/scripts/${questionId}`)
 
 export const toItems = (answers: Answers): AnswerItem[] =>
   Object.entries(answers).flatMap(([id, answer]) => (answer ? [{ questionId: Number(id), answer }] : []))

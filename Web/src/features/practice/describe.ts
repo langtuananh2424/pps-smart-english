@@ -1,3 +1,4 @@
+import { tfLabel } from './questions/TrueFalse'
 import type { Answer, Id, Question } from './types'
 
 const same = (a: Id, b: Id) => String(a) === String(b)
@@ -38,6 +39,39 @@ export function describeAnswer(q: Question, a: Answer | null | undefined, elemen
     case 'GRAMMAR_BUILD': {
       const blocks = (p.blocks ?? []) as Block[]
       return ((a.order ?? []) as Id[]).map((id) => blocks.find((b) => same(b.id, id))?.text ?? id).join(' ')
+    }
+    case 'CHOICE_MULTI':
+      return (
+        ((a.choiceIds ?? []) as number[])
+          .map((id) => q.choices?.find((x) => x.id === id))
+          .filter((c) => c)
+          .map((c) => `${c!.label}. ${c!.content}`)
+          .join('; ') || null
+      )
+    case 'TRUE_FALSE': {
+      const v = a.value ?? a.answer
+      return typeof v === 'string' ? tfLabel(v) : null
+    }
+    case 'FILL_TEXT':
+      return Array.isArray(a.accepted) ? a.accepted.join(' / ') : typeof a.text === 'string' ? a.text : null
+    case 'WORD_BANK':
+      return (
+        Object.entries((a.blanks ?? {}) as Record<string, string>)
+          .map(([id, v]) => `${id}: ${v}`)
+          .join('; ') || null
+      )
+    case 'MATCH_OPTIONS': {
+      const items = (p.items ?? []) as Block[]
+      const options = (p.options ?? []) as Block[]
+      const opt = (id: Id) => {
+        const i = options.findIndex((x) => same(x.id, id))
+        return i < 0 ? String(id) : `${String.fromCharCode(65 + i)}. ${options[i].text}`
+      }
+      return (
+        Object.entries((a.matches ?? {}) as Record<string, Id>)
+          .map(([i, o]) => `${items.find((x) => same(x.id, i))?.text ?? i} → ${opt(o)}`)
+          .join('; ') || null
+      )
     }
     default:
       return typeof a.text === 'string' ? a.text : null

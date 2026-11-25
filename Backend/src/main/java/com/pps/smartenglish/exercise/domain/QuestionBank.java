@@ -23,6 +23,7 @@ public class QuestionBank extends Auditable {
     /** D-135: FREE nghe và tua tự do; EXAM tự phát, không thao tác; LOCKED = Nghe ép (FR-EX-10). */
     public static final String FREE = "FREE";
     public static final String LOCKED = "LOCKED";
+    public static final int DEFAULT_PASS_PCT = 70;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -59,6 +60,10 @@ public class QuestionBank extends Auditable {
     @Column(name = "play_limit")
     private Integer playLimit;
 
+    /** D-145: ngưỡng Đạt (%) của bài thường, 1..100; mặc định 70. */
+    @Column(name = "pass_pct")
+    private int passPct = DEFAULT_PASS_PCT;
+
     protected QuestionBank() {}
 
     /** Đề kiểm tra đầu vào: không topic, chế độ EXAM, có giới hạn thời gian. */
@@ -88,6 +93,7 @@ public class QuestionBank extends Auditable {
     public String getPurpose() { return purpose; }
     public String getPlaybackMode() { return playbackMode; }
     public Integer getPlayLimit() { return playLimit; }
+    public int getPassPct() { return passPct; }
     public boolean isPlacement() { return PLACEMENT.equals(purpose); }
 
     public void setLessonId(Long lessonId) { this.lessonId = lessonId; }
@@ -98,4 +104,5 @@ public class QuestionBank extends Auditable {
     public void setMode(String mode) { this.mode = mode; }
     public void setPlaybackMode(String playbackMode) { this.playbackMode = playbackMode; }
     public void setPlayLimit(Integer playLimit) { this.playLimit = playLimit; }
+    public void setPassPct(int passPct) { this.passPct = passPct; }
 }

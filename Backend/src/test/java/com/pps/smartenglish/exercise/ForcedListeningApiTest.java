@@ -222,6 +222,7 @@ class ForcedListeningApiTest extends ListeningTestSupport {
         getJson("/api/attempts/" + open + "/scripts/" + w.q()[0], u).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("attempt_not_submitted"));
 
+        postJson("/api/attempts/" + open + "/submit", u, Map.of("answers", answers(w, false, true, true, true))).andExpect(status().isOk()); // D-147: mỗi bộ một lượt mở
         var done = submitWithId(u, w, false, true, true, true);
         getJson("/api/attempts/" + done.id() + "/scripts/" + w.q()[0], student(0)).andExpect(status().isNotFound()); // lượt người khác
         getJson("/api/attempts/" + done.id() + "/scripts/" + other.q()[0], u).andExpect(status().isNotFound()); // câu bộ khác

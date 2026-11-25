@@ -55,4 +55,17 @@ public interface StudentAnswerRepository extends JpaRepository<StudentAnswer, Lo
             + "and a.questionId = :questionId and a.correct is null")
     int applyAiVerdict(@Param("attemptId") Long attemptId, @Param("questionId") Long questionId, @Param("correct") boolean correct,
                        @Param("credit") BigDecimal credit);
+
+    /** Ghi điểm câu Viết/Nói một lần: chỉ khi credit còn null nên kết quả đến trùng không cộng hai lần (D-145). */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update StudentAnswer a set a.credit = :credit where a.attemptId = :attemptId and a.questionId = :questionId "
+            + "and a.credit is null")
+    int applyAiCredit(@Param("attemptId") Long attemptId, @Param("questionId") Long questionId, @Param("credit") BigDecimal credit);
+
+    /** D-147: câu Viết/Nói không chấm được: credit 0 kèm lý do, cũng chỉ một lần (chỉ khi credit còn null). */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update StudentAnswer a set a.credit = 0, a.aiFailReason = :reason, a.aiFailRefunded = :refunded where a.attemptId = :attemptId "
+            + "and a.questionId = :questionId and a.credit is null")
+    int applyAiFailure(@Param("attemptId") Long attemptId, @Param("questionId") Long questionId, @Param("reason") String reason,
+                       @Param("refunded") boolean refunded);
 }

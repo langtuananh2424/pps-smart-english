@@ -14,10 +14,15 @@ public interface SpeakingQuestionSource {
     }
 
     /** inAssignment: người gọi đã kiểm là người nhận bài giao đúng câu này, nên bỏ khóa unit tuần tự cho riêng câu đó (FR-ASG-01). */
-    SpeakingQuestion find(long questionId, long userId, boolean inAssignment);
+    default SpeakingQuestion find(long questionId, long userId, boolean inAssignment) {
+        return find(questionId, userId, inAssignment, false);
+    }
+
+    /** inAttempt: bản nộp nằm trong lượt làm bài đã được kiểm (AttemptLinks), nên câu của bộ thi khóa cũng nói được (D-82, D-145). */
+    SpeakingQuestion find(long questionId, long userId, boolean inAssignment, boolean inAttempt);
 
     /** Mở phiên MỚI: như find nhưng câu đã lưu trữ (D-138) bị 400 question_archived. */
-    SpeakingQuestion findForNewSession(long questionId, long userId, boolean inAssignment);
+    SpeakingQuestion findForNewSession(long questionId, long userId, boolean inAssignment, boolean inAttempt);
 
     /** maxSeconds đã áp mặc định theo part (D-43). cueCard rỗng nếu không phải part 2. */
     record SpeakingQuestion(long id, int part, String prompt, List<String> cueCard, int maxSeconds, String courseTitle, Long courseId) {}

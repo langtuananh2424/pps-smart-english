@@ -23,7 +23,7 @@ class SpeakingUnitTest {
         return new SpeakingProperties("http", url, "secret-token", 2, Duration.ofSeconds(2), Duration.ofSeconds(5), Duration.ofMinutes(10),
                 Duration.ofHours(1), 30, false, new SpeakingProperties.Unclear(3, 5, 0.5, 0.5),
                 new SpeakingProperties.Bands(1.0, 0.6, 1.0, "0.95=9,0.9=8,0.85=7,0.78=6,0.7=5,0.6=4,0.5=3,0.4=2", "140=8,120=7,100=6,80=5,60=4,40=3,20=2",
-                        "1=8,2=7,4=6,6=5,8=4,12=3,16=2", "0.85=8,0.75=7,0.65=6,0.55=5,0.45=4,0.35=3,0.25=2"));
+                        "1=8,2=7,4=6,6=5,8=4,12=3,16=2", "0.85=8,0.75=7,0.65=6,0.55=5,0.45=4,0.35=3,0.25=2"), 9.0);
     }
 
     @Test

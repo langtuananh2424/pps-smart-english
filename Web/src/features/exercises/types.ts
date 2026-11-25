@@ -27,7 +27,7 @@ export interface ExamBands {
 }
 export interface LastResult {
   attemptId: number
-  score: number | null
+  score?: number | null // vắng khi còn câu AI chấm dở (D-147)
   maxScore: number | null
   submittedAt: string
   bands?: ExamBands | null

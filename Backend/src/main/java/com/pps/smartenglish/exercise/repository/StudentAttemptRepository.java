@@ -5,13 +5,28 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface StudentAttemptRepository extends JpaRepository<StudentAttempt, Long> {
+
+    /** Khóa dòng lượt đến hết transaction: nộp bài và nhận điểm AI muộn tuần tự với nhau (D-145). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select a from StudentAttempt a where a.id = :id")
+    Optional<StudentAttempt> lockById(@Param("id") Long id);
+
+    /** Khóa dòng lượt (đã nộp hay chưa) đến hết transaction, không nạp entity. */
+    @Query(value = "select id from student_exercise_attempts where id = :id for update", nativeQuery = true)
+    List<Long> lockRow(@Param("id") Long id);
+
+    /** Khóa dòng lượt nếu còn mở; rỗng = đã nộp hoặc không có. Đọc scalar nên không dính bản đã cache trong transaction. */
+    @Query(value = "select id from student_exercise_attempts where id = :id and submitted_at is null for update", nativeQuery = true)
+    List<Long> lockIfOpen(@Param("id") Long id);
 
     /** Luôn kèm userId: attempt của người khác coi như không tồn tại. */
     Optional<StudentAttempt> findByIdAndUserId(Long id, Long userId);

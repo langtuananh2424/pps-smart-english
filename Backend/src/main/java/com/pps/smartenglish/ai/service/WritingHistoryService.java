@@ -32,8 +32,11 @@ public class WritingHistoryService {
     private final WritingSessionRepository sessions;
     private final AiJobRepository jobs;
     private final WritingQuestionSource questions;
+    private final AttemptResultGate gate;
 
-    WritingHistoryService(WritingSessionRepository sessions, AiJobRepository jobs, WritingQuestionSource questions) {
+    WritingHistoryService(WritingSessionRepository sessions, AiJobRepository jobs, WritingQuestionSource questions,
+                          AttemptResultGate gate) {
+        this.gate = gate;
         this.sessions = sessions;
         this.jobs = jobs;
         this.questions = questions;
@@ -42,7 +45,7 @@ public class WritingHistoryService {
     @Transactional(readOnly = true)
     public SessionView view(long userId, long sessionId) {
         return toView(sessions.findByIdAndUserId(sessionId, userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "session_not_found", "Không tìm thấy phiên viết")));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "session_not_found", "Không tìm thấy phiên viết")), true);
     }
 
     /**
@@ -53,14 +56,15 @@ public class WritingHistoryService {
     public SessionView viewForStaff(long sessionId) {
         var s = sessions.findById(sessionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "session_not_found", "Không tìm thấy phiên viết"));
-        return toView(s, questions.findForStaff(s.getQuestionId()));
+        return toView(s, questions.findForStaff(s.getQuestionId()), false); // giáo viên chỉ xem bài đã nộp, không bị khóa điểm
     }
 
-    private SessionView toView(WritingSession s) {
-        return toView(s, questions.find(s.getQuestionId(), s.getUserId(), s.getAssignmentId() != null));
+    private SessionView toView(WritingSession s, boolean owner) {
+        // D-147: chủ phiên xem lại (chỉ đọc) được kể cả bộ EXAM sau khi nộp; ghi thì WritingService khóa 409. Kết quả theo AttemptResultGate
+        return toView(s, questions.find(s.getQuestionId(), s.getUserId(), s.getAssignmentId() != null, s.getAttemptId() != null), owner);
     }
 
-    private SessionView toView(WritingSession s, WritingQuestionSource.WritingQuestion q) {
+    private SessionView toView(WritingSession s, WritingQuestionSource.WritingQuestion q, boolean owner) {
         long userId = s.getUserId();
         List<TurnView> turns = new ArrayList<>();
         s.getTurns().forEach(t -> turns.add(new TurnView(
@@ -69,7 +73,8 @@ public class WritingHistoryService {
         AiJob grade = s.getGradeJobId() == null ? null : jobs.findByIdAndUserId(s.getGradeJobId(), userId).orElse(null);
         return new SessionView(s.getId(), s.getStatus(), new RootQuestion(q.id(), q.prompt(), q.payload()), turns,
                 inFlight.isEmpty() ? null : inFlight.get(0), s.getDraft(), finalText(grade), s.getGradeJobId(),
-                grade != null && AiJob.DONE.equals(grade.getStatus()) ? grade.getOutput() : null, s.getCreatedAt());
+                grade != null && AiJob.DONE.equals(grade.getStatus()) && !(owner && gate.sealedSession(s.getUserId(), s.getQuestionId(), s.getAttemptId())) ? grade.getOutput() : null,
+                s.getCreatedAt());
     }
 
     /** Session không lưu bài nộp riêng: lấy từ input của job chấm. */
@@ -88,8 +93,11 @@ public class WritingHistoryService {
         boolean more = rows.size() > size;
         List<WritingSession> shown = more ? rows.subList(0, size) : rows;
         Map<Long, Integer> scores = scores(shown);
+        Map<Long, Boolean> sealed = new HashMap<>(); // một lượt nhiều phiên: hỏi cổng một lần
         return new CursorPage<>(shown.stream().map(s -> new SessionSummary(s.getId(), s.getQuestionId(), s.getStatus(),
-                scores.get(s.getGradeJobId()), s.getCreatedAt())).toList(),
+                sealed.computeIfAbsent(s.getAttemptId() != null ? s.getAttemptId() : -s.getQuestionId(),
+                        k -> gate.sealedSession(userId, s.getQuestionId(), s.getAttemptId())) ? null : scores.get(s.getGradeJobId()),
+                s.getCreatedAt())).toList(),
                 more ? Cursors.encode(shown.get(size - 1).getId()) : null);
     }
 

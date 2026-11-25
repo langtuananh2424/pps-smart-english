@@ -51,6 +51,10 @@ public class WritingSession extends Auditable {
     @Column(name = "assignment_id", updatable = false)
     private Long assignmentId;
 
+    /** Lượt làm bài mà phiên này được mở từ trong (D-145); null với phiên luyện tập thường. */
+    @Column(name = "attempt_id", updatable = false)
+    private Long attemptId;
+
     /** Lúc nộp chấm; chỉ ghi qua claimSubmit. */
     @Column(name = "submitted_at")
     private Instant submittedAt;
@@ -68,12 +72,18 @@ public class WritingSession extends Auditable {
         this.assignmentId = assignmentId;
     }
 
+    public WritingSession(Long userId, Long questionId, JsonNode turns, Long assignmentId, Long attemptId) {
+        this(userId, questionId, turns, assignmentId);
+        this.attemptId = attemptId;
+    }
+
     public void setTurns(JsonNode turns) { this.turns = turns; }
     public void setStep(int step) { this.step = step; }
     public void setStatus(String status) { this.status = status; }
     public void setDraft(String draft) { this.draft = draft; }
 
     public Long getId() { return id; }
+    public Long getAttemptId() { return attemptId; }
     public Long getUserId() { return userId; }
     public Long getQuestionId() { return questionId; }
     public int getStep() { return step; }

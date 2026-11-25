@@ -9,7 +9,10 @@ import com.pps.smartenglish.ai.provider.AiCall;
 import com.pps.smartenglish.ai.provider.AiCallException;
 import com.pps.smartenglish.ai.provider.AiGradingProvider;
 import com.pps.smartenglish.ai.provider.AiUsage;
+import com.pps.smartenglish.ai.service.AiAutoRetry;
 import com.pps.smartenglish.ai.service.AiQuotaService;
+import com.pps.smartenglish.ai.service.AttemptAiScores;
+import com.pps.smartenglish.ai.service.AttemptLinks;
 import com.pps.smartenglish.ai.service.Prompts;
 import com.pps.smartenglish.ai.speaking.EngineModels.Audio;
 import com.pps.smartenglish.ai.speaking.EngineModels.Transcript;
@@ -40,11 +43,17 @@ class SpeakingGradeHandler implements AiJobHandler {
     private final SpeakingSubmissionRepository submissions;
     private final AiQuotaService quota;
     private final ObjectMapper mapper;
+    private final AttemptAiScores scores;
+    private final AttemptLinks attempts;
+    private final AiAutoRetry autoRetry;
     private final Clock clock;
 
     SpeakingGradeHandler(SpeakingEngineClient engine, AiGradingProvider provider, Prompts prompts, SpeakingScorer scorer,
                          ObjectStorage storage, SpeakingSubmissionRepository submissions, AiQuotaService quota,
-                         ObjectMapper mapper, Clock clock) {
+                         ObjectMapper mapper, AttemptAiScores scores, AttemptLinks attempts, AiAutoRetry autoRetry, Clock clock) {
+        this.attempts = attempts;
+        this.scores = scores;
+        this.autoRetry = autoRetry;
         this.engine = engine;
         this.provider = provider;
         this.prompts = prompts;
@@ -77,14 +86,24 @@ class SpeakingGradeHandler implements AiJobHandler {
         List<String> spoken = SpeakingScorer.normalize(transcript.words());
         var unclear = transcript.words().isEmpty() ? java.util.Optional.of("too_few_words") : scorer.unclearReason(transcript, duration, spoken);
         AiUsage engineUsage = new AiUsage("speaking-engine", "whisper", 0, 0, 0, 0, duration);
+        if (unclear.isPresent() && autoRetry.applies(job)) {
+            // D-147: lượt đã nộp thì chấm lại một lần trước khi hoàn lượt; finisher.fail đưa job về hàng đợi
+            throw new AiCallException(false, "Bản ghi không rõ: " + unclear.get(), engineUsage, null);
+        }
         if (unclear.isPresent()) {
             var result = SpeakingResult.unclear(unclear.get());
             // D-48: không chấm thì không trừ lượt, hoàn trong cùng transaction hoàn tất job
             return new Completion(result, engineUsage, j -> {
-                finish(submissionId, result);
+                attempts.lockAttempt(j.getAttemptId()); // lượt trước, quota sau
+                if (autoRetry.applies(j)) {
+                    // lượt vừa được nộp trong lúc chấm: đọc lại sau khi khóa; bỏ giao dịch này để job vào đường chấm lại
+                    throw new IllegalStateException("Lượt vừa nộp trong lúc chấm, chấm lại bản ghi không rõ");
+                }
+                finish(submissionId, result); // UNCLEAR không có band: câu tính 0 kèm lý do (D-147)
                 if (j.isCharged()) { // bài giao (D-130) chưa trừ nên không có gì để hoàn
                     quota.refund(j);
                 }
+                scores.onSpeakingUnclear(submissionId, j.isCharged());
             });
         }
 
@@ -100,7 +119,11 @@ class SpeakingGradeHandler implements AiJobHandler {
         var result = new SpeakingResult(SpeakingSubmission.GRADED, null, transcript.text(),
                 new SpeakingResult.Bands(pron.band(), fluency.band(), lexical, grammar), overall, fluency, pron.meanScore(),
                 pron.wrongWords(), grade.feedback(), suggestions);
-        return new Completion(result, llm.usage().withAudio(duration), j -> finish(submissionId, result));
+        return new Completion(result, llm.usage().withAudio(duration), j -> {
+            if (finish(submissionId, result)) { // kết quả đến trùng thì finish trả false, không cộng điểm lần hai
+                scores.onSpeakingGraded(submissionId);
+            }
+        });
     }
 
     private EngineModels.Analysis analyze(Audio audio, List<String> spoken) throws AiCallException {
@@ -123,8 +146,8 @@ class SpeakingGradeHandler implements AiJobHandler {
         return provider.complete(new AiCall<>(prompts.speakingRubric(), user, SpeakingGrade.class, LLM_MAX_TOKENS));
     }
 
-    private void finish(long submissionId, SpeakingResult result) {
-        submissions.finish(submissionId, result.status(), mapper.valueToTree(result), Instant.now(clock));
+    private boolean finish(long submissionId, SpeakingResult result) {
+        return submissions.finish(submissionId, result.status(), mapper.valueToTree(result), Instant.now(clock)) == 1;
     }
 
     private static AiCallException engineFailure(SpeakingEngineException e) {

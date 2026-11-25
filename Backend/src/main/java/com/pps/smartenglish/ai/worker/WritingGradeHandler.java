@@ -6,6 +6,7 @@ import com.pps.smartenglish.ai.dto.WritingGrade;
 import com.pps.smartenglish.ai.provider.AiCall;
 import com.pps.smartenglish.ai.provider.AiCallException;
 import com.pps.smartenglish.ai.provider.AiGradingProvider;
+import com.pps.smartenglish.ai.service.AttemptAiScores;
 import com.pps.smartenglish.ai.service.Prompts;
 import com.pps.smartenglish.ai.service.WritingPostCheck;
 import org.springframework.stereotype.Component;
@@ -20,8 +21,10 @@ class WritingGradeHandler implements AiJobHandler {
     private final Prompts prompts;
     private final PromptBuilder builder;
     private final WritingPostCheck postCheck;
+    private final AttemptAiScores scores;
 
-    WritingGradeHandler(AiGradingProvider provider, Prompts prompts, PromptBuilder builder, WritingPostCheck postCheck) {
+    WritingGradeHandler(AiGradingProvider provider, Prompts prompts, PromptBuilder builder, WritingPostCheck postCheck, AttemptAiScores scores) {
+        this.scores = scores;
         this.provider = provider;
         this.prompts = prompts;
         this.builder = builder;
@@ -44,6 +47,8 @@ class WritingGradeHandler implements AiJobHandler {
         if (result.data().connectives() == null) {
             throw new AiCallException(true, "Kết quả chấm thiếu phần từ nối", result.usage(), null);
         }
-        return Completion.of(postCheck.apply(result.data(), text, words, in.path("copiedWords").asInt()), result.usage());
+        var graded = postCheck.apply(result.data(), text, words, in.path("copiedWords").asInt());
+        // D-145: phiên gắn lượt làm bài thì cộng điểm vào lượt cùng transaction hoàn tất job
+        return new Completion(graded, result.usage(), j -> scores.onWritingGraded(in.path("sessionId").asLong(), graded));
     }
 }

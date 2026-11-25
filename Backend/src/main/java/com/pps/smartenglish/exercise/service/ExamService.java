@@ -6,6 +6,7 @@ import com.pps.smartenglish.catalog.domain.Topic;
 import com.pps.smartenglish.catalog.repository.CourseLevelRepository;
 import com.pps.smartenglish.catalog.repository.CourseRepository;
 import com.pps.smartenglish.catalog.repository.TopicRepository;
+import com.pps.smartenglish.ai.service.AiJobService;
 import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.domain.StudentAttempt;
 import com.pps.smartenglish.exercise.dto.CourseTest;
@@ -49,10 +50,13 @@ public class ExamService {
     private final CourseProgressService progress;
     private final UnitUnlockService unitUnlock;
     private final ExamBands bands;
+    private final AiJobService aiJobs;
     private final Clock clock;
 
     ExamService(CourseRepository courses, TopicRepository topics, CourseLevelRepository levels, QuestionBankRepository banks,
-                StudentAttemptRepository attempts, CourseProgressService progress, UnitUnlockService unitUnlock, ExamBands bands, Clock clock) {
+                StudentAttemptRepository attempts, CourseProgressService progress, UnitUnlockService unitUnlock, ExamBands bands,
+                AiJobService aiJobs, Clock clock) {
+        this.aiJobs = aiJobs;
         this.courses = courses;
         this.topics = topics;
         this.levels = levels;
@@ -187,7 +191,11 @@ public class ExamService {
 
     private ExamStatus.LastResult lastResult(long userId, long bankId) {
         return attempts.findFirstByUserIdAndBankIdAndSubmittedAtIsNotNullOrderBySubmittedAtDesc(userId, bankId)
-                .map(a -> new ExamStatus.LastResult(a.getId(), a.isCountOnly() ? null : a.getScore(),
-                        a.isCountOnly() ? null : a.getMaxScore(), a.getSubmittedAt(), a.isCountOnly() ? null : bands.of(a))).orElse(null);
+                .map(a -> {
+                    // D-147: còn job AI chấm lần đầu chưa xong thì điểm và band hiện có chỉ là tạm, không trả
+                    boolean hidden = a.isCountOnly() || !aiJobs.pendingIds(a.getId()).isEmpty();
+                    return new ExamStatus.LastResult(a.getId(), hidden ? null : a.getScore(), a.isCountOnly() ? null : a.getMaxScore(),
+                            a.getSubmittedAt(), hidden ? null : bands.of(a));
+                }).orElse(null);
     }
 }

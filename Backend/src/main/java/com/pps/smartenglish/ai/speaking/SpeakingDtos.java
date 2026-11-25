@@ -12,7 +12,8 @@ public final class SpeakingDtos {
     private SpeakingDtos() {}
 
     /** assignmentId: làm trong ngữ cảnh bài giáo viên giao (FR-ASG-02, D-130). */
-    public record CreateRequest(@NotNull(message = "Bắt buộc") Long questionId, Long assignmentId) {}
+    /** attemptId: mở từ trong lượt làm bài đang mở của bộ có câu này, điểm AI sẽ cộng vào lượt (D-145). */
+    public record CreateRequest(@NotNull(message = "Bắt buộc") Long questionId, Long assignmentId, Long attemptId) {}
 
     /** Client POST multipart tới url: các fields theo đúng thứ tự, rồi field `file` cuối cùng. */
     public record UploadPermit(long submissionId, String url, Map<String, String> fields, long maxBytes, String contentType,

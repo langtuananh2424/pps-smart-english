@@ -59,8 +59,21 @@ public class AttemptService {
     public AttemptStarted start(Long bankId, long userId) {
         exam.guardStart(userId, bankId); // trước gate để người chưa mua nhận exam_requires_enrollment thay vì bank_locked
         var bank = gate.require(bankId, userId);
+        requireNoOpenAttempt(userId, bankId);
         var a = attempts.save(forced.applySelfStudy(new StudentAttempt(userId, bankId, Instant.now(clock), bank.timeLimitSec())));
         return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec());
+    }
+
+    /**
+     * D-147: mỗi bộ chỉ một lượt mở cho mỗi học viên (mở thêm lượt để xem trước bản sửa AI của lượt kia). Khóa dòng user để hai
+     * start song song không tạo hai lượt; bộ EXAM đã có exam_in_progress ở ExamService.
+     */
+    private void requireNoOpenAttempt(long userId, long bankId) {
+        attempts.lockUser(userId);
+        attempts.findFirstByUserIdAndBankIdAndSubmittedAtIsNullOrderByIdDesc(userId, bankId).ifPresent(open -> {
+            throw new ApiException(HttpStatus.CONFLICT, "attempt_in_progress", "Bạn đang có một lượt làm bài chưa nộp ở bộ này",
+                    java.util.Map.of("attemptId", open.getId()), null);
+        });
     }
 
     /**
@@ -73,12 +86,14 @@ public class AttemptService {
         if (attempts.existsByAssignmentIdAndUserIdAndSubmittedAtIsNotNull(assignmentId, userId) && !forcedAssignment) {
             throw new ApiException(HttpStatus.CONFLICT, "assignment_submitted", "Bạn đã nộp bài được giao này");
         }
+        attempts.lockUser(userId); // cùng khóa với start: hai request đồng thời không tạo hai lượt mở
         var open = attempts.findFirstByAssignmentIdAndUserIdAndSubmittedAtIsNullOrderByIdDesc(assignmentId, userId);
         if (open.isPresent()) {
             var a = open.get();
             return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec());
         }
         var bank = gate.require(bankId, userId);
+        requireNoOpenAttempt(userId, bankId); // D-147: còn lượt tự học (hoặc bài giao khác) mở trên bộ này thì 409
         var a = attempts.save(forced.applyAssigned(new StudentAttempt(userId, bankId, Instant.now(clock), bank.timeLimitSec(), assignmentId),
                 assignmentId, forcedAssignment));
         return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec());
@@ -90,7 +105,7 @@ public class AttemptService {
         var a = attempts.findByIdAndUserId(attemptId, userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "attempt_not_found", "Không tìm thấy lượt làm bài"));
         if (a.getSubmittedAt() == null) {
-            return new AttemptResponse(a.getId(), a.getBankId(), a.getStartedAt(), null, null, null, null, null, null, null, null, null);
+            return new AttemptResponse(a.getId(), a.getBankId(), a.getStartedAt(), null, null, null, null, null, null, null, null, null, null, null);
         }
         var stored = answers.findByAttemptId(a.getId());
         var gradingRows = stored.isEmpty() ? List.<AnswerGrading>of()
@@ -100,7 +115,12 @@ public class AttemptService {
                 gradingRows, aiJobs.pendingIds(a.getId()), null);
         return new AttemptResponse(base.id(), base.bankId(), base.startedAt(), base.submittedAt(), base.score(), base.maxScore(),
                 base.results(), base.pendingJobs(), base.aiQuotaRequired(), base.products(),
-                a.isCountOnly() ? null : stats.breakdown(userId, attemptId), base.forced());
+                a.isCountOnly() || base.score() == null ? null : stats.breakdown(userId, attemptId), base.forced(), base.passed(), base.passPct());
+    }
+
+    /** D-147: lượt đã nộp mà còn job AI chưa xong thì điểm hiện có chỉ là điểm tạm, không trả. */
+    private boolean hideScore(StudentAttempt a) {
+        return a.isCountOnly() || a.getSubmittedAt() != null && !aiJobs.pendingIds(a.getId()).isEmpty();
     }
 
     /** Mới nhất trước; con trỏ là id của phần tử cuối trang, mã hóa mờ. */
@@ -116,7 +136,7 @@ public class AttemptService {
         boolean more = rows.size() > size;
         List<StudentAttempt> page = more ? rows.subList(0, size) : rows;
         var data = page.stream().map(a -> new AttemptSummary(a.getId(), a.getBankId(), a.getStartedAt(),
-                a.getSubmittedAt(), a.isCountOnly() ? null : a.getScore(), a.isCountOnly() ? null : a.getMaxScore())).toList();
+                a.getSubmittedAt(), hideScore(a) ? null : a.getScore(), a.isCountOnly() ? null : a.getMaxScore())).toList();
         return new CursorPage<>(data, more ? Cursors.encode(page.get(size - 1).getId()) : null);
     }
 }

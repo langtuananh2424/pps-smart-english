@@ -16,7 +16,8 @@ public final class WritingDtos {
     private WritingDtos() {}
 
     /** assignmentId: làm trong ngữ cảnh bài giáo viên giao (FR-ASG-02, D-130). */
-    public record CreateSessionRequest(@NotNull(message = "Bắt buộc") Long questionId, Long assignmentId) {}
+    /** attemptId: mở từ trong lượt làm bài đang mở của bộ có câu này, điểm AI sẽ cộng vào lượt (D-145). */
+    public record CreateSessionRequest(@NotNull(message = "Bắt buộc") Long questionId, Long assignmentId, Long attemptId) {}
 
     public record AnswerRequest(
             @NotBlank(message = "Không được để trống") @Size(max = MAX_CHARS, message = "Tối đa 5000 ký tự") String text) {}

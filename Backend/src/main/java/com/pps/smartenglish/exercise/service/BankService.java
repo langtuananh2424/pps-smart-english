@@ -21,8 +21,13 @@ import com.pps.smartenglish.exercise.listening.AudioPlayService;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
 import com.pps.smartenglish.exercise.repository.QuestionGroupRepository;
 import com.pps.smartenglish.exercise.repository.QuestionHintRepository;
+import com.pps.smartenglish.exercise.repository.StudentAttemptRepository;
+import com.pps.smartenglish.exercise.domain.StudentAttempt;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
@@ -42,10 +47,12 @@ public class BankService {
     private final QuestionBankRepository banks;
     private final AudioPlayService audioPlays;
     private final AudioMediaService audio;
+    private final StudentAttemptRepository attempts;
 
     BankService(BankGate gate, QuestionLoader loader, ExamService exam, QuestionHintRepository hints, QuestionMediaService media,
                 QuestionGroupRepository groups, RichText rich, QuestionBankRepository banks, AudioPlayService audioPlays,
-                AudioMediaService audio) {
+                AudioMediaService audio, StudentAttemptRepository attempts) {
+        this.attempts = attempts;
         this.banks = banks;
         this.audioPlays = audioPlays;
         this.audio = audio;
@@ -70,10 +77,12 @@ public class BankService {
                 set.choices().values().stream().flatMap(List::stream).map(QuestionChoice::getContentHtml),
                 groupRows.stream().map(QuestionGroup::getPassageHtml)).flatMap(s -> s).toList());
         var durations = audio.durations(groupRows.stream().map(QuestionGroup::getAudioAssetId).filter(java.util.Objects::nonNull).toList());
+        long attemptId = attempts.findFirstByUserIdAndBankIdAndSubmittedAtIsNullOrderByIdDesc(userId, bankId)
+                .map(StudentAttempt::getId).orElse(0L); // chưa có lượt mở: seed 0, vẫn khác thứ tự soạn
         var playback = banks.findById(bankId).orElseThrow(); // findInfo vừa tìm thấy bộ này
         return new BankResponse(bank.id(), bank.title(), bank.lessonId(), bank.trial(), bank.mode(),
                 bank.timeLimitSec(), questionViews(set, hintsByQuestion,
-                        media.forQuestions(set.questions().stream().map(Question::getId).toList()), html),
+                        media.forQuestions(set.questions().stream().map(Question::getId).toList()), html, attemptId),
                 groupRows.stream().map(g -> new GroupView(g.getId(), g.getTitle(), g.getInstruction(),
                         rendered(html, g.getPassageHtml()), g.getSortOrder(), g.getAudioAssetId() != null && durations.containsKey(g.getAudioAssetId()),
                         g.getAudioAssetId() == null ? null : durations.getOrDefault(g.getAudioAssetId(), java.util.Optional.empty()).orElse(null))).toList(),
@@ -82,16 +91,16 @@ public class BankService {
 
     /** Kiểm tra đầu vào dùng bản này: chưa có HTML giàu định dạng. */
     public static List<QuestionView> questionViews(QuestionSet set, Map<Long, List<HintView>> hintsByQuestion,
-                                                   Map<Long, List<QuestionMediaView>> mediaByQuestion) {
-        return questionViews(set, hintsByQuestion, mediaByQuestion, Map.of());
+                                                   Map<Long, List<QuestionMediaView>> mediaByQuestion, long attemptId) {
+        return questionViews(set, hintsByQuestion, mediaByQuestion, Map.of(), attemptId);
     }
 
     /** Đề cho người làm bài: không đáp án. Dùng chung với kiểm tra đầu vào (module placement). */
     public static List<QuestionView> questionViews(QuestionSet set, Map<Long, List<HintView>> hintsByQuestion,
                                                    Map<Long, List<QuestionMediaView>> mediaByQuestion,
-                                                   Map<String, String> html) {
+                                                   Map<String, String> html, long attemptId) {
         return set.questions().stream().map(q -> new QuestionView(q.getId(), q.getType().name(), q.getInstruction(), q.getPrompt(),
-                payloadFor(q),
+                payloadFor(q, attemptId),
                 q.getType().usesChoices()
                         ? set.choicesOf(q).stream().map(c -> new ChoiceView(c.getId(), c.getLabel(), c.getContent(),
                                 rendered(html, c.getContentHtml()))).toList()
@@ -115,12 +124,28 @@ public class BankService {
     }
 
     /** D-44: GRAMMAR_IDENTIFY báo số cụm cần tìm (tính lúc trả, dữ liệu cũ cũng có); chỉ đưa ra số đếm, không lộ spans. */
-    private static JsonNode payloadFor(Question q) {
+    private static JsonNode payloadFor(Question q, long attemptId) {
+        if (q.getType() == QuestionType.WORD_BANK) {
+            return shuffledWords(q, attemptId);
+        }
         if (q.getType() != QuestionType.GRAMMAR_IDENTIFY) {
             return q.getPayload();
         }
         ObjectNode out = q.getPayload() != null && q.getPayload().isObject()
                 ? ((ObjectNode) q.getPayload()).deepCopy() : JsonNodeFactory.instance.objectNode();
         return out.put("spanCount", q.getAnswerKey() == null ? 0 : q.getAnswerKey().path("spans").size());
+    }
+
+    /** D-146: xáo hộp từ tất định theo (lượt, câu) để không đoán đáp án theo vị trí; đáp án chấm theo giá trị từ nên không ảnh hưởng. */
+    private static JsonNode shuffledWords(Question q, long attemptId) {
+        if (q.getPayload() == null || !q.getPayload().path("words").isArray()) {
+            return q.getPayload();
+        }
+        var words = new ArrayList<JsonNode>();
+        q.getPayload().get("words").forEach(words::add);
+        Collections.shuffle(words, new Random(attemptId * 1_000_003L + q.getId()));
+        ObjectNode out = ((ObjectNode) q.getPayload()).deepCopy();
+        out.putArray("words").addAll(words);
+        return out;
     }
 }

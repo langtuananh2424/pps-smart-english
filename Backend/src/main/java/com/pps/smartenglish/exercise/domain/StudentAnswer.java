@@ -49,7 +49,22 @@ public class StudentAnswer {
     @Column(name = "answer_version", nullable = false)
     private int answerVersion = 1;
 
+    /** D-147: lý do câu Viết/Nói không chấm được (tính 0, đã hoàn lượt AI); null với câu còn lại. */
+    @Column(name = "ai_fail_reason", length = 200)
+    private String aiFailReason;
+
+    /** D-147: lượt AI của câu không chấm được đã được hoàn (bài giao không trừ lượt nên false). */
+    @Column(name = "ai_fail_refunded", nullable = false)
+    private boolean aiFailRefunded;
+
     protected StudentAnswer() {}
+
+    public StudentAnswer(Long attemptId, Long questionId, JsonNode answer, Boolean correct, BigDecimal credit,
+                         Integer timeSpentMs, int answerVersion, String aiFailReason, boolean aiFailRefunded) {
+        this(attemptId, questionId, answer, correct, credit, timeSpentMs, answerVersion);
+        this.aiFailReason = aiFailReason;
+        this.aiFailRefunded = aiFailRefunded;
+    }
 
     public StudentAnswer(Long attemptId, Long questionId, JsonNode answer, Boolean correct, BigDecimal credit,
                          Integer timeSpentMs, int answerVersion) {
@@ -70,4 +85,6 @@ public class StudentAnswer {
     public BigDecimal getCredit() { return credit; }
     public Integer getTimeSpentMs() { return timeSpentMs; }
     public int getAnswerVersion() { return answerVersion; }
+    public String getAiFailReason() { return aiFailReason; }
+    public boolean isAiFailRefunded() { return aiFailRefunded; }
 }

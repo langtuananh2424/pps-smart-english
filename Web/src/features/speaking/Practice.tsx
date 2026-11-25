@@ -12,7 +12,7 @@ import { useRecorder } from './useRecorder'
 import { toWav16k } from './wav'
 
 // Chưa có bản nộp: ghi âm hoặc chọn tệp → WAV 16 kHz → nghe lại → nộp (create → upload → complete).
-export function Practice({ question, notice, onSubmitted }: { question: SpeakingQuestion; notice?: string; onSubmitted: (id: number, jobId: number | null) => void }) {
+export function Practice({ question, notice, attemptId, onSubmitted }: { question: SpeakingQuestion; notice?: string; attemptId?: number; onSubmitted: (id: number, jobId: number | null) => void }) {
   const [audio, setAudio] = useState<Audio | null>(null)
   const [converting, setConverting] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -43,7 +43,7 @@ export function Practice({ question, notice, onSubmitted }: { question: Speaking
     setUploading(true)
     setError(null)
     try {
-      const p = (permit.current ??= await createSubmission(question.id))
+      const p = (permit.current ??= await createSubmission(question.id, attemptId))
       await uploadAudio(p, audio.wav)
       const r = await completeSubmission(p.submissionId)
       permit.current = null

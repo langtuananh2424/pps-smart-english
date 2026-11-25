@@ -6,7 +6,7 @@ import { pillNeutral, pillPrimary } from '../practice/questions/ui'
 import { Link } from 'react-router'
 import { createSession, latestSession } from './api'
 import { ApiError } from '../../lib/api'
-import { BlockingError, inlineMessage } from './errors'
+import { BlockingError, inlineMessage, inOpenAttempt } from './errors'
 import { Session } from './Session'
 
 // /viet/:questionId — màn tập trung ngoài AppShell (FR-AI-01, FR-AI-02, D-84).
@@ -35,7 +35,7 @@ export function WritingPage() {
   if (latest.data === undefined) return <p role="status" className="p-10 text-center font-bold text-ink-secondary">Đang tải…</p>
   // Hết lượt hoặc câu bị khóa lúc tạo phiên là lỗi chặn; lỗi tạm thời báo ngay trên nút.
   const blocking = error as { status?: number } | null
-  if (blocking && (blocking.status === 402 || blocking.status === 403 || blocking.status === 404)) return <BlockingError error={error} />
+  if (blocking && (blocking.status === 402 || blocking.status === 403 || blocking.status === 404 || inOpenAttempt(error))) return <BlockingError error={error} />
 
   const sessionId = started ?? latest.data?.sessionId ?? null
   if (sessionId != null) return <Session key={sessionId} sessionId={sessionId} onRewrite={() => void start()} rewrite={{ busy: starting, error: error != null ? inlineMessage(error) : null }} />

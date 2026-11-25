@@ -52,7 +52,7 @@ class ResultShapers {
         public AttemptResponse shape(AttemptResponse full, StudentAttempt attempt, QuestionSet set, List<StudentAnswer> answers) {
             return new AttemptResponse(full.id(), full.bankId(), full.startedAt(), full.submittedAt(), null, null,
                     null, full.pendingJobs(), full.aiQuotaRequired(), full.products(), null,
-                    forced.summary(attempt, set.questions(), answers));
+                    forced.summary(attempt, set.questions(), answers), null, null);
         }
     }
 }
