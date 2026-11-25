@@ -6,7 +6,8 @@ import java.util.List;
 
 public record CourseDetail(String slug, String title, String description, String targetType, BigDecimal bandFrom,
                            BigDecimal bandTo, int trialLessonCount, Long priceFromVnd, int levelCount, int lessonCount,
-                           List<ProductOption> products, List<LevelNode> levels) {
+                           List<ProductOption> products, List<LevelNode> levels, Long courseId,
+                           String deliveryMode, boolean sequential, int lessonCompletePercent) {
 
     public record LevelNode(Long id, String code, String title, List<TopicNode> topics) {}
 

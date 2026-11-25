@@ -107,7 +107,8 @@ class SequentialLearningTest extends ApiTestBase {
         send(get("/api/lessons/" + c.lessonA()), s.accessToken()).andExpect(status().isOk());
         send(get("/api/lessons/" + c.lessonB()), s.accessToken()).andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code").value("unit_locked"))
-                .andExpect(jsonPath("$.error.details.blockingTopicId").value(c.topicA()));
+                .andExpect(jsonPath("$.error.details.blockingTopicId").value(c.topicA()))
+                .andExpect(jsonPath("$.error.details.courseId").value(c.id()));
         assertEquals(false, topicNode(s, c, c.topicA()).get("locked").asBoolean());
         assertEquals("SEQUENTIAL", topicNode(s, c, c.topicB()).get("lockReason").asText());
         assertEquals("LOCKED", topicNode(s, c, c.topicB()).get("status").asText());
