@@ -54,6 +54,7 @@ export interface RoadmapTopic {
   skill: Skill | null
   isFreeTrial: boolean
   locked: boolean
+  lockReason?: 'PAYWALL' | 'SEQUENTIAL' | null
   completedLessons: number
   totalLessons: number
   xpEarned: number

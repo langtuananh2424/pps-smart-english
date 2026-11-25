@@ -12,12 +12,13 @@ import { btnOutline, btnPrimary, card, Field, Notice, PageHead, Pill } from './u
 
 // FR-COM-01/02, D-76/D-78: xác nhận gói rồi tạo đơn. Mỗi (gói) một Idempotency-Key, bấm lại sau lỗi mạng dùng lại key.
 export function ConfirmPage() {
-  const slug = useSearchParams()[0].get('khoa')
+  const [params] = useSearchParams()
+  const slug = params.get('khoa')
   const navigate = useNavigate()
   const detail = useCatalogDetail(slug ?? undefined, true)
   const me = useMe()
   const create = useCreateOrder()
-  const [picked, setPicked] = useState<number | null>(null)
+  const [picked, setPicked] = useState<number | null>(Number(params.get('goi')) || null) // gói chọn sẵn từ trang chi tiết khóa
   const key = useRef<{ id: number; key: string } | null>(null)
   const [error, setError] = useState<unknown>(null)
 

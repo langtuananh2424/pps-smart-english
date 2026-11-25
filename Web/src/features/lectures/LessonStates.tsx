@@ -48,7 +48,29 @@ export function isLocked(e: unknown) {
   return e instanceof ApiError && e.status === 403 && e.code.toLowerCase() === 'lesson_locked'
 }
 
+export function isUnitLocked(e: unknown) {
+  return e instanceof ApiError && e.status === 403 && e.code.toLowerCase() === 'unit_locked'
+}
+
+// 403 unit_locked (học tuần tự). Backend hiện chỉ trả blockingTopicId; nút xem điều kiện cần thêm courseId và topicId trong details.
+function UnitLockedNotice({ details }: { details?: { courseId?: number; topicId?: number } }) {
+  const gate = details?.courseId && details.topicId ? `/bai-giang/khoa/${details.courseId}/unit/${details.topicId}` : null
+  return (
+    <Notice title="Unit chưa mở" body="Hoàn thành Unit trước để mở Unit này.">
+      {gate && (
+        <Link to={gate} className={btnPrimary}>
+          Xem điều kiện mở
+        </Link>
+      )}
+      <Link to="/bai-giang" className={btnNeutral}>
+        Về danh sách khóa
+      </Link>
+    </Notice>
+  )
+}
+
 export function LessonError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+  if (isUnitLocked(error)) return <UnitLockedNotice details={(error as ApiError).details as { courseId?: number; topicId?: number } | undefined} />
   if (isLocked(error)) {
     const d = (error as ApiError).details as { courseSlug?: string } | undefined
     return <LockedNotice slug={d?.courseSlug} />

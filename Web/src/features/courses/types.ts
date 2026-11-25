@@ -15,6 +15,10 @@ export interface CourseSummary {
 }
 
 export interface CourseDetail extends CourseSummary {
+  courseId: number
+  deliveryMode: 'SELF_PACED' | 'CLASS_BASED'
+  sequential: boolean // học tuần tự (FR-LMS-04)
+  lessonCompletePercent: number // % xem bài giảng để coi là xong
   levels: {
     id: number
     code: string

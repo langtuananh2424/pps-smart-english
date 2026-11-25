@@ -56,6 +56,25 @@ export const postLessonProgress = (id: number, body: ProgressBody) => postJson<u
 export const useCatalogDetail = (slug: string | undefined, enabled: boolean) =>
   useQuery({
     queryKey: ['catalog', 'course', slug],
-    queryFn: () => api<CourseDetail>(`/catalog/courses/${slug}`),
+    queryFn: () => api<CourseDetail>(`/catalog/courses/${encodeURIComponent(slug ?? "")}`),
     enabled: enabled && !!slug,
+  })
+
+// Điều kiện mở unit (FR-LMS-04); hàng nào null thì unit không có điều kiện đó.
+export interface UnitGate {
+  topicId: number
+  locked: boolean
+  openedEarly: boolean
+  blockingTopicId: number | null
+  blockingTitle: string | null
+  lectures: { completed: number; total: number; requiredPercent: number; currentPercent: number } | null
+  exercises: { completed: number; total: number } | null
+  chapterTest: { submitted: boolean } | null
+}
+
+export const useUnitGate = (courseId: number, topicId: number) =>
+  useQuery({
+    queryKey: ['me', 'unit-gate', courseId, topicId],
+    queryFn: () => api<UnitGate>(`/me/courses/${courseId}/units/${topicId}/gate`),
+    retry: false,
   })

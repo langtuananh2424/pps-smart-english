@@ -67,6 +67,10 @@ class CatalogTest extends ApiTestBase {
 
         mvc.perform(get("/api/catalog/courses/" + slug)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.slug").value(slug))
+                .andExpect(jsonPath("$.courseId").value((int) c))
+                .andExpect(jsonPath("$.deliveryMode").value("SELF_PACED"))
+                .andExpect(jsonPath("$.sequential").value(false))
+                .andExpect(jsonPath("$.lessonCompletePercent").value(80))
                 .andExpect(jsonPath("$.levels[0].code").value("A"))
                 .andExpect(jsonPath("$.levels[1].code").value("B"))
                 .andExpect(jsonPath("$.levels[0].topics[0].title").value("T1"))

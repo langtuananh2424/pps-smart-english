@@ -99,8 +99,10 @@ public class UnitUnlockService {
     /** 403 unit_locked kèm topic cần hoàn thành trước. */
     public void requireUnlocked(Long userId, Long topicId) {
         blockingTopic(userId, topicId).ifPresent(blocker -> {
+            // courseId, topicId để web dẫn tới màn điều kiện mở unit
+            long courseId = ((Number) units.courseOf(topicId).get(0)[0]).longValue();
             throw new ApiException(HttpStatus.FORBIDDEN, UNIT_LOCKED, "Hãy hoàn thành unit trước để mở unit này",
-                    Map.of("blockingTopicId", blocker), null);
+                    Map.of("blockingTopicId", blocker, "courseId", courseId, "topicId", topicId), null);
         });
     }
 }

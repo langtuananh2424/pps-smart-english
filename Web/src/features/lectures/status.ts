@@ -72,3 +72,10 @@ export function courseChip(c: MyCourse): { text: string; tone: TopicBadgeTone } 
   if (c.completedLessons > 0) return { text: `Đang xem · ${c.completedLessons} / ${c.totalLessons} bài`, tone: 'brand' }
   return { text: 'Chưa bắt đầu', tone: 'plain' }
 }
+
+// Đường vào unit: bài chưa xong đầu tiên, không có thì bài đầu; thiếu dữ liệu thì về danh sách bài của khóa.
+export function unitEntry(topics: RoadmapTopic[], topicId: number | null, courseId: number) {
+  const lessons = topics.find((t) => t.id === topicId)?.lessons ?? []
+  const next = lessons.find((l) => !l.completed) ?? lessons[0]
+  return next ? `/bai-giang/${next.id}` : `/bai-giang/khoa/${courseId}`
+}

@@ -9,6 +9,10 @@ import { CoursesPage } from '../features/courses/CoursesPage'
 import { CoursePage } from '../features/lectures/CoursePage'
 import { LessonPage } from '../features/lectures/LessonPage'
 import { PickerPage } from '../features/lectures/PickerPage'
+import { UnitGatePage } from '../features/lectures/UnitGatePage'
+import { CourseDetailPage } from '../features/courses/DetailPage'
+import { CourseTestResult } from '../features/exercises/CourseTestResult'
+import { CourseTestsPage } from '../features/exercises/CourseTestsPage'
 import { ExerciseListPage } from '../features/exercises/ListPage'
 import { ExercisePickerPage } from '../features/exercises/PickerPage'
 import { ProfilePage } from '../features/profile/ProfilePage'
@@ -50,8 +54,7 @@ export const routes: RouteObject[] = [
         children: [
           { path: '/khoa-hoc', element: <CoursesPage /> },
           { path: '/goi-y-khoa', element: <QaPage /> },
-          // Trang chi tiết khóa chưa có thiết kế.
-          { path: '/khoa-hoc/:slug', element: todo('Chi tiết khóa học') },
+          { path: '/khoa-hoc/:slug', element: <CourseDetailPage /> },
           // Công khai để khách xem bài học thử (server quyết định 401/403).
           { path: '/bai-giang/:lessonId', element: <LessonPage /> },
         ],
@@ -65,6 +68,9 @@ export const routes: RouteObject[] = [
               { path: '/', element: <HomePage /> },
               { path: '/bai-giang', element: <PickerPage /> },
               { path: '/bai-giang/khoa/:courseId', element: <CoursePage /> },
+              { path: '/bai-giang/khoa/:courseId/unit/:topicId', element: <UnitGatePage /> },
+              { path: '/bai-tap/khoa/:courseId/kiem-tra', element: <CourseTestsPage /> },
+              { path: '/bai-tap/khoa/:courseId/kiem-tra/:attemptId/ket-qua', element: <CourseTestResult /> },
               { path: '/bai-tap', element: <ExercisePickerPage /> },
               { path: '/bai-tap/khoa/:courseId', element: <ExerciseListPage /> },
               { path: '/ho-so', element: <ProfilePage /> },

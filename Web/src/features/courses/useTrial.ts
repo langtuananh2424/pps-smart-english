@@ -23,7 +23,7 @@ export function useTrial(): Trial {
     setBusy(slug)
     setFailed(false)
     try {
-      const d = await qc.fetchQuery({ queryKey: ['catalog', 'course', slug], queryFn: () => api<CourseDetail>(`/catalog/courses/${slug}`) })
+      const d = await qc.fetchQuery({ queryKey: ['catalog', 'course', slug], queryFn: () => api<CourseDetail>(`/catalog/courses/${encodeURIComponent(slug)}`) })
       const lesson = d.levels.flatMap((l) => l.topics).find((t) => t.isFreeTrial)?.lessons[0]
       const target = lesson ? `/bai-giang/${lesson.id}` : `/khoa-hoc/${slug}`
       nav(user ? target : `/dang-nhap?next=${encodeURIComponent(target)}`)

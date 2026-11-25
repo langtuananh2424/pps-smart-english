@@ -83,6 +83,7 @@ public class CatalogService {
         Stats s = CourseStatsService.of(course.getId(), stats.of(List.of(course.getId())));
         return new CourseDetail(course.getSlug(), course.getTitle(), course.getDescription(), course.getTargetType(),
                 course.getBandFrom(), course.getBandTo(), s.trialLessonCount(), s.priceFromVnd(), s.levelCount(),
-                s.lessonCount(), s.products(), tree);
+                s.lessonCount(), s.products(), tree, course.getId(), course.getDeliveryMode(), course.isSequential(),
+                course.getLessonCompletePercent());
     }
 }
