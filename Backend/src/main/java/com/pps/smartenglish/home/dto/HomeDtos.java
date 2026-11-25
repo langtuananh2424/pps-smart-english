@@ -47,7 +47,7 @@ public final class HomeDtos {
 
     public record Weakest(QuestionType type, int accuracy, long answered) {}
 
-    /** source: PLACEMENT (EXAM chưa có: bài thi khóa chưa lưu band). */
+    /** source: EXAM (band tổng bài thi khóa gần nhất) hoặc PLACEMENT (kiểm tra đầu vào, khi chưa có band thi khóa). */
     public record Band(BigDecimal value, String source, Instant at) {}
 
     public enum TaskKind { VIDEO, EXERCISE, WRITING }

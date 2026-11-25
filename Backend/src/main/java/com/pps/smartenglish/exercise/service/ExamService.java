@@ -48,10 +48,11 @@ public class ExamService {
     private final StudentAttemptRepository attempts;
     private final CourseProgressService progress;
     private final UnitUnlockService unitUnlock;
+    private final ExamBands bands;
     private final Clock clock;
 
     ExamService(CourseRepository courses, TopicRepository topics, CourseLevelRepository levels, QuestionBankRepository banks,
-                StudentAttemptRepository attempts, CourseProgressService progress, UnitUnlockService unitUnlock, Clock clock) {
+                StudentAttemptRepository attempts, CourseProgressService progress, UnitUnlockService unitUnlock, ExamBands bands, Clock clock) {
         this.courses = courses;
         this.topics = topics;
         this.levels = levels;
@@ -59,6 +60,7 @@ public class ExamService {
         this.attempts = attempts;
         this.progress = progress;
         this.unitUnlock = unitUnlock;
+        this.bands = bands;
         this.clock = clock;
     }
 
@@ -185,7 +187,7 @@ public class ExamService {
 
     private ExamStatus.LastResult lastResult(long userId, long bankId) {
         return attempts.findFirstByUserIdAndBankIdAndSubmittedAtIsNotNullOrderBySubmittedAtDesc(userId, bankId)
-                .map(a -> new ExamStatus.LastResult(a.isCountOnly() ? null : a.getScore(), a.isCountOnly() ? null : a.getMaxScore(),
-                        a.getSubmittedAt())).orElse(null);
+                .map(a -> new ExamStatus.LastResult(a.getId(), a.isCountOnly() ? null : a.getScore(),
+                        a.isCountOnly() ? null : a.getMaxScore(), a.getSubmittedAt(), a.isCountOnly() ? null : bands.of(a))).orElse(null);
     }
 }

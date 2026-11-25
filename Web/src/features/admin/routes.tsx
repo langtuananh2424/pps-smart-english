@@ -4,6 +4,10 @@ import { AdminIndex, AdminShell } from './AdminShell'
 import { AuditPage } from './AuditPage'
 import { OrderDetailPage } from './OrderDetailPage'
 import { OrdersPage } from './OrdersPage'
+import { CmsHome } from './cms/CmsHome'
+import { bankRoutes } from './cms/questions/routes'
+import { examRoutes } from './cms/exams/routes'
+import { importRoutes } from './cms/import/routes'
 import { RequirePermission } from './guards'
 import { STAFF_TABS } from './menu'
 import { useMyPermissions } from './api'
@@ -58,7 +62,9 @@ export const adminRoutes: RouteObject = {
       { path: 'hoc-vien', element: <StudentsPage /> },
       { path: 'hoc-vien/:id', element: <StudentProfilePage /> },
     ]),
-    todo('cms.content', 'cms', 'CMS'),
+    guarded('cms.content', [{ path: 'cms', element: <CmsHome /> }]),
+    // Ngân hàng câu hỏi, nhập hàng loạt, đề thi (#18, #70, #24): path con của /quan-tri/cms.
+    guarded('cms.content', [{ path: 'cms', children: [...bankRoutes, ...importRoutes, ...examRoutes] }]),
     {
       element: <RequirePermission any={STAFF_TABS.map((t) => t.perm)} />,
       children: [
