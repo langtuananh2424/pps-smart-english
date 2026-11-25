@@ -3,6 +3,7 @@ package com.pps.smartenglish.exercise.dto;
 import com.pps.smartenglish.exercise.dto.QuestionMediaDtos.QuestionMediaView;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -29,14 +30,18 @@ public final class CmsQuestionDtos {
                              @Min(value = 1, message = "Phải từ 1 giây trở lên") Integer timeLimitSec,
                              @Pattern(regexp = "PRACTICE|EXAM", message = "Chế độ phải là PRACTICE hoặc EXAM") String mode,
                              @Pattern(regexp = PLAYBACK, message = "Chế độ phát phải là FREE, EXAM hoặc LOCKED") String playbackMode,
-                             @Min(value = 1, message = "Phải từ 1 lần trở lên") Integer playLimit) {}
+                             @Min(value = 1, message = "Phải từ 1 lần trở lên") Integer playLimit,
+                             @Min(value = 1, message = "Ngưỡng đạt phải từ 1% trở lên") @Max(value = 100, message = "Ngưỡng đạt tối đa 100%")
+                             @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = StrictIntDeserializer.class) Integer passPct) {}
 
     public record PatchBank(@Size(max = 200) @Pattern(regexp = NOT_BLANK, message = "Không được để trống") String title,
                             Long lessonId, Boolean isTrial,
                             @Min(value = 1, message = "Phải từ 1 giây trở lên") Integer timeLimitSec,
                             @Pattern(regexp = "PRACTICE|EXAM", message = "Chế độ phải là PRACTICE hoặc EXAM") String mode,
                             @Pattern(regexp = PLAYBACK, message = "Chế độ phát phải là FREE, EXAM hoặc LOCKED") String playbackMode,
-                            @Min(value = 1, message = "Phải từ 1 lần trở lên") Integer playLimit) {}
+                            @Min(value = 1, message = "Phải từ 1 lần trở lên") Integer playLimit,
+                            @Min(value = 1, message = "Ngưỡng đạt phải từ 1% trở lên") @Max(value = 100, message = "Ngưỡng đạt tối đa 100%")
+                             @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = StrictIntDeserializer.class) Integer passPct) {}
 
     public record CreatePlacementBank(@NotBlank @Size(max = 200) String title,
                                       @NotNull @Min(value = 1, message = "Phải từ 1 giây trở lên") Integer timeLimitSec) {}
@@ -80,7 +85,8 @@ public final class CmsQuestionDtos {
     // ---- phản hồi ----
 
     public record BankView(Long id, Long topicId, Long lessonId, String title, boolean isTrial, String status, long questionCount,
-                           Integer timeLimitSec, String mode, String purpose, String playbackMode, Integer playLimit) {}
+                           Integer timeLimitSec, String mode, String purpose, String playbackMode, Integer playLimit,
+                           int passPct) {}
 
     public record ChoiceView(Long id, String label, String content, String contentHtml, boolean isCorrect, String explanation) {}
 

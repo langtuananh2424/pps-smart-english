@@ -26,20 +26,20 @@ class WritingQuestionProvider implements WritingQuestionSource {
 
     @Override
     @Transactional(readOnly = true)
-    public WritingQuestion find(long questionId, long userId, boolean inAssignment) {
+    public WritingQuestion find(long questionId, long userId, boolean inAssignment, boolean inAttempt) {
         var q = questions.findById(questionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "question_not_found", "Không tìm thấy câu hỏi"));
         if (q.getType() != QuestionType.WRITING) {
             throw ApiException.validation("questionId", "Không phải câu hỏi viết");
         }
-        gate.requirePracticable(q.getBankId(), userId, inAssignment);
+        gate.requireFor(q.getBankId(), userId, inAssignment, inAttempt);
         return toQuestion(q);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public WritingQuestion findForNewSession(long questionId, long userId, boolean inAssignment) {
-        var q = find(questionId, userId, inAssignment);
+    public WritingQuestion findForNewSession(long questionId, long userId, boolean inAssignment, boolean inAttempt) {
+        var q = find(questionId, userId, inAssignment, inAttempt);
         requireNotArchived(questions.findById(questionId).orElseThrow());
         return q;
     }

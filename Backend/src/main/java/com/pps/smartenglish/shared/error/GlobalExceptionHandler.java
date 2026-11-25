@@ -40,7 +40,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ApiError> unreadable(HttpMessageNotReadableException e) {
-        return build(HttpStatus.BAD_REQUEST, "malformed_request", "Nội dung yêu cầu không đọc được", Map.of());
+        // chỉ định danh trường khi Jackson biết đường dẫn (ví dụ passPct không nguyên)
+        var details = e.getCause() instanceof com.fasterxml.jackson.databind.JsonMappingException jme && !jme.getPath().isEmpty()
+                && jme.getPath().get(jme.getPath().size() - 1).getFieldName() != null
+                ? Map.of(jme.getPath().get(jme.getPath().size() - 1).getFieldName(), "Giá trị không hợp lệ") : Map.<String, String>of();
+        return build(HttpStatus.BAD_REQUEST, "malformed_request", "Nội dung yêu cầu không đọc được", details);
     }
 
     /** Vượt trần multipart của servlet (spring.servlet.multipart): báo 400 cùng mã với trần của chính tính năng nhập file. */

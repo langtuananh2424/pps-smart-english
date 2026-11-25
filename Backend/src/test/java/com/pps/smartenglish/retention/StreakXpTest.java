@@ -236,7 +236,7 @@ class StreakXpTest extends AiTestSupport {
         }
         long attempt = idOf(postJson("/api/banks/" + b + "/attempts", u, Map.of()).andExpect(status().isCreated()), "id");
         postJson("/api/attempts/" + attempt + "/submit", u, Map.of("answers", answers)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.score").value(1)).andExpect(jsonPath("$.maxScore").value(5));
+                .andExpect(jsonPath("$.maxScore").value(5)); // D-147: phản hồi nộp không có điểm tạm
         assertEquals(10, xp(u)); // mới 1/5: có thưởng nộp bài, chưa có thưởng điểm cao
         assertEquals(0, xpEvents(u, "EXERCISE_HIGH"));
 

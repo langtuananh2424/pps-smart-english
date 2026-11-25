@@ -33,11 +33,13 @@ public class JobStreamService {
     private static final Logger log = LoggerFactory.getLogger(JobStreamService.class);
 
     private final AiJobRepository jobs;
+    private final AiJobService views;
     private final Map<Long, Subscription> subscriptions = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
             Thread.ofPlatform().name("ai-sse-keepalive").daemon().factory());
 
-    JobStreamService(AiJobRepository jobs) {
+    JobStreamService(AiJobRepository jobs, AiJobService views) {
+        this.views = views;
         this.jobs = jobs;
     }
 
@@ -111,7 +113,7 @@ public class JobStreamService {
                 return;
             }
             try {
-                sub.emitter.send(SseEmitter.event().name(event).data(AiJobService.toView(job), MediaType.APPLICATION_JSON));
+                sub.emitter.send(SseEmitter.event().name(event).data(views.toView(job), MediaType.APPLICATION_JSON));
             } catch (IOException | IllegalStateException e) {
                 sub.closed = true;
                 sub.emitter.completeWithError(e);

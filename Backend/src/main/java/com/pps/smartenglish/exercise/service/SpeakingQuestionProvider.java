@@ -32,13 +32,13 @@ class SpeakingQuestionProvider implements SpeakingQuestionSource {
 
     @Override
     @Transactional(readOnly = true)
-    public SpeakingQuestion find(long questionId, long userId, boolean inAssignment) {
+    public SpeakingQuestion find(long questionId, long userId, boolean inAssignment, boolean inAttempt) {
         var q = questions.findById(questionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "question_not_found", "Không tìm thấy câu hỏi"));
         if (q.getType() != QuestionType.SPEAKING) {
             throw ApiException.validation("questionId", "Không phải câu hỏi nói");
         }
-        gate.requirePracticable(q.getBankId(), userId, inAssignment);
+        gate.requireFor(q.getBankId(), userId, inAssignment, inAttempt);
         JsonNode p = q.getPayload();
         int part = p.path("part").asInt();
         int max = p.path("maxSeconds").isIntegralNumber() ? p.path("maxSeconds").asInt() : part == 2 ? PART2_SECONDS : SHORT_PART_SECONDS;
@@ -50,8 +50,8 @@ class SpeakingQuestionProvider implements SpeakingQuestionSource {
 
     @Override
     @Transactional(readOnly = true)
-    public SpeakingQuestion findForNewSession(long questionId, long userId, boolean inAssignment) {
-        var q = find(questionId, userId, inAssignment);
+    public SpeakingQuestion findForNewSession(long questionId, long userId, boolean inAssignment, boolean inAttempt) {
+        var q = find(questionId, userId, inAssignment, inAttempt);
         WritingQuestionProvider.requireNotArchived(questions.findById(questionId).orElseThrow());
         return q;
     }

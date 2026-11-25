@@ -77,18 +77,15 @@ class RewriteGradingTest extends AiTestSupport {
                 text(b.q[1], "It rained. However, we went out."), text(b.q[2], "Exercise is said to help."),
                 text(b.q[3], "A WRONG bridge was built.")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.score").value(1)).andExpect(jsonPath("$.maxScore").value(4))
-                .andExpect(jsonPath("$.pendingJobs", hasSize(1)))
-                .andExpect(jsonPath("$.results[0].isCorrect").value(true))
-                .andExpect(jsonPath("$.results[1].isCorrect").doesNotExist())
-                .andExpect(jsonPath("$.results[1].correctAnswer").doesNotExist());
+                .andExpect(jsonPath("$.score").doesNotExist()).andExpect(jsonPath("$.maxScore").value(4)) // D-147: không điểm tạm
+                .andExpect(jsonPath("$.results").doesNotExist()); // D-147: đang chấm thì chưa có đáp án từng câu
         long jobId = json.readTree(res.andReturn().getResponse().getContentAsString()).at("/pendingJobs/0").asLong();
         assertEquals(1, balance(u)); // 3 câu qua AI nhưng chỉ 1 lượt
         assertEquals(1, count("select count(*) from ai_jobs where attempt_id = ?", attempt));
         assertEquals(1, count("select count(*) from ai_quota_ledger where user_id = ? and reason = 'GRADING' and ref_id = ?", u.id(), jobId));
 
         // trước khi chấm xong, GET vẫn báo job đang chờ và điểm chưa đổi
-        getJson("/api/attempts/" + attempt, u).andExpect(jsonPath("$.pendingJobs[0]").value(jobId)).andExpect(jsonPath("$.score").value(1));
+        getJson("/api/attempts/" + attempt, u).andExpect(jsonPath("$.pendingJobs[0]").value(jobId)).andExpect(jsonPath("$.score").doesNotExist());
 
         runner.runDueNow();
         getJson("/api/attempts/" + attempt, u).andExpect(status().isOk())
@@ -131,7 +128,7 @@ class RewriteGradingTest extends AiTestSupport {
         submit(u, attempt, List.of(text(b.q[0], "Although the test was difficult, most students passed it."),
                 text(b.q[1], "It rained. However, we went out."), text(b.q[2], "Exercise is said to help.")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.score").value(1)).andExpect(jsonPath("$.maxScore").value(4))
+                .andExpect(jsonPath("$.score").doesNotExist()).andExpect(jsonPath("$.maxScore").value(4)) // D-147: không điểm tạm
                 .andExpect(jsonPath("$.aiQuotaRequired").value(true))
                 .andExpect(jsonPath("$.products[0].type").value("AI_ADDON"))
                 .andExpect(jsonPath("$.pendingJobs", hasSize(0)))
@@ -183,6 +180,6 @@ class RewriteGradingTest extends AiTestSupport {
         assertEquals(1, balance(u));
         // q1, q2 giữ null (AI không chấm được); q0, q3 bỏ trống đã bị luật chấm sai từ lúc nộp
         assertEquals(2, count("select count(*) from student_answers where attempt_id = ? and is_correct is null", attempt));
-        getJson("/api/attempts/" + attempt, u).andExpect(jsonPath("$.score").value(0)).andExpect(jsonPath("$.pendingJobs", hasSize(0)));
+        getJson("/api/attempts/" + attempt, u).andExpect(jsonPath("$.score").doesNotExist()).andExpect(jsonPath("$.pendingJobs", hasSize(0)));
     }
 }

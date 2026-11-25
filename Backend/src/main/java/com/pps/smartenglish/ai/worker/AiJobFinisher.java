@@ -3,7 +3,10 @@ package com.pps.smartenglish.ai.worker;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.pps.smartenglish.ai.domain.AiJob;
 import com.pps.smartenglish.ai.repository.AiJobRepository;
+import com.pps.smartenglish.ai.service.AiAutoRetry;
 import com.pps.smartenglish.ai.service.AiQuotaService;
+import com.pps.smartenglish.ai.service.AttemptAiScores;
+import com.pps.smartenglish.ai.service.AttemptLinks;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -25,9 +28,15 @@ public class AiJobFinisher {
 
     private final AiJobRepository jobs;
     private final AiQuotaService quota;
+    private final AttemptLinks attempts;
+    private final AiAutoRetry autoRetry;
+    private final AttemptAiScores scores;
     private final Clock clock;
 
-    AiJobFinisher(AiJobRepository jobs, AiQuotaService quota, Clock clock) {
+    AiJobFinisher(AiJobRepository jobs, AiQuotaService quota, AttemptLinks attempts, AiAutoRetry autoRetry, AttemptAiScores scores, Clock clock) {
+        this.attempts = attempts;
+        this.autoRetry = autoRetry;
+        this.scores = scores;
         this.jobs = jobs;
         this.quota = quota;
         this.clock = clock;
@@ -54,12 +63,17 @@ public class AiJobFinisher {
             return jobs.markRetry(job.getId(), job.getAttempts(), now.plus(backoff(job.getAttempts())), error, now) == 1
                     ? AiJob.PENDING : null;
         }
+        attempts.lockAttempt(job.getAttemptId()); // lượt trước, quota sau (cùng thứ tự với nộp chấm và nộp lượt)
+        if (autoRetry.applies(job)) { // D-147: lượt đã nộp (đọc sau khi khóa), chấm lại đúng một lần trước khi bỏ cuộc
+            return jobs.markAutoRetry(job.getId(), job.getAttempts(), error, now) == 1 ? AiJob.PENDING : null;
+        }
         if (jobs.markFailed(job.getId(), job.getAttempts(), error, now) == 0) {
             return null;
         }
         if (job.isCharged()) {
             quota.refund(job);
         }
+        scores.onGradeFailed(job); // câu Viết/Nói của lượt đã nộp tính 0 kèm lý do, cùng transaction với hoàn lượt
         return AiJob.FAILED;
     }
 

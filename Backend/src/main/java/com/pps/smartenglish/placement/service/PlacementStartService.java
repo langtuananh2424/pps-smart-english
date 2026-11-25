@@ -98,7 +98,7 @@ public class PlacementStartService {
 
     private Started view(PlacementAttempt a, QuestionBank bank, String guestToken, Instant now) {
         var set = loader.load(a.getBankId());
-        List<QuestionView> views = BankService.questionViews(set, Map.of(), Map.of());
+        List<QuestionView> views = BankService.questionViews(set, Map.of(), Map.of(), a.getId());
         List<Question> qs = set.questions();
         List<QuestionOut> out = IntStream.range(0, qs.size()).mapToObj(i -> {
             var v = views.get(i);

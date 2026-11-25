@@ -31,16 +31,18 @@ class SpeakingController {
     }
 
     @GetMapping("/api/speaking/questions/{id}")
-    QuestionView question(Authentication auth, @PathVariable String id, @RequestParam(required = false) String assignmentId) {
+    QuestionView question(Authentication auth, @PathVariable String id, @RequestParam(required = false) String assignmentId,
+                          @RequestParam(required = false) String attemptId) {
         Long asg = assignmentId == null || assignmentId.isBlank() ? null
                 : PathId.parse(assignmentId, "assignment_not_found", "Không tìm thấy bài được giao");
-        return speaking.question(CurrentUser.id(auth), PathId.parse(id, "question_not_found", "Không tìm thấy câu hỏi"), asg);
+        Long attempt = attemptId == null || attemptId.isBlank() ? null : PathId.parse(attemptId, "attempt_not_found", "Không tìm thấy lượt làm bài");
+        return speaking.question(CurrentUser.id(auth), PathId.parse(id, "question_not_found", "Không tìm thấy câu hỏi"), asg, attempt);
     }
 
     @PostMapping("/api/speaking/submissions")
     @ResponseStatus(HttpStatus.CREATED)
     UploadPermit create(Authentication auth, @Valid @RequestBody CreateRequest req) {
-        return speaking.create(CurrentUser.id(auth), req.questionId(), req.assignmentId());
+        return speaking.create(CurrentUser.id(auth), req.questionId(), req.assignmentId(), req.attemptId());
     }
 
     @PostMapping("/api/speaking/submissions/{id}/complete")

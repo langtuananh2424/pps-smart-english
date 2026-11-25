@@ -21,7 +21,15 @@ public record SpeakingProperties(
         @DefaultValue("30") int audioRetentionDays,
         @DefaultValue("true") boolean cleanupEnabled,
         @DefaultValue Unclear unclear,
-        @DefaultValue Bands bands) {
+        @DefaultValue Bands bands,
+        @DefaultValue("9.0") double bandMax) {
+
+    /** bandMax là mẫu số quy band thành credit (D-145); sai thì app không khởi động. */
+    public SpeakingProperties {
+        if (!(bandMax > 0 && bandMax <= 10)) {
+            throw new IllegalArgumentException("app.speaking.band-max phải trong (0, 10], hiện là " + bandMax);
+        }
+    }
 
     /** Bản ghi không rõ (D-48): chạm bất kỳ ngưỡng nào thì UNCLEAR. */
     public record Unclear(

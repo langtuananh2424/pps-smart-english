@@ -37,7 +37,7 @@ class WritingController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     SessionCreated create(Authentication auth, @Valid @RequestBody CreateSessionRequest req) {
-        return writing.create(CurrentUser.id(auth), req.questionId(), req.assignmentId());
+        return writing.create(CurrentUser.id(auth), req.questionId(), req.assignmentId(), req.attemptId());
     }
 
     /** 202 kèm jobId; 200 khi đủ câu hỏi đào sâu và session đã READY (không có job). */

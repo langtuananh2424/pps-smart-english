@@ -7,6 +7,7 @@ import com.pps.smartenglish.ai.domain.AiJobKind;
 import com.pps.smartenglish.ai.domain.AiTask;
 import com.pps.smartenglish.ai.service.AddonCatalog;
 import com.pps.smartenglish.ai.service.AiJobService;
+import com.pps.smartenglish.ai.service.AttemptAiScores;
 import com.pps.smartenglish.commerce.dto.ProductView;
 import com.pps.smartenglish.exercise.config.LearningStatsProperties;
 import com.pps.smartenglish.exercise.domain.AnswerGrading;
@@ -56,6 +57,7 @@ public class SubmissionService {
     private final RewriteJobInput rewriteInput;
     private final ResultAssembler assembler;
     private final AiJobService aiJobs;
+    private final AttemptAiScores aiScores;
     private final AddonCatalog addons;
     private final QuestionBankRepository banks;
     private final ObjectMapper mapper;
@@ -65,7 +67,7 @@ public class SubmissionService {
 
     SubmissionService(StudentAttemptRepository attempts, StudentAnswerRepository answers, AnswerGradingRepository gradings,
                       QuestionLoader loader, GraderRegistry graders, RewriteRules rewriteRules, RewriteJobInput rewriteInput,
-                      ResultAssembler assembler, AiJobService aiJobs, AddonCatalog addons, QuestionBankRepository banks, ObjectMapper mapper, Clock clock,
+                      ResultAssembler assembler, AiJobService aiJobs, AttemptAiScores aiScores, AddonCatalog addons, QuestionBankRepository banks, ObjectMapper mapper, Clock clock,
                       ApplicationEventPublisher events, LearningStatsProperties props) {
         this.props = props;
         this.events = events;
@@ -78,6 +80,7 @@ public class SubmissionService {
         this.rewriteRules = rewriteRules;
         this.assembler = assembler;
         this.aiJobs = aiJobs;
+        this.aiScores = aiScores;
         this.addons = addons;
         this.banks = banks;
         this.mapper = mapper;
@@ -105,6 +108,7 @@ public class SubmissionService {
         List<StudentAnswer> rows = new ArrayList<>();
         Map<Long, RewriteRules.Result> ruleResults = new HashMap<>(); // theo questionId, chỉ câu viết lại đã quyết bằng luật
         Map<Long, Question> needsAi = new LinkedHashMap<>();
+        List<Question> aiQuestions = new ArrayList<>(); // WRITING/SPEAKING
         for (Question q : set.questions()) {
             JsonNode answer = given.get(q.getId());
             Boolean correct;
@@ -123,6 +127,10 @@ public class SubmissionService {
                     ruleResults.put(q.getId(), r);
                 }
                 maxScore++; // câu viết lại tính vào maxScore ngay, điểm cộng sau khi AI chấm: score không bao giờ lệch maxScore
+            } else if (ResultAssembler.AI_SESSION_TYPES.contains(q.getType())) {
+                maxScore++; // D-145: câu Viết/Nói luôn tính vào maxScore; điểm lấy từ phiên gắn lượt, sau khi khóa lượt
+                aiQuestions.add(q);
+                continue;
             } else {
                 credit = graders.credit(q.getType(), set.inputOf(q), answer);
                 correct = credit == null ? null : Credit.isFull(credit);
@@ -137,16 +145,48 @@ public class SubmissionService {
         if (attempts.claimSubmission(attemptId, now, score, maxScore) == 0) {
             throw alreadySubmitted();
         }
+        BigDecimal sessionScore = addSessionAnswers(attemptId, aiQuestions, given, times, rows);
         answers.saveAll(rows);
+        if (sessionScore.signum() > 0) {
+            score = score.add(sessionScore).setScale(2, RoundingMode.HALF_UP);
+            attempts.recomputeScore(attemptId); // ghi điểm gồm câu Viết/Nói đã có điểm
+        }
         List<AnswerGrading> ruleRows = saveRuleGradings(rows, ruleResults);
 
         // 429/503 ném từ đây làm rollback cả lần nộp; chỉ hết lượt là không làm hỏng lần nộp
         List<Long> pending = new ArrayList<>();
         var quotaProducts = enqueueRewrite(userId, attemptId, banks.findCourseId(attempt.getBankId()).orElse(null), needsAi, given, pending,
                 attempt.getAssignmentId() != null);
+        if (!aiQuestions.isEmpty()) { // job chấm Viết/Nói của các phiên gắn lượt cũng đang chờ: web cần biết để hỏi lại
+            aiJobs.pendingIds(attemptId).stream().filter(id -> !pending.contains(id)).forEach(pending::add);
+        }
         // retention nghe sau commit: mọi lần nộp tính là một ngày có học, điểm dùng để xét thưởng
         events.publishEvent(new ExerciseScored(userId, attempt.getBankId(), attemptId, score, maxScore, true));
         return assembler.submitted(attempt, now, score, maxScore, set, rows, ruleRows, pending, quotaProducts);
+    }
+
+    /**
+     * D-145: câu Viết/Nói lấy credit từ phiên mới nhất gắn lượt. Gọi sau khi claimSubmission đã khóa dòng lượt: kết quả AI
+     * về trước lúc này thì đọc thấy, về sau thì AiCreditApplier ghi vào câu trả lời (credit còn null). Không có phiên nào
+     * thì bỏ trống: 0 điểm và không chờ. D-147: phiên chưa nộp chấm, hết lượt AI, lỗi hay không rõ cũng tính 0 ngay (kèm lý do
+     * nếu đã nộp chấm mà không chấm được); chỉ phiên có job đang chạy mới để credit null và chờ, kéo theo passed null.
+     * Trả tổng credit đã có.
+     */
+    private BigDecimal addSessionAnswers(Long attemptId, List<Question> aiQuestions, Map<Long, JsonNode> given,
+                                         Map<Long, Integer> times, List<StudentAnswer> rows) {
+        if (aiQuestions.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        var linked = aiScores.latestByQuestion(attemptId);
+        BigDecimal sum = BigDecimal.ZERO;
+        for (Question q : aiQuestions) {
+            var l = linked.get(q.getId());
+            BigDecimal credit = l == null ? Credit.ZERO : l.credit();
+            rows.add(new StudentAnswer(attemptId, q.getId(), given.get(q.getId()), null, credit, times.get(q.getId()), q.getAnswerVersion(),
+                    l == null ? null : l.failReason(), l != null && l.refunded()));
+            sum = sum.add(credit == null ? BigDecimal.ZERO : credit);
+        }
+        return sum;
     }
 
     private List<AnswerGrading> saveRuleGradings(List<StudentAnswer> rows, Map<Long, RewriteRules.Result> ruleResults) {

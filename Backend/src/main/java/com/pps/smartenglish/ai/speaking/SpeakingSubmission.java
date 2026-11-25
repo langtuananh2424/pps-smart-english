@@ -71,6 +71,10 @@ public class SpeakingSubmission extends Auditable {
     @Column(name = "assignment_id", updatable = false)
     private Long assignmentId;
 
+    /** Lượt làm bài mà lượt nói này được mở từ trong (D-145); null với luyện tập thường. */
+    @Column(name = "attempt_id", updatable = false)
+    private Long attemptId;
+
     /** Lúc xác nhận nộp chấm; chỉ ghi qua claimUpload. */
     @Column(name = "submitted_at")
     private Instant submittedAt;
@@ -97,7 +101,14 @@ public class SpeakingSubmission extends Auditable {
         this.assignmentId = assignmentId;
     }
 
+    public SpeakingSubmission(Long userId, Long questionId, Long courseId, String objectKey, int maxSeconds, long maxBytes,
+                              Instant uploadExpiresAt, Long assignmentId, Long attemptId) {
+        this(userId, questionId, courseId, objectKey, maxSeconds, maxBytes, uploadExpiresAt, assignmentId);
+        this.attemptId = attemptId;
+    }
+
     public Long getId() { return id; }
+    public Long getAttemptId() { return attemptId; }
     public Long getAssignmentId() { return assignmentId; }
     public Instant getSubmittedAt() { return submittedAt; }
     public Long getUserId() { return userId; }

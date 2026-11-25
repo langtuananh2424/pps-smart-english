@@ -41,6 +41,7 @@ class AudioPlayApiTest extends ListeningTestSupport {
         assertEquals(2, count("select count(*) from audio_plays where attempt_id = ? and group_id = ?", a, w.g1()));
 
         play(u, a, w.g2()).andExpect(status().isOk()).andExpect(jsonPath("$.playNo").value(1)); // mỗi part đếm riêng
+        postJson("/api/attempts/" + a + "/submit", u, Map.of("answers", java.util.List.of())).andExpect(status().isOk()); // D-147: mỗi bộ một lượt mở
         long other = startAttempt(u, w); // lượt làm mới có lượt nghe mới
         play(u, other, w.g1()).andExpect(status().isOk()).andExpect(jsonPath("$.playNo").value(1));
     }

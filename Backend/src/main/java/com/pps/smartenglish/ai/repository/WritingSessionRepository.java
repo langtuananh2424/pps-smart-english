@@ -30,6 +30,11 @@ public interface WritingSessionRepository extends JpaRepository<WritingSession, 
     Optional<WritingSession> findFirstByAssignmentIdAndUserIdAndStatusInOrderByIdDesc(Long assignmentId, Long userId,
                                                                                       java.util.Collection<String> statuses);
 
+    /** Phiên gắn với lượt làm bài, cũ trước mới sau (D-145: câu nhiều phiên thì lấy phiên mới nhất). */
+    List<WritingSession> findByAttemptIdOrderByIdAsc(Long attemptId);
+
+    Optional<WritingSession> findFirstByAttemptIdAndQuestionIdOrderByIdDesc(Long attemptId, Long questionId);
+
     List<WritingSession> findByAssignmentIdAndStatus(Long assignmentId, String status);
 
     List<WritingSession> findByAssignmentIdAndUserIdAndStatus(Long assignmentId, Long userId, String status);

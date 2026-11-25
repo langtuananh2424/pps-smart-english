@@ -21,6 +21,13 @@ public interface SpeakingSubmissionRepository extends JpaRepository<SpeakingSubm
 
     List<SpeakingSubmission> findByUserIdAndQuestionIdAndIdLessThanOrderByIdDesc(Long userId, Long questionId, Long before, Pageable page);
 
+    /** Lượt nói gắn với lượt làm bài, cũ trước mới sau (D-145: câu nhiều lượt thì lấy lượt mới nhất). */
+    List<SpeakingSubmission> findByAttemptIdOrderByIdAsc(Long attemptId);
+
+    Optional<SpeakingSubmission> findByJobId(Long jobId);
+
+    Optional<SpeakingSubmission> findFirstByAttemptIdAndQuestionIdOrderByIdDesc(Long attemptId, Long questionId);
+
     List<SpeakingSubmission> findByAssignmentIdAndStatusIn(Long assignmentId, java.util.Collection<String> statuses);
 
     List<SpeakingSubmission> findByAssignmentIdAndUserIdAndStatusIn(Long assignmentId, Long userId, java.util.Collection<String> statuses);

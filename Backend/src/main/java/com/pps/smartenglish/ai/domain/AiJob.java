@@ -79,6 +79,10 @@ public class AiJob extends Auditable {
     @Column(name = "charged_pool", nullable = false)
     private int chargedPool;
 
+    /** D-147: đã tự chấm lại một lần sau khi chấm lỗi; chỉ đặt bằng UPDATE ở repository. */
+    @Column(name = "auto_retried", nullable = false)
+    private boolean autoRetried;
+
     protected AiJob() {}
 
     public AiJob(Long userId, AiJobKind kind, JsonNode input, Long sessionId, Long attemptId, boolean charged, Instant now) {
@@ -109,6 +113,7 @@ public class AiJob extends Auditable {
     public Long getSessionId() { return sessionId; }
     public Long getAttemptId() { return attemptId; }
     public boolean isCharged() { return charged; }
+    public boolean isAutoRetried() { return autoRetried; }
     public Long getRegradeItemId() { return regradeItemId; }
     public Long getCourseId() { return courseId; }
     public java.time.LocalDate getPeriodStart() { return periodStart; }

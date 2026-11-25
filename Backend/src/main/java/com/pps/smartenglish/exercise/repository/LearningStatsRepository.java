@@ -18,6 +18,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class LearningStatsRepository {
 
+    /** D-147: lượt còn job AI chấm lần đầu chưa xong chỉ có điểm tạm, không đưa vào thống kê (cùng điều kiện AttemptResultGate). */
+    private static final String SETTLED = " and not exists (select 1 from ai_jobs j where j.attempt_id = t.id "
+            + "and j.regrade_item_id is null and j.status in ('PENDING', 'RUNNING'))";
+
     public enum Dimension {
         SKILL("coalesce(q.skill, tp.skill, 'UNSPECIFIED')", "coalesce(q.skill, tp.skill, 'UNSPECIFIED')", "", ""),
         TYPE("q.type", "q.type", "", ""),
@@ -42,7 +46,7 @@ public class LearningStatsRepository {
     public record Scope(String where, long arg) {
         public static Scope user(long userId) {
             // lượt Nghe ép không có điểm và đáp án từng câu (D-142), không gộp vào hồ sơ
-            return new Scope("t.user_id = ? and t.submitted_at is not null and t.result_mode = 'FULL'", userId);
+            return new Scope("t.user_id = ? and t.submitted_at is not null and t.result_mode = 'FULL'" + SETTLED, userId);
         }
 
         public static Scope attempt(long attemptId) {
@@ -102,7 +106,7 @@ public class LearningStatsRepository {
         return jdbc.query("select t.submitted_at, sum(case when a.is_correct is not null then 1 else 0 end), "
                 + "sum(case when a.is_correct = true then 1 else 0 end) "
                 + "from student_exercise_attempts t join student_answers a on a.attempt_id = t.id "
-                + "where t.user_id = ? and t.result_mode = 'FULL' and t.submitted_at >= ? group by t.id, t.submitted_at",
+                + "where t.user_id = ? and t.result_mode = 'FULL' and t.submitted_at >= ?" + SETTLED + " group by t.id, t.submitted_at",
                 (rs, i) -> new AttemptTotals(rs.getObject(1, OffsetDateTime.class), rs.getLong(2), rs.getLong(3)),
                 userId, since.withOffsetSameInstant(ZoneOffset.UTC));
     }

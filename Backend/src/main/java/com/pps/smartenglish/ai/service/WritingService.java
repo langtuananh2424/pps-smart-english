@@ -41,13 +41,14 @@ public class WritingService {
     private final AiGuard guard;
     private final WritingQuestionSource questions;
     private final AssignedAiWork assigned;
+    private final AttemptLinks attemptLinks;
     private final EmailVerification emailVerification;
     private final IdempotencyService idempotency;
     private final ObjectMapper mapper;
     private final Clock clock;
 
     WritingService(WritingSessionRepository sessions, AiJobRepository jobs, AiJobService aiJobs, AiQuotaService quota,
-                   AiGuard guard, WritingQuestionSource questions, AssignedAiWork assigned, EmailVerification emailVerification,
+                   AiGuard guard, WritingQuestionSource questions, AssignedAiWork assigned, AttemptLinks attemptLinks, EmailVerification emailVerification,
                    IdempotencyService idempotency, ObjectMapper mapper, Clock clock) {
         this.sessions = sessions;
         this.jobs = jobs;
@@ -56,6 +57,7 @@ public class WritingService {
         this.guard = guard;
         this.questions = questions;
         this.assigned = assigned;
+        this.attemptLinks = attemptLinks;
         this.emailVerification = emailVerification;
         this.idempotency = idempotency;
         this.mapper = mapper;
@@ -67,15 +69,23 @@ public class WritingService {
      * và chặn khi đã nộp rồi; vẫn qua giới hạn tần suất.
      */
     @Transactional
-    public SessionCreated create(long userId, long questionId, Long assignmentId) {
+    public SessionCreated create(long userId, long questionId, Long assignmentId, Long attemptId) {
         emailVerification.require(userId);
+        if (attemptId != null) {
+            attemptLinks.requireOpen(userId, attemptId, questionId); // D-145: điểm AI về sau cộng vào lượt này
+        }
         if (assignmentId != null) {
             assigned.requireRecipient(userId, assignmentId, questionId); // trước find: người không được giao nhận 404, không lộ lý do khóa
         }
-        WritingQuestion q = questions.findForNewSession(questionId, userId, assignmentId != null);
+        WritingQuestion q = questions.findForNewSession(questionId, userId, assignmentId != null, attemptId != null);
+        if (attemptId == null && assignmentId == null) {
+            attemptLinks.requireNotInOpenAttempt(userId, questionId); // D-147: không luyện riêng câu đang nằm trong lượt mở
+        }
         if (assignmentId == null) {
             guard.rateLimit(userId);
-            quota.requireAvailable(userId, q.courseId(), q.aiTask());
+            if (!attemptLinks.isAssigned(attemptId)) { // D-130: lượt của bài giao không trừ lượt AI
+                quota.requireAvailable(userId, q.courseId(), q.aiTask());
+            }
         } else {
             assigned.lock(assignmentId); // cùng người bấm hai lần song song: bên sau chờ rồi dùng lại phiên của bên trước
             var open = sessions.findFirstByAssignmentIdAndUserIdAndStatusInOrderByIdDesc(assignmentId, userId,
@@ -87,7 +97,7 @@ public class WritingService {
             guard.rateLimit(userId);
         }
         ArrayNode turns = mapper.createArrayNode().add(turn(ASSISTANT, q.prompt()));
-        var s = sessions.save(new WritingSession(userId, q.id(), turns, assignmentId));
+        var s = sessions.save(new WritingSession(userId, q.id(), turns, assignmentId, attemptId));
         return new SessionCreated(s.getId(), new RootQuestion(q.id(), q.prompt(), q.payload()));
     }
 
@@ -98,7 +108,7 @@ public class WritingService {
             throw new ApiException(HttpStatus.CONFLICT, "session_not_active", "Phiên viết không còn nhận câu trả lời");
         }
         guard.rateLimit(userId);
-        WritingQuestion q = questions.find(s.getQuestionId(), userId, s.getAssignmentId() != null);
+        WritingQuestion q = questions.find(s.getQuestionId(), userId, s.getAssignmentId() != null, s.getAttemptId() != null);
         requireAllowance(s, q, userId);
         requireIdle(s);
         s.setTurns(append(s.getTurns(), STUDENT, text));
@@ -121,7 +131,7 @@ public class WritingService {
             throw new ApiException(HttpStatus.CONFLICT, "session_not_ready", "Chưa đủ câu trả lời để tạo bản nháp");
         }
         guard.rateLimit(userId);
-        WritingQuestion q = questions.find(s.getQuestionId(), userId, s.getAssignmentId() != null);
+        WritingQuestion q = questions.find(s.getQuestionId(), userId, s.getAssignmentId() != null, s.getAttemptId() != null);
         requireAllowance(s, q, userId);
         requireIdle(s);
         guard.requireCapacity();
@@ -142,20 +152,24 @@ public class WritingService {
         if (WritingSession.SUBMITTED.equals(s.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "session_submitted", "Phiên viết này đã được nộp");
         }
-        WritingQuestion q = questions.find(s.getQuestionId(), userId, s.getAssignmentId() != null);
+        WritingQuestion q = questions.find(s.getQuestionId(), userId, s.getAssignmentId() != null, s.getAttemptId() != null);
         ObjectNode in = baseInput(s, q);
         in.put("text", finalText);
         in.put("wordCount", WordStats.count(finalText));
         in.put("copiedWords", WordStats.copiedFromPrompt(finalText, q.task()));
+        attemptLinks.requireOpenLocked(s.getAttemptId()); // trước khi trừ lượt: lượt tự nộp đồng thời thì 409, không mất lượt
         Long jobId;
-        if (s.getAssignmentId() == null) {
-            jobId = aiJobs.enqueueCharged(userId, AiJobKind.WRITING_GRADE, in, s.getId(), null, q.aiTask(), q.courseId())
+        if (s.getAssignmentId() == null && attemptLinks.isAssigned(s.getAttemptId())) {
+            // D-130: phiên trong lượt của bài giao không trừ lượt AI, vẫn qua giới hạn tần suất và hàng đợi
+            jobId = aiJobs.enqueueUncharged(userId, AiJobKind.WRITING_GRADE, in, s.getId(), s.getAttemptId());
+        } else if (s.getAssignmentId() == null) {
+            jobId = aiJobs.enqueueCharged(userId, AiJobKind.WRITING_GRADE, in, s.getId(), s.getAttemptId(), q.aiTask(), q.courseId())
                     .orElseThrow(quota::exhausted);
         } else { // D-130: bài giao không trừ lượt, vẫn qua giới hạn tần suất và hàng đợi
             assigned.requireRecipient(userId, s.getAssignmentId(), q.id());
             assigned.lock(s.getAssignmentId()); // hai phiên cùng bài (phiên cũ chấm lỗi) không cùng qua được kiểm tra đã nộp
             requireNotSubmitted(s.getAssignmentId(), userId);
-            jobId = aiJobs.enqueueUncharged(userId, AiJobKind.WRITING_GRADE, in, s.getId(), null);
+            jobId = aiJobs.enqueueUncharged(userId, AiJobKind.WRITING_GRADE, in, s.getId(), s.getAttemptId());
         }
         // chặn nộp đồng thời bằng hai khóa khác nhau: bên thua rollback, kéo theo cả lượt đã trừ
         if (sessions.claimSubmit(s.getId(), jobId, Instant.now(clock)) == 0) {
@@ -164,15 +178,20 @@ public class WritingService {
         return new SubmitAccepted(jobId, "PENDING", quota.available(userId, q.courseId()));
     }
 
+    /** D-147: phiên gắn lượt đã nộp thì khóa mọi bước ghi, kể cả khi lượt tự nộp lúc hết giờ. */
     private WritingSession load(long userId, long sessionId) {
-        return sessions.findByIdAndUserId(sessionId, userId)
+        var s = sessions.findByIdAndUserId(sessionId, userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "session_not_found", "Không tìm thấy phiên viết"));
+        attemptLinks.requireAttemptOpen(s.getAttemptId());
+        return s;
     }
 
     /** Phiên của bài giao: không kiểm lượt mà kiểm bài còn giao cho học viên; phiên thường: còn đủ lượt (Q-15). */
     private void requireAllowance(WritingSession s, WritingQuestion q, long userId) {
         if (s.getAssignmentId() == null) {
-            quota.requireAvailable(userId, q.courseId(), q.aiTask());
+            if (!attemptLinks.isAssigned(s.getAttemptId())) {
+                quota.requireAvailable(userId, q.courseId(), q.aiTask());
+            }
         } else {
             assigned.requireRecipient(userId, s.getAssignmentId(), q.id());
         }

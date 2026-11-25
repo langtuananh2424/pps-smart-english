@@ -22,9 +22,11 @@ public class AiJobService {
     private final AiJobRepository jobs;
     private final AiQuotaService quota;
     private final AiGuard guard;
+    private final AttemptResultGate gate;
     private final Clock clock;
 
-    AiJobService(AiJobRepository jobs, AiQuotaService quota, AiGuard guard, Clock clock) {
+    AiJobService(AiJobRepository jobs, AiQuotaService quota, AiGuard guard, AttemptResultGate gate, Clock clock) {
+        this.gate = gate;
         this.jobs = jobs;
         this.quota = quota;
         this.guard = guard;
@@ -108,9 +110,11 @@ public class AiJobService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "job_not_found", "Không tìm thấy job")));
     }
 
-    public static JobView toView(AiJob j) {
+    /** D-147: job của phiên gắn lượt chưa chốt điểm thì không trả kết quả (điểm, bản sửa), cả đường poll lẫn SSE. */
+    public JobView toView(AiJob j) {
         boolean failed = AiJob.FAILED.equals(j.getStatus());
+        boolean show = AiJob.DONE.equals(j.getStatus()) && !gate.sealed(j);
         return new JobView(j.getId(), j.getKind().name(), j.getStatus(),
-                AiJob.DONE.equals(j.getStatus()) ? j.getOutput() : null, failed ? j.getError() : null, failed && j.isCharged());
+                show ? j.getOutput() : null, failed ? j.getError() : null, failed && j.isCharged());
     }
 }

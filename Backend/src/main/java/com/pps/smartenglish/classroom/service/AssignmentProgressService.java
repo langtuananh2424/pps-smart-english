@@ -46,11 +46,14 @@ public class AssignmentProgressService {
     private final NotificationService notifications;
     private final AuditRecorder audit;
     private final com.pps.smartenglish.exercise.listening.ForcedAssignmentProgress forced;
+    private final com.pps.smartenglish.ai.service.AttemptResultGate gate;
 
     AssignmentProgressService(AssignmentService assignmentService, AssignmentRepository assignments, GradeOverrideRepository overrides,
                               AiAssignmentSubmissions aiSubmissions, ClassAccess access, ClassService classes, com.pps.smartenglish.classroom.repository.ClassRepository classRepo,
                               NotificationService notifications, AuditRecorder audit,
-                              com.pps.smartenglish.exercise.listening.ForcedAssignmentProgress forced) {
+                              com.pps.smartenglish.exercise.listening.ForcedAssignmentProgress forced,
+                              com.pps.smartenglish.ai.service.AttemptResultGate gate) {
+        this.gate = gate;
         this.forced = forced;
         this.assignmentService = assignmentService;
         this.assignments = assignments;
@@ -123,7 +126,9 @@ public class AssignmentProgressService {
         Latest l = latest(a, List.of(r.id())).get(r.id());
         // D-142: lượt Nghe ép chỉ biết số câu đúng, không có điểm hệ thống; điểm giáo viên tự chấm (nếu có) vẫn hiện
         boolean noScore = !a.isAiQuestion() && assignments.resultModeOf(r.id()).contains("COUNT_ONLY");
-        BigDecimal aiScore = noScore ? null : r.score();
+        // D-147: bộ bài còn câu AI chưa chốt thì điểm hiện có chỉ là điểm tạm
+        boolean grading = !a.isAiQuestion() && gate.sealed(r.id());
+        BigDecimal aiScore = noScore || grading ? null : r.score();
         return new MyResult(assignmentId, status(a.getDueAt(), r.submittedAt(), classes.now()), r.id(), r.submittedAt(), aiScore,
                 noScore ? null : r.max(), l != null && l.score != null ? l.score : aiScore, l == null ? null : l.comment);
     }

@@ -83,6 +83,7 @@ public class CmsBankService {
             bank.setMode(req.mode());
         }
         applyPlayback(bank, req.playbackMode(), req.playLimit());
+        applyPassPct(bank, req.passPct());
         var after = view(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), 0);
         audit.record("CREATE", "BANK", after.id(), null, after);
         return after;
@@ -120,9 +121,21 @@ public class CmsBankService {
             bank.setMode(req.mode());
         }
         applyPlayback(bank, req.playbackMode(), req.playLimit());
+        applyPassPct(bank, req.passPct());
         var after = view(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), questions.countByBankId(id));
         audit.record("UPDATE", "BANK", id, before, after);
         return after;
+    }
+
+    /** D-145: ngưỡng Đạt; vắng mặt = giữ nguyên (bộ mới giữ mặc định 70). Đề kiểm tra đầu vào không có đạt/chưa. */
+    private void applyPassPct(QuestionBank bank, Integer passPct) {
+        if (passPct == null) {
+            return;
+        }
+        if (bank.isPlacement()) {
+            throw ApiException.validation("passPct", "Đề kiểm tra đầu vào không có ngưỡng đạt");
+        }
+        bank.setPassPct(passPct);
     }
 
     /** D-135: chế độ phát audio và số lần nghe của chế độ Thi; đề kiểm tra đầu vào không có audio theo lượt nên chỉ FREE. */
@@ -205,6 +218,6 @@ public class CmsBankService {
 
     public static BankView view(QuestionBank b, long questionCount) {
         return new BankView(b.getId(), b.getTopicId(), b.getLessonId(), b.getTitle(), b.isTrial(), b.getStatus(), questionCount,
-                b.getTimeLimitSec(), b.getMode(), b.getPurpose(), b.getPlaybackMode(), b.getPlayLimit());
+                b.getTimeLimitSec(), b.getMode(), b.getPurpose(), b.getPlaybackMode(), b.getPlayLimit(), b.getPassPct());
     }
 }

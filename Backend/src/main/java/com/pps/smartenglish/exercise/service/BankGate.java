@@ -55,6 +55,11 @@ class BankGate {
         return requirePracticable(bankId, userId, false);
     }
 
+    /** inAttempt: lượt đã được AttemptLinks kiểm (của chính người gọi, đang mở, câu thuộc bộ của lượt): làm cùng luồng thi, không chặn EXAM (D-82). */
+    BankInfo requireFor(Long bankId, Long userId, boolean inAssignment, boolean inAttempt) {
+        return inAttempt ? require(bankId, userId, inAssignment) : requirePracticable(bankId, userId, inAssignment);
+    }
+
     BankInfo requirePracticable(Long bankId, Long userId, boolean inAssignment) {
         // Kiểm mode trước quyền: bộ thi chưa mở sẽ bị bank_locked che mất lý do thật.
         if (banks.findInfo(bankId).filter(b -> QuestionBank.EXAM.equals(b.mode())).isPresent()) {

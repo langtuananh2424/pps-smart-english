@@ -80,7 +80,7 @@ class ExerciseTest extends ApiTestBase {
                 "{\"position\":3,\"corrections\":[\"written\"]}", "EXPL-SECRET-5");
         q[5] = question(b, "GRAMMAR_BUILD", 6, "{\"blocks\":[{\"id\":\"b2\",\"text\":\"m\"},{\"id\":\"b1\",\"text\":\"n\"},{\"id\":\"b3\",\"text\":\"o\"}]}",
                 "{\"order\":[\"b1\",\"b2\",\"b3\"]}", "EXPL-SECRET-6");
-        // câu viết (WRITING) không có grader theo answer_key: lưu câu trả lời, không tính điểm
+        // câu viết (WRITING) không có grader theo answer_key: lưu câu trả lời; D-145: tính vào maxScore, bỏ trống thì 0 điểm
         q[6] = question(b, "WRITING", 7, "{\"task\":\"s\"}", "{}", null);
         return new Bank(b, q, right, wrong);
     }
@@ -155,7 +155,7 @@ class ExerciseTest extends ApiTestBase {
 
         long good = startAttempt(bank.id, u.accessToken());
         var ok = submit(good, u.accessToken(), correctAnswers(bank)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.score").value(6)).andExpect(jsonPath("$.maxScore").value(6))
+                .andExpect(jsonPath("$.score").value(6)).andExpect(jsonPath("$.maxScore").value(7))
                 .andExpect(jsonPath("$.pendingJobs", hasSize(0)));
         for (int i = 0; i < 6; i++) {
             ok.andExpect(jsonPath("$.results[" + i + "].isCorrect").value(true))
@@ -168,19 +168,19 @@ class ExerciseTest extends ApiTestBase {
 
         long bad = startAttempt(bank.id, u.accessToken());
         var no = submit(bad, u.accessToken(), wrongAnswers(bank)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.score").value(0)).andExpect(jsonPath("$.maxScore").value(6));
+                .andExpect(jsonPath("$.score").value(0)).andExpect(jsonPath("$.maxScore").value(7));
         for (int i = 0; i < 6; i++) {
             no.andExpect(jsonPath("$.results[" + i + "].isCorrect").value(false));
         }
     }
 
     @Test
-    void aiGradedQuestionsAreStoredButNotScored() throws Exception {
+    void aiGradedQuestionsAreStoredAndCountedInMaxScore() throws Exception {
         var bank = fullBank(true, false);
         var u = register(newEmail(), PASSWORD);
         long attempt = startAttempt(bank.id, u.accessToken());
         submit(attempt, u.accessToken(), correctAnswers(bank)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.maxScore").value(6))
+                .andExpect(jsonPath("$.maxScore").value(7))
                 .andExpect(jsonPath("$.results[6].isCorrect").value(nullValue()))
                 .andExpect(jsonPath("$.results[6].correctAnswer").doesNotExist());
         assertEquals(1, count("select count(*) from student_answers where attempt_id = ? and is_correct is null", attempt));
@@ -212,7 +212,7 @@ class ExerciseTest extends ApiTestBase {
         withNull.put("questionId", bank.q[1]);
         withNull.put("answer", null);
         submit(attempt, u.accessToken(), List.of(ans(bank.q[0], Map.of("choiceId", bank.mcqRight)), withNull))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.score").value(1)).andExpect(jsonPath("$.maxScore").value(6))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.score").value(1)).andExpect(jsonPath("$.maxScore").value(7))
                 .andExpect(jsonPath("$.results[1].isCorrect").value(false))
                 .andExpect(jsonPath("$.results[5].isCorrect").value(false));
         assertEquals(7, count("select count(*) from student_answers where attempt_id = ?", attempt));
@@ -343,7 +343,7 @@ class ExerciseTest extends ApiTestBase {
                 .andExpect(content().string(not(containsString("correctAnswer"))));
         submit(attempt, u.accessToken(), correctAnswers(bank)).andExpect(status().isOk());
         getAuth("/api/attempts/" + attempt, u.accessToken()).andExpect(status().isOk())
-                .andExpect(jsonPath("$.score").value(6)).andExpect(jsonPath("$.maxScore").value(6))
+                .andExpect(jsonPath("$.score").value(6)).andExpect(jsonPath("$.maxScore").value(7))
                 .andExpect(jsonPath("$.results", hasSize(7)))
                 .andExpect(jsonPath("$.results[0].correctAnswer.choiceId").value(bank.mcqRight))
                 .andExpect(jsonPath("$.results[6].isCorrect").value(nullValue()));
@@ -357,7 +357,9 @@ class ExerciseTest extends ApiTestBase {
         startAttempt(bank.id, other.accessToken());
         List<Long> created = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            created.add(startAttempt(bank.id, u.accessToken()));
+            long id = startAttempt(bank.id, u.accessToken());
+            submit(id, u.accessToken(), List.of()).andExpect(status().isOk()); // D-147: mỗi bộ một lượt mở
+            created.add(id);
         }
         List<Long> seen = new ArrayList<>();
         String cursor = null;

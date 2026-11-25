@@ -282,9 +282,9 @@ class LearningStatsApiTest extends AiTestSupport {
             last = attempt(u, b, OffsetDateTime.now().minusDays(a));
             List<Object[]> rows = new ArrayList<>();
             for (int i = 0; i < questions; i++) {
-                rows.add(new Object[] {last, q[i], (a + i) % 3 != 0, 1, 1200});
+                rows.add(new Object[] {last, q[i], (a + i) % 3 != 0, (a + i) % 3 != 0 ? 1 : 0, 1, 1200}); // credit có sẵn: câu Viết chưa có credit sẽ bị coi là còn chờ AI
             }
-            jdbc.batchUpdate("insert into student_answers (attempt_id, question_id, is_correct, answer_version, time_spent_ms) values (?, ?, ?, ?, ?)", rows);
+            jdbc.batchUpdate("insert into student_answers (attempt_id, question_id, is_correct, credit, answer_version, time_spent_ms) values (?, ?, ?, ?, ?, ?)", rows);
         }
         assertEquals(questions * attempts, count("select count(*) from student_answers a join student_exercise_attempts t on t.id = a.attempt_id where t.user_id = ?", u.id()));
 

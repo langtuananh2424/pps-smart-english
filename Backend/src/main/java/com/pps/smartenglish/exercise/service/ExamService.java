@@ -6,6 +6,7 @@ import com.pps.smartenglish.catalog.domain.Topic;
 import com.pps.smartenglish.catalog.repository.CourseLevelRepository;
 import com.pps.smartenglish.catalog.repository.CourseRepository;
 import com.pps.smartenglish.catalog.repository.TopicRepository;
+import com.pps.smartenglish.ai.service.AiJobService;
 import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.domain.StudentAttempt;
 import com.pps.smartenglish.exercise.dto.CourseTest;
@@ -48,10 +49,12 @@ public class ExamService {
     private final StudentAttemptRepository attempts;
     private final CourseProgressService progress;
     private final UnitUnlockService unitUnlock;
+    private final AiJobService aiJobs;
     private final Clock clock;
 
     ExamService(CourseRepository courses, TopicRepository topics, CourseLevelRepository levels, QuestionBankRepository banks,
-                StudentAttemptRepository attempts, CourseProgressService progress, UnitUnlockService unitUnlock, Clock clock) {
+                StudentAttemptRepository attempts, CourseProgressService progress, UnitUnlockService unitUnlock, AiJobService aiJobs, Clock clock) {
+        this.aiJobs = aiJobs;
         this.courses = courses;
         this.topics = topics;
         this.levels = levels;
@@ -185,7 +188,8 @@ public class ExamService {
 
     private ExamStatus.LastResult lastResult(long userId, long bankId) {
         return attempts.findFirstByUserIdAndBankIdAndSubmittedAtIsNotNullOrderBySubmittedAtDesc(userId, bankId)
-                .map(a -> new ExamStatus.LastResult(a.isCountOnly() ? null : a.getScore(), a.isCountOnly() ? null : a.getMaxScore(),
-                        a.getSubmittedAt())).orElse(null);
+                // D-147: còn job AI chấm lần đầu chưa xong thì điểm hiện có chỉ là điểm tạm
+                .map(a -> new ExamStatus.LastResult(a.isCountOnly() || !aiJobs.pendingIds(a.getId()).isEmpty() ? null : a.getScore(),
+                        a.isCountOnly() ? null : a.getMaxScore(), a.getSubmittedAt())).orElse(null);
     }
 }
