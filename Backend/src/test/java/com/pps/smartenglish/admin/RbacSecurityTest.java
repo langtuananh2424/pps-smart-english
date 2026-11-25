@@ -414,7 +414,10 @@ class RbacSecurityTest extends ApiTestBase {
                 int holders = count("select count(*) from user_roles ur join roles r on r.id = ur.role_id where r.code = 'ADMIN' and ur.user_id in (?, ?)",
                         a.id(), b.id());
                 assertEquals(1, holders, "round " + round + " statuses " + got);
-                assertEquals(new java.util.TreeSet<>(List.of(200, 409)), got, "round " + round);
+                // Bên thua bị chặn ở một trong hai chỗ, đều đúng: qua kiểm quyền trước khi bên thắng commit thì 409
+                // (chặn gỡ admin cuối); kiểm quyền sau khi bên thắng commit thì đã mất ADMIN nên 403 (PermissionGuard đọc DB mỗi request).
+                assertTrue(got.equals(new java.util.TreeSet<>(List.of(200, 409))) || got.equals(new java.util.TreeSet<>(List.of(200, 403))),
+                        "round " + round + " statuses " + got);
             }
         } finally {
             pool.shutdownNow();
