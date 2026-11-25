@@ -15,6 +15,7 @@ import com.pps.smartenglish.support.dto.SupportDtos.StudentDetail;
 import com.pps.smartenglish.support.dto.SupportDtos.StudentRow;
 import com.pps.smartenglish.support.repository.SupportStudentRepository;
 import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -37,15 +38,17 @@ public class SupportService {
     private final ManualActivationService activation;
     private final AccountRecoveryService recovery;
     private final AuditRecorder audit;
+    private final Clock clock;
 
     SupportService(SupportStudentRepository students, UserRepository users, AiQuotaService quota,
-                   ManualActivationService activation, AccountRecoveryService recovery, AuditRecorder audit) {
+                   ManualActivationService activation, AccountRecoveryService recovery, AuditRecorder audit, Clock clock) {
         this.students = students;
         this.users = users;
         this.quota = quota;
         this.activation = activation;
         this.recovery = recovery;
         this.audit = audit;
+        this.clock = clock;
     }
 
     /** q khớp email hoặc tên (chứa), hoặc mã đơn (đúng). Tối thiểu 3 ký tự để không kéo cả danh sách. */
@@ -56,7 +59,15 @@ public class SupportService {
             throw ApiException.validation("q", "Nhập ít nhất 3 ký tự");
         }
         String like = "%" + term.toLowerCase(Locale.ROOT).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
-        return students.search(like, term, MAX_RESULTS).stream().map(SupportService::row).toList();
+        var found = students.search(like, term, MAX_RESULTS);
+        if (found.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, List<String>> courses = new java.util.HashMap<>();
+        for (Object[] c : students.courseTitles(found.stream().map(r -> ((Number) r[0]).longValue()).toList())) {
+            courses.computeIfAbsent(((Number) c[0]).longValue(), k -> new java.util.ArrayList<>()).add((String) c[1]);
+        }
+        return found.stream().map(r -> row(r, courses.getOrDefault(((Number) r[0]).longValue(), List.of()))).toList();
     }
 
     @Transactional(readOnly = true)
@@ -64,9 +75,9 @@ public class SupportService {
         Object[] r = students.findStudent(id).stream().findFirst().orElseThrow(SupportService::notFound);
         var enrollments = students.enrollments(id).stream()
                 .map(e -> new EnrollmentRow(((Number) e[0]).longValue(), (String) e[1], (String) e[2], instant(e[3]), instant(e[4]))).toList();
-        var orders = students.recentOrders(id, RECENT_ORDERS).stream()
+        var orders = students.recentOrders(id, RECENT_ORDERS, clock.instant()).stream()
                 .map(o -> new OrderRow((String) o[0], (String) o[1], ((Number) o[2]).longValue(), instant(o[3]), instant(o[4]))).toList();
-        return new StudentDetail(row(r), instant(r[5]), enrollments, orders, quota.overview(id));
+        return new StudentDetail(row(r, enrollments.stream().filter(e -> "ACTIVE".equals(e.status())).map(EnrollmentRow::courseTitle).toList()), instant(r[5]), enrollments, orders, quota.overview(id));
     }
 
     @Transactional
@@ -108,8 +119,8 @@ public class SupportService {
         return users.findById(id).orElseThrow(SupportService::notFound);
     }
 
-    private static StudentRow row(Object[] r) {
-        return new StudentRow(((Number) r[0]).longValue(), (String) r[1], (String) r[2], String.valueOf(r[3]), r[4] != null);
+    private static StudentRow row(Object[] r, List<String> courses) {
+        return new StudentRow(((Number) r[0]).longValue(), (String) r[1], (String) r[2], String.valueOf(r[3]), r[4] != null, courses);
     }
 
     private static Instant instant(Object o) {

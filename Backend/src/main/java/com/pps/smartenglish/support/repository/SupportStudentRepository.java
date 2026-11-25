@@ -24,6 +24,13 @@ public interface SupportStudentRepository extends Repository<User, Long> {
             """)
     List<Object[]> search(@Param("like") String like, @Param("code") String code, @Param("max") int max);
 
+    /** [user_id, tên khóa] của quyền học đang ACTIVE, cho cột "Khóa" ở kết quả tra cứu. */
+    @Query(nativeQuery = true, value = """
+            SELECT e.user_id, c.title FROM user_course_enrollments e JOIN courses c ON c.id = e.course_id
+            WHERE e.user_id IN (:ids) AND e.status = 'ACTIVE' ORDER BY e.user_id, e.id
+            """)
+    List<Object[]> courseTitles(@Param("ids") List<Long> ids);
+
     /** [id, email, tên hiển thị, trạng thái, email_verified_at, created_at] của một học viên. */
     @Query(nativeQuery = true, value = """
             SELECT u.id, u.email, p.display_name, u.status, u.email_verified_at, u.created_at
@@ -41,10 +48,11 @@ public interface SupportStudentRepository extends Repository<User, Long> {
             """)
     List<Object[]> enrollments(@Param("id") long id);
 
-    /** [mã đơn, trạng thái, tổng tiền, thanh toán lúc, tạo lúc], mới nhất trước. */
+    /** [mã đơn, trạng thái hiệu lực (PENDING quá hạn = EXPIRED), tổng tiền, thanh toán lúc, tạo lúc], mới nhất trước. */
     @Query(nativeQuery = true, value = """
-            SELECT o.code, o.status, o.total_vnd, o.paid_at, o.created_at
+            SELECT o.code, CASE WHEN o.status = 'PENDING' AND o.expires_at <= :now THEN 'EXPIRED' ELSE o.status END,
+                   o.total_vnd, o.paid_at, o.created_at
             FROM orders o WHERE o.user_id = :id ORDER BY o.id DESC LIMIT :max
             """)
-    List<Object[]> recentOrders(@Param("id") long id, @Param("max") int max);
+    List<Object[]> recentOrders(@Param("id") long id, @Param("max") int max, @Param("now") java.time.Instant now);
 }

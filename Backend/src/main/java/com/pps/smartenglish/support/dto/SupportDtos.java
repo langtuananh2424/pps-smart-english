@@ -14,7 +14,7 @@ public final class SupportDtos {
 
     private SupportDtos() {}
 
-    public record StudentRow(long id, String email, String displayName, String status, boolean emailVerified) {}
+    public record StudentRow(long id, String email, String displayName, String status, boolean emailVerified, List<String> courses) {}
 
     public record EnrollmentRow(long courseId, String courseTitle, String status, Instant startsAt, Instant expiresAt) {}
 

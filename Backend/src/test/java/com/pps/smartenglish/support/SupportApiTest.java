@@ -84,11 +84,19 @@ class SupportApiTest extends ApiTestBase {
         String code = order(s, levelProduct(30));
         postJson("/api/admin/support/orders/" + code + "/activate", support.accessToken(), Map.of("reason", "Webhook lỗi")).andExpect(status().isOk());
 
+        send(get("/api/admin/support/students").param("q", code), support.accessToken())
+                .andExpect(jsonPath("$[0].courses", hasSize(1)));
         var res = send(get("/api/admin/support/students/" + s.id()), support.accessToken()).andExpect(status().isOk())
+                .andExpect(jsonPath("$.student.courses", hasSize(1)))
                 .andExpect(jsonPath("$.orders[0].code").value(code)).andExpect(jsonPath("$.orders[0].status").value("PAID"))
                 .andExpect(jsonPath("$.enrollments", hasSize(1))).andExpect(jsonPath("$.quota.pool").value(0))
                 .andReturn().getResponse().getContentAsString();
         assertEquals(false, res.contains("passwordHash") || res.contains("password_hash"));
+        // đơn PENDING quá hạn hiện EXPIRED trong hồ sơ, DB vẫn PENDING
+        String late = order(s, levelProduct(30));
+        jdbc.update("update orders set expires_at = ? where code = ?", java.time.OffsetDateTime.parse("2020-01-01T00:00:00Z"), late);
+        send(get("/api/admin/support/students/" + s.id()), support.accessToken())
+                .andExpect(jsonPath("$.orders[0].code").value(late)).andExpect(jsonPath("$.orders[0].status").value("EXPIRED"));
         send(get("/api/admin/support/students/999999"), support.accessToken()).andExpect(status().isNotFound());
         // không xem được nhân sự qua đường học viên
         send(get("/api/admin/support/students/" + support.id()), support.accessToken()).andExpect(status().isNotFound());
