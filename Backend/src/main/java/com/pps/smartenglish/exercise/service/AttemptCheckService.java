@@ -83,6 +83,10 @@ public class AttemptCheckService {
         if (!graders.isAutoGraded(q.getType())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "question_not_checkable", "Câu này chấm bằng AI, không kiểm tra từng câu");
         }
+        // Mọi dạng tự chấm nhận answer là object (grader đọc từng field); sai dạng thì 400, không ghi nháp, không tính lượt
+        if (answer == null || !answer.isObject()) {
+            throw ApiException.validation("answer", "Câu trả lời phải là một đối tượng JSON");
+        }
         var row = checks.findByAttemptIdAndQuestionId(attemptId, questionId).orElseGet(() -> new QuestionCheck(attemptId, questionId));
         if (row.locked(props.maxRetries())) {
             throw new ApiException(HttpStatus.CONFLICT, "retry_exhausted", "Câu này đã hết lượt thử");

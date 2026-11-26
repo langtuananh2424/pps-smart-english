@@ -106,7 +106,7 @@ class RetryIeltsTesterTest extends ListeningTestSupport {
             int s = check(u, a, w.q()[1], bad).andReturn().getResponse().getStatus();
             org.junit.jupiter.api.Assertions.assertTrue(s == 200 || s == 400 || s == 409, "kiểm tra với " + bad + " trả " + s);
         }
-        check(u, a, w.q()[0], "rac");
+        check(u, a, w.q()[0], Map.of("choiceId", "abc")); // chuỗi rác không phải object bị 400 và không tính lượt; object sai kiểu thì tính
         check(u, a, w.q()[0], Map.of("choiceId", "abc"));
         getJson("/api/attempts/" + a + "/progress", u).andExpect(status().isOk());
         put("/api/attempts/" + a + "/draft", u, Map.of("answers", answers(w, true, true))).andExpect(status().isOk());
