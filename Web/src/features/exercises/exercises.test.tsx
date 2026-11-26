@@ -150,7 +150,7 @@ describe('màn hình', () => {
     await userEvent.click(within(list).getByRole('button', { name: 'Reading' }))
     expect(within(list).getByRole('link', { name: 'Làm bài tập Bài 1' })).toHaveAttribute('href', '/bai-tap/5')
     expect(await screen.findByText('Lượt chấm AI: 3/5 tuần này')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Sắp có' })).toBeDisabled()
+    expect(screen.getByRole('link', { name: 'Luyện thêm →' })).toHaveAttribute('href', '/bai-tap/khoa/1/luyen-them')
     await userEvent.type(screen.getByRole('searchbox'), 'xep khoi')
     expect(screen.getByRole('heading', { name: 'Xếp khối tạo câu' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Trắc nghiệm từ nối' })).toBeNull()

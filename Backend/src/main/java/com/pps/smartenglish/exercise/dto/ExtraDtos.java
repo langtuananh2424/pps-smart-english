@@ -9,7 +9,7 @@ public final class ExtraDtos {
 
     private ExtraDtos() {}
 
-    public record Overview(Long courseId, String courseTitle, int reviewSize, int challengeSize, double maxRatio,
+    public record Overview(Long courseId, String courseSlug, String courseTitle, int reviewSize, int challengeSize, double maxRatio,
                            List<LevelView> levels, List<TopicCard> review, List<TopicCard> challenge) {}
 
     public record LevelView(Long id, String title) {}

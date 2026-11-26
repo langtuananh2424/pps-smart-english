@@ -17,6 +17,8 @@ export function AttemptResultPage() {
   const attempt = useQuery({ queryKey: ['attempt', attemptId, 'result'], queryFn: () => fetchAttempt(attemptId), retry: false })
   const bank = useQuery({ queryKey: ['bank', bankId], queryFn: () => fetchBank(bankId), retry: false, staleTime: Infinity })
 
+  // D-152: lượt Luyện thêm gắn bộ neo không mở được như bộ thường (thông báo EXERCISE_GRADED): chuyển sang màn riêng.
+  if (attempt.data && bank.error instanceof ApiError && bank.error.code === 'bank_not_found') return <Navigate to={`/bai-tap/luyen-them/${attemptId}`} replace />
   const err = attempt.error ?? bank.error
   if (err) return <ErrorCard error={err} onRetry={() => void (attempt.isError ? attempt.refetch() : bank.refetch())} />
   if (!attempt.data || !bank.data) return <Loading />

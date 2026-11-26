@@ -63,7 +63,7 @@ public class ExtraOverviewService {
             (s.state().equals(ExtraTopics.COMPLETED) ? review : challenge).add(card);
         }
         Collections.reverse(review); // mới học xong đứng đầu
-        return new Overview(courseId, course.getTitle(), props.reviewSize(), props.challengeSize(), props.challengeMaxRatio(),
+        return new Overview(courseId, course.getSlug(), course.getTitle(), props.reviewSize(), props.challengeSize(), props.challengeMaxRatio(),
                 List.copyOf(levels.values()), review, challenge);
     }
 
