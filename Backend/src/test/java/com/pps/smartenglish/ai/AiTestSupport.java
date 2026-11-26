@@ -3,6 +3,7 @@ package com.pps.smartenglish.ai;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.pps.smartenglish.ai.provider.FakeAiGradingProvider;
 import com.pps.smartenglish.ai.service.AiGuard;
+import com.pps.smartenglish.ai.speaking.FakeSpeakingEngineClient;
 import com.pps.smartenglish.ai.worker.AiJobRunner;
 import com.pps.smartenglish.support.ApiTestBase;
 import java.util.HashMap;
@@ -25,11 +26,13 @@ public abstract class AiTestSupport extends ApiTestBase {
     @Autowired protected FakeAiGradingProvider fake;
     @Autowired protected AiJobRunner runner;
     @Autowired protected AiGuard guard;
+    @Autowired private FakeSpeakingEngineClient speakingEngine;
 
     /** Job còn dang dở của test khác không được chen vào lượt runDueNow của test này. */
     @BeforeEach
     void cleanQueue() {
         fake.reset();
+        speakingEngine.reset(); // engine giả là singleton dùng chung: transcript ngắn của test trước làm câu Nói thành UNCLEAR rồi chấm lại
         jdbc.update("update ai_jobs set status = 'FAILED', locked_until = null where status in ('PENDING', 'RUNNING')");
     }
 

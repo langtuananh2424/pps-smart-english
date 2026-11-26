@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation, useMatch } from 'react-router'
 import logo from '../assets/logo-pps.png'
 import { VerifyEmailBanner } from '../auth/VerifyEmailBanner'
 import { Icon } from '../components/Icon'
+import { GradedBubble } from '../features/notifications/GradedBubble'
 import { inPath, navItems } from './navItems'
 
 // Desktop: sidebar trái; mobile: thanh tab dưới cùng.
@@ -40,6 +41,7 @@ export function AppShell() {
         <VerifyEmailBanner />
         <Outlet />
       </main>
+      <GradedBubble />
     </div>
   )
 }

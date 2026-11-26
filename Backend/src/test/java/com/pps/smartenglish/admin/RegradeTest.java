@@ -451,6 +451,8 @@ class RegradeTest extends AiTestSupport {
         int b2 = balance(s2);
         int b3 = balance(s3);
         Events.SEEN.clear();
+        // lần nộp đầu có job AI nên đã có thông báo EXERCISE_GRADED (D-149); chấm lại không được thêm thông báo nào
+        int notified = count("select count(*) from notifications where user_id in (?, ?, ?)", s1.id(), s2.id(), s3.id());
 
         editQuestion(admin, q, Map.of("answerKey", Map.of("acceptedAnswers", List.of("Although it was hard, we won.", "Although wrong thing."))))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.answerVersion").value(2));
@@ -496,7 +498,7 @@ class RegradeTest extends AiTestSupport {
         // job chấm lại không phát AiGradingFinished; điểm a3 tăng nên có đúng một ExerciseScored initial=false
         assertTrue(Events.SEEN.stream().noneMatch(e -> e instanceof AiGradingFinished));
         assertEquals(1, regradeScores().size());
-        assertEquals(0, count("select count(*) from notifications where user_id in (?, ?, ?)", s1.id(), s2.id(), s3.id()));
+        assertEquals(notified, count("select count(*) from notifications where user_id in (?, ?, ?)", s1.id(), s2.id(), s3.id()));
 
         // kết quả AI đến lần hai cho item đã xong: không áp lại
         var late = new RewriteGrades.Item(q, true, "Tốt.", "Mẫu");

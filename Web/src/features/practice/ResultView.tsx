@@ -9,6 +9,11 @@ import { useGrammarElements } from './elements'
 import { describeAnswer } from './describe'
 import { BuildDetail, IdentifyDetail } from './ResultDetails'
 import { isAnswerable } from './questions/registry'
+import { isAiType } from '../exercises/format'
+import { AiReview } from './AiReview'
+import { PendingCard } from './PendingCard'
+import { ResultList } from './ResultList'
+import { useAiOutcomes } from './useAiOutcomes'
 import { ForcedResultView } from './listening/ForcedResultView'
 import { ResultBreakdown } from './ResultBreakdown'
 import { pillNeutral, pillPrimary } from './questions/ui'
@@ -29,6 +34,7 @@ interface Props {
 // Màn kết quả theo khung Figma 12: tiêu đề có nút quay lại, Cam và điểm ở giữa, thanh thao tác bên dưới.
 export function ResultView({ bank, initial, answers, onRetry }: Props) {
   const [gaveUp, setGaveUp] = useState(false)
+  const [review, setReview] = useState<number | null>(null)
   const q = useQuery({
     queryKey: ['attempt', initial.id, 'result'],
     queryFn: () => fetchAttempt(initial.id),
@@ -51,8 +57,23 @@ export function ResultView({ bank, initial, answers, onRetry }: Props) {
   }, [pending])
 
   const elements = useGrammarElements()
+  const hasAi = bank.questions.some((x) => isAiType(x.type))
+  // Điểm từng câu Viết/Nói chỉ mở khi cả bộ đã chấm xong (D-147).
+  const ai = useAiOutcomes(r.id, hasAi && !hidden)
   if (r.forced) return <ForcedResultView bank={bank} attemptId={r.id} forced={r.forced} onRetry={onRetry} />
   const byQuestion = new Map((r.results ?? []).map((x) => [x.questionId, x]))
+  const quotaNotice = r.aiQuotaRequired && (
+    <p role="alert" className="rounded-md bg-reward-bg px-4 py-2 text-sm font-bold text-reward-fg">
+      Bạn đã hết lượt chấm AI nên một số câu chưa được chấm.
+      {r.products && r.products.length > 0 && ` Gói bổ sung: ${r.products.map((p) => p.name).join(', ')}.`}
+    </p>
+  )
+  const failed = (r.results ?? []).filter((x) => x.aiFailure).length
+  if (pending) {
+    const total = (ai.sessions ?? []).filter((s) => s.status !== 'NOT_SUBMITTED').length
+    return <PendingCard title={bank.title} pending={r.pendingJobs?.length ?? 0} total={total} gaveUp={gaveUp} onReload={() => { setGaveUp(false); void q.refetch() }} notice={quotaNotice} />
+  }
+  if (review != null) return <AiReview bank={bank} questionId={review} outcomes={ai.outcomes} onGo={setReview} onBack={() => setReview(null)} />
   return (
     <div className="min-h-dvh bg-page px-4 py-4 md:px-4">
       <main className="mx-auto flex max-w-[900px] flex-col gap-[18px]">
@@ -82,27 +103,18 @@ export function ResultView({ bank, initial, answers, onRetry }: Props) {
             </p>
           )}
           {!hidden && r.passed === false && <p className="text-base font-semibold text-ink-secondary">Thử lại câu cần xem nhé.</p>}
-          {pending && !gaveUp && <p role="status" className="text-lg font-black text-ink">Đang chấm câu AI (viết lại, Viết, Nói), điểm, kết quả Đạt và nhận xét sẽ hiện khi chấm xong…</p>}
-          {pending && gaveUp && (
-            <p className="text-base font-semibold text-ink-secondary">
-              Chấm chưa xong.{' '}
-              <button type="button" onClick={() => { setGaveUp(false); void q.refetch() }} className="font-black text-brand-strong underline">Tải lại</button>
-            </p>
-          )}
-          {r.aiQuotaRequired && (
-            <p role="alert" className="rounded-md bg-reward-bg px-4 py-2 text-sm font-bold text-reward-fg">
-              Bạn đã hết lượt chấm AI nên một số câu chưa được chấm.
-              {r.products && r.products.length > 0 && ` Gói bổ sung: ${r.products.map((p) => p.name).join(', ')}.`}
-            </p>
-          )}
+          {failed > 0 && <p className="text-base font-semibold text-ink-secondary">{failed} câu không chấm được, đã tính 0 điểm.</p>}
+          {quotaNotice}
         </section>
 
         {!hidden && <ResultBreakdown breakdown={r.breakdown} bank={bank} elementName={elements.name} />}
 
+        {!hidden && hasAi && <ResultList bank={bank} results={r.results ?? []} outcomes={ai.outcomes} ready={ai.ready} onReview={setReview} />}
+
         {!hidden && <ol className="flex flex-col gap-4">
-          {bank.questions.map((question, i) => (
+          {bank.questions.map((question, i) => (isAiType(question.type) ? null : (
             <Row key={question.id} index={i} question={question} result={byQuestion.get(question.id)} mine={answers?.[question.id]} showMine={answers !== undefined} pending={pending} elementName={elements.name} />
-          ))}
+          )))}
         </ol>}
 
         <div className="flex flex-wrap justify-center gap-3 pb-4">
@@ -136,7 +148,6 @@ function Row({ index, question, result, mine, showMine, pending, elementName }: 
       {skipped ? (
         <>
           <p className="text-sm font-semibold text-ink-secondary">Câu này làm ở màn Viết/Nói; điểm bài đã nộp trong lượt này được cộng vào điểm tổng.</p>
-          {result?.aiFailure && <p role="status" className="text-sm font-bold text-danger-fg">Câu {index + 1} không chấm được ({result.aiFailure}), {result.aiRefunded ? 'đã hoàn lượt AI, ' : ''}tính 0 điểm.</p>}
         </>
       ) : (
         <>

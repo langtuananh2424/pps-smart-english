@@ -2,6 +2,7 @@ package com.pps.smartenglish.retention.service;
 
 import com.pps.smartenglish.retention.config.RetentionProperties;
 import com.pps.smartenglish.shared.event.AiGradingFinished;
+import com.pps.smartenglish.shared.event.AttemptGradingSettled;
 import com.pps.smartenglish.shared.event.ExerciseScored;
 import com.pps.smartenglish.shared.event.LessonCompleted;
 import java.math.BigDecimal;
@@ -58,6 +59,11 @@ public class RetentionListener {
         if (WRITING_GRADE.equals(e.kind())) {
             safely("notify", () -> notifications.writingGraded(e.userId(), e.jobId()));
         }
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onAttemptGradingSettled(AttemptGradingSettled e) {
+        safely("notify-attempt", () -> notifications.exerciseGraded(e.userId(), e.attemptId()));
     }
 
     private void safely(String what, Runnable action) {

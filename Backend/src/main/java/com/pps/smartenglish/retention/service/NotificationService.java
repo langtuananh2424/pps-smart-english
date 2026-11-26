@@ -67,6 +67,16 @@ public class NotificationService {
                 url, "WRITING_GRADED:" + jobId, WRITING_TTL);
     }
 
+    /**
+     * D-149: lượt đã nộp và job chấm cuối xong thì một thông báo cho lượt. Chưa xong (còn job chờ, hoặc lượt chưa nộp) thì
+     * không làm gì; hai job cuối xong cùng lúc cùng gọi vào đây, dedupe theo lượt giữ lại đúng một.
+     */
+    public void exerciseGraded(long userId, long attemptId) {
+        notifications.findSettledAttempt(attemptId, userId).ifPresent(a -> notifyOnce(userId, Notification.Type.EXERCISE_GRADED,
+                "Bài \"" + a.getTitle() + "\" đã chấm xong", "Mở để xem kết quả.",
+                "/bai-tap/" + a.getBankId() + "/ket-qua/" + attemptId, "EXERCISE_GRADED:" + attemptId, WRITING_TTL));
+    }
+
     /** Nhân viên trả lời ticket (FR-SUP-02), dedupe theo tin nhắn. Nội dung tin nhắn không nằm trong thông báo. */
     public void ticketReply(long userId, long ticketId, long messageId) {
         notifyOnce(userId, Notification.Type.TICKET_REPLY, "Nhân viên đã trả lời", "Mở hỗ trợ để xem tin nhắn.",

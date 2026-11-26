@@ -38,13 +38,13 @@ describe('kết quả khi API ẩn điểm tạm', () => {
   test('câu chấm lỗi hiện lý do, đã hoàn lượt và tính 0', async () => {
     const r: AttemptResult = { id: 9, bankId: 7, score: 0, maxScore: 1, pendingJobs: [], passed: false, passPct: 70, results: [{ questionId: 2, isCorrect: null, aiFailure: 'AI chấm lỗi', aiRefunded: true }] }
     show(r, r)
-    expect(await screen.findByText('Câu 1 không chấm được (AI chấm lỗi), đã hoàn lượt AI, tính 0 điểm.')).toBeInTheDocument()
+    expect(await screen.findByText('AI chấm lỗi. Đã hoàn 1 lượt AI.')).toBeInTheDocument()
   })
 
   test('bài giao không trừ lượt nên không ghi đã hoàn lượt AI', async () => {
     const r: AttemptResult = { id: 9, bankId: 7, score: 0, maxScore: 1, pendingJobs: [], passed: false, results: [{ questionId: 2, isCorrect: null, aiFailure: 'AI chấm lỗi', aiRefunded: false }] }
     show(r, r)
-    expect(await screen.findByText('Câu 1 không chấm được (AI chấm lỗi), tính 0 điểm.')).toBeInTheDocument()
+    expect(await screen.findByText('AI chấm lỗi.')).toBeInTheDocument()
   })
 
   // Job cuối của lượt xong: màn kết quả tự hỏi lại GET lượt (không dựa vào sự kiện từng job) và hiện điểm.
@@ -61,7 +61,7 @@ describe('kết quả khi API ẩn điểm tạm', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     )
-    expect(screen.getByRole('status')).toHaveTextContent('Đang chấm')
+    expect(screen.getByRole('status')).toHaveTextContent('đang chấm')
     expect(await screen.findByText('Đạt yêu cầu', { exact: false }, { timeout: 8000 })).toBeInTheDocument()
     expect(screen.getByLabelText('Điểm')).toHaveTextContent('0.8/1')
   }, 12_000)

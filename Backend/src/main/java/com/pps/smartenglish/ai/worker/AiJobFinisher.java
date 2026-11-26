@@ -45,6 +45,9 @@ public class AiJobFinisher {
     /** Ghi output + tác dụng phụ (session, điểm lượt làm bài) cùng một transaction. false = bị bỏ qua. */
     @Transactional
     public boolean complete(AiJob job, JsonNode output, Consumer<AiJob> effects) {
+        if (job.getAttemptId() != null) {
+            attempts.lockAttempt(job.getAttemptId()); // cùng thứ tự khóa với fail: lượt trước, rồi dòng job
+        }
         if (jobs.markDone(job.getId(), job.getAttempts(), output, Instant.now(clock)) == 0) {
             return false;
         }
