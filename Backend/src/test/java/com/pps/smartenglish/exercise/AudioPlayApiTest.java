@@ -56,6 +56,18 @@ class AudioPlayApiTest extends ListeningTestSupport {
     }
 
     @Test
+    void examAttemptOnFreeBankFollowsExamRules() throws Exception { // D-151: Mô phỏng thi nghe theo luật thi dù bộ để FREE
+        var w = world("FREE", null);
+        var u = student(0);
+        long a = startAttempt(u, w);
+        jdbc.update("update student_exercise_attempts set mode = 'EXAM' where id = ?", a);
+        play(u, a, w.g1()).andExpect(status().isOk()).andExpect(jsonPath("$.playbackMode").value("EXAM")).andExpect(jsonPath("$.playLimit").value(1));
+        play(u, a, w.g1()).andExpect(status().isForbidden()).andExpect(jsonPath("$.error.code").value("play_limit_reached"));
+        jdbc.update("update student_exercise_attempts set mode = 'PRACTICE' where id = ?", a); // luyện tập: nghe tự do
+        play(u, a, w.g1()).andExpect(status().isOk()).andExpect(jsonPath("$.playbackMode").value("FREE"));
+    }
+
+    @Test
     void freeModeNeverCountsOrLimits() throws Exception {
         var w = world("FREE", null);
         var u = student(0);

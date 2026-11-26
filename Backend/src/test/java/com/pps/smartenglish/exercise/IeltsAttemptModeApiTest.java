@@ -72,6 +72,25 @@ class IeltsAttemptModeApiTest extends ApiTestBase {
     }
 
     @Test
+    void retryCheckFollowsAttemptMode() throws Exception {
+        var u = register(newEmail(), PASSWORD);
+        long b = bank("READING", "PRACTICE");
+        long q = jdbc.queryForObject("select id from questions where bank_id = ?", Long.class, b);
+        long choice = insert("question_choices", Map.of("question_id", q, "label", "A", "content", "x", "is_correct", true));
+        String url = "/api/attempts/%d/questions/" + q + "/check";
+        var body = json.writeValueAsString(Map.of("answer", Map.of("choiceId", choice)));
+        var exam = start(u, b, "{\"mode\":\"EXAM\"}", 201).path("id").asLong();
+        send(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(url.formatted(exam)).contentType(MediaType.APPLICATION_JSON)
+                .content(body), u.accessToken()).andExpect(status().isConflict());
+        assertTrue(json.readTree(send(get("/api/attempts/" + exam + "/progress"), u.accessToken()).andReturn().getResponse().getContentAsString())
+                .path("retry").isMissingNode());
+        jdbc.update("update student_exercise_attempts set submitted_at = now() where id = ?", exam);
+        var practice = start(u, b, "{\"mode\":\"PRACTICE\"}", 201).path("id").asLong();
+        send(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(url.formatted(practice)).contentType(MediaType.APPLICATION_JSON)
+                .content(body), u.accessToken()).andExpect(status().isOk());
+    }
+
+    @Test
     void defaultsToBankModeAndRejectsBadModes() throws Exception {
         var u = register(newEmail(), PASSWORD);
         long ielts = bank("LISTENING", "PRACTICE");

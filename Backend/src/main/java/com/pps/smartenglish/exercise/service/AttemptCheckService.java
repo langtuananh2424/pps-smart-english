@@ -14,7 +14,6 @@ import com.pps.smartenglish.exercise.dto.SubmitRequest;
 import com.pps.smartenglish.exercise.dto.SubmitRequest.AnswerInput;
 import com.pps.smartenglish.exercise.grading.Credit;
 import com.pps.smartenglish.exercise.grading.GraderRegistry;
-import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
 import com.pps.smartenglish.exercise.repository.QuestionCheckRepository;
 import com.pps.smartenglish.exercise.repository.StudentAttemptRepository;
 import com.pps.smartenglish.shared.error.ApiException;
@@ -40,7 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AttemptCheckService {
 
     private final StudentAttemptRepository attempts;
-    private final QuestionBankRepository banks;
+    private final AttemptModes modes;
     private final QuestionCheckRepository checks;
     private final QuestionLoader loader;
     private final GraderRegistry graders;
@@ -49,11 +48,11 @@ public class AttemptCheckService {
     private final ObjectMapper mapper;
     private final Clock clock;
 
-    AttemptCheckService(StudentAttemptRepository attempts, QuestionBankRepository banks, QuestionCheckRepository checks,
+    AttemptCheckService(StudentAttemptRepository attempts, AttemptModes modes, QuestionCheckRepository checks,
                         QuestionLoader loader, GraderRegistry graders, RateLimiter limiter, RetryProperties props,
                         ObjectMapper mapper, Clock clock) {
         this.attempts = attempts;
-        this.banks = banks;
+        this.modes = modes;
         this.checks = checks;
         this.loader = loader;
         this.graders = graders;
@@ -131,11 +130,11 @@ public class AttemptCheckService {
     }
 
     /**
-     * Điều kiện duy nhất "lượt áp dụng thử lại" (D-150): bộ EXAM (gồm bài thi khóa, kiểm tra đầu vào) và lượt Nghe ép (COUNT_ONLY) không có.
-     * D-151 sẽ đổi dòng bankMode sang chế độ của lượt.
+     * Điều kiện duy nhất "lượt áp dụng thử lại" (D-150, D-151): theo chế độ của lượt, không theo bộ. Lượt EXAM (bộ EXAM, bài thi khóa,
+     * kiểm tra đầu vào, hoặc Mô phỏng thi của bộ IELTS) và lượt Nghe ép (COUNT_ONLY) không có.
      */
     private boolean enabled(StudentAttempt a) {
-        return !a.isCountOnly() && banks.findById(a.getBankId()).map(b -> QuestionBank.PRACTICE.equals(b.getMode())).orElse(false);
+        return !a.isCountOnly() && QuestionBank.PRACTICE.equals(modes.of(a));
     }
 
     private CheckResult result(QuestionCheck row) {

@@ -24,6 +24,7 @@ public class BankFaqService {
     @Transactional(readOnly = true)
     public List<FaqItem> list(Long bankId, Long userId) {
         var bank = gate.require(bankId, userId);
+        // Giữ mode của bộ: FAQ theo bộ, không gắn lượt (D-151: bộ IELTS luôn PRACTICE; web ẩn Cam ở lượt Mô phỏng thi)
         if (QuestionBank.EXAM.equals(bank.mode())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "assistant_unavailable", "Cam không có trong bài kiểm tra/thi");
         }

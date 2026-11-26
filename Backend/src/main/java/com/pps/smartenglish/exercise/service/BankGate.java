@@ -61,6 +61,7 @@ class BankGate {
     }
 
     BankInfo requirePracticable(Long bankId, Long userId, boolean inAssignment) {
+        // Giữ mode của bộ: luyện riêng không gắn lượt (có lượt đã đi qua requireFor/inAttempt, D-151)
         // Kiểm mode trước quyền: bộ thi chưa mở sẽ bị bank_locked che mất lý do thật.
         if (banks.findInfo(bankId).filter(b -> QuestionBank.EXAM.equals(b.mode())).isPresent()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "exam_question_not_practicable", "Câu này thuộc bài thi, không luyện tập riêng được");

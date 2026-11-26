@@ -183,7 +183,7 @@ class AttemptCheckApiTest extends ApiTestBase {
         send(get("/api/attempts/" + id + "/progress"), u).andExpect(jsonPath("$.retry").doesNotExist());
 
         jdbc.update("update student_exercise_attempts set result_mode = 'FULL' where id = ?", id);
-        jdbc.update("update question_banks set mode = 'EXAM' where id = ?", b.id());
+        jdbc.update("update student_exercise_attempts set mode = 'EXAM' where id = ?", id); // D-151: chế độ của lượt, không của bộ
         check(id, b.mcq(), u, b.right()).andExpect(status().isConflict()).andExpect(jsonPath("$.error.code").value("retry_not_available"));
         send(get("/api/attempts/" + id + "/progress"), u).andExpect(jsonPath("$.retry").doesNotExist());
     }
