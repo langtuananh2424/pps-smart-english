@@ -30,6 +30,7 @@ export interface ExtraOverview {
   levels: { id: number; title: string }[]
   review: ExtraCard[]
   challenge: ExtraCard[]
+  openAttemptId?: number | null // D-152: lượt Luyện thêm chưa nộp
 }
 
 export interface StartExtra { scope: 'REVIEW' | 'CHALLENGE'; topicId?: number; kind?: ExtraKind }

@@ -58,6 +58,18 @@ class ExtraPracticeFollowupTest extends AiTestSupport {
     }
 
     @Test
+    void overviewReportsTheOpenExtraAttemptUntilItIsSubmitted() throws Exception {
+        var u = student(0);
+        setup(u);
+        question(bank, "CONNECTIVE_MCQ", 1, "Đề", "{}", "{}");
+        getJson("/api/me/courses/" + course + "/extra-practice", u).andExpect(jsonPath("$.openAttemptId").doesNotExist());
+        long e = startExtra(u, Map.of("scope", "CHALLENGE", "topicId", topic));
+        getJson("/api/me/courses/" + course + "/extra-practice", u).andExpect(jsonPath("$.openAttemptId").value(e));
+        submit(u, e);
+        getJson("/api/me/courses/" + course + "/extra-practice", u).andExpect(jsonPath("$.openAttemptId").doesNotExist());
+    }
+
+    @Test
     void writingResultsOfOneAttemptStaySealedWhileAnotherAttemptHoldingTheQuestionIsOpen() throws Exception {
         var u = student(5);
         setup(u);
