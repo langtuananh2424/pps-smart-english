@@ -28,7 +28,7 @@ public final class CamRules {
         public Optional<CamMessage> evaluate(CamContext ctx) {
             return ctx.openAttempt().map(a -> new CamMessage(CamKind.IN_PROGRESS_ATTEMPT,
                     CamTexts.openAttempt(a.bankTitle(), a.remainingSec()),
-                    new CamAction(CamTexts.CONTINUE, "/bai-tap/" + a.bankId())));
+                    new CamAction(CamTexts.CONTINUE, a.path())));
         }
     }
 

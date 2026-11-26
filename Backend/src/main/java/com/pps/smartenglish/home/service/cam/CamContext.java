@@ -12,5 +12,5 @@ public record CamContext(long userId, String displayName, ZonedDateTime now, Sta
     public record ExpiringCourse(String slug, String title, long daysLeft) {}
 
     /** Lượt làm dở; remainingSec null khi bộ không giới hạn thời gian. */
-    public record OpenAttempt(long bankId, String bankTitle, Long remainingSec) {}
+    public record OpenAttempt(String path, String bankTitle, Long remainingSec) {}
 }

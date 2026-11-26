@@ -74,7 +74,7 @@ public class NotificationService {
     public void exerciseGraded(long userId, long attemptId) {
         notifications.findSettledAttempt(attemptId, userId).ifPresent(a -> notifyOnce(userId, Notification.Type.EXERCISE_GRADED,
                 "Bài \"" + a.getTitle() + "\" đã chấm xong", "Mở để xem kết quả.",
-                "/bai-tap/" + a.getBankId() + "/ket-qua/" + attemptId, "EXERCISE_GRADED:" + attemptId, WRITING_TTL));
+                Boolean.TRUE.equals(a.getExtra()) ? "/bai-tap/luyen-them/" + attemptId : "/bai-tap/" + a.getBankId() + "/ket-qua/" + attemptId, "EXERCISE_GRADED:" + attemptId, WRITING_TTL));
     }
 
     /** Nhân viên trả lời ticket (FR-SUP-02), dedupe theo tin nhắn. Nội dung tin nhắn không nằm trong thông báo. */
