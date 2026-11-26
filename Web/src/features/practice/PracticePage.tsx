@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router'
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ApiError } from '../../lib/api'
 import { fetchBank, fetchOpenAttempt, startAttempt } from './api'
+import { isIeltsBank } from '../ielts/parts'
 import { Intro } from './Intro'
 import { Player } from './Player'
 import { ResultView } from './ResultView'
@@ -22,6 +23,8 @@ export function PracticePage() {
   if (bank.isError) return <ErrorCard error={bank.error} onRetry={() => bank.refetch()} />
   if (open.isError) return <ErrorCard error={open.error} onRetry={() => open.refetch()} />
   if (!bank.data || open.data === undefined) return <Loading />
+  // D-151: bộ IELTS Reading/Listening mở khung thi riêng; bài kiểm tra khóa (?khoa) giữ đường cũ.
+  if (!courseId && isIeltsBank(bank.data)) return <Navigate to={`/ielts/${bankId}`} replace />
   return <Runner bank={bank.data} reloadBank={() => bank.refetch()} openAttemptId={open.data?.id ?? null} courseId={courseId} />
 }
 

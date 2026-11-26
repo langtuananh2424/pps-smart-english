@@ -29,6 +29,7 @@ export interface Bank {
   groups?: BankGroup[]
   playbackMode?: PlaybackMode
   playLimit?: number | null // mặc định của bộ, KHÔNG phải số lượt còn lại
+  skill?: 'LISTENING' | 'READING' | 'WRITING' | 'SPEAKING' | 'GRAMMAR_VOCAB' // D-58: kỹ năng của topic chứa bộ
 }
 
 // Đáp án một câu theo từng dạng (D-66); WRITING/SPEAKING không có.
@@ -39,8 +40,8 @@ export interface AnswerItem { questionId: number; answer: Answer }
 // D-145: phiên Viết/Nói mới nhất của một câu trong lượt; id là sessionId (Viết) hoặc submissionId (Nói). Không có điểm.
 export interface AiSession { questionId: number; kind: 'WRITING' | 'SPEAKING'; id: number; status: 'NOT_SUBMITTED' | 'GRADING' | 'GRADED' | 'FAILED' }
 export interface AttemptSummary { id: number; bankId: number; startedAt: string; submittedAt: string | null; score: number | null; maxScore: number | null }
-export interface Started { id: number; bankId: number; startedAt: string; timeLimitSec: number | null }
-export interface Progress { attemptId: number; timeLimitSec?: number; remainingSec?: number; paused: boolean; answers?: AnswerItem[] }
+export interface Started { id: number; bankId: number; startedAt: string; timeLimitSec: number | null; mode?: 'PRACTICE' | 'EXAM' | null }
+export interface Progress { attemptId: number; timeLimitSec?: number; remainingSec?: number; paused: boolean; answers?: AnswerItem[]; mode?: 'PRACTICE' | 'EXAM' } // mode: D-151
 
 export interface QuestionResult {
   questionId: number
