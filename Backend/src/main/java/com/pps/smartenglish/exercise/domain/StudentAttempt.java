@@ -62,6 +62,9 @@ public class StudentAttempt {
     private Long assignmentId;
 
     /** FR-EX-10: FULL hoặc COUNT_ONLY (Nghe ép), sao chép từ bộ lúc bắt đầu. rule_id: luật Nghe ép đang áp, null = mặc định cấu hình. */
+    @Column(updatable = false)
+    private String mode;
+
     @Column(name = "result_mode", nullable = false, updatable = false)
     private String resultMode = FULL;
 
@@ -94,6 +97,13 @@ public class StudentAttempt {
     public StudentAttempt countOnly(Long ruleId) {
         this.resultMode = COUNT_ONLY;
         this.ruleId = ruleId;
+        return this;
+    }
+
+    /** D-151: chế độ lượt đã chọn; null = theo bộ (lượt cũ, bộ ngoài phạm vi IELTS). */
+    public String getMode() { return mode; }
+    public StudentAttempt withMode(String mode) {
+        this.mode = mode;
         return this;
     }
 

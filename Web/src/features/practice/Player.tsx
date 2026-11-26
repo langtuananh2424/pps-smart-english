@@ -8,6 +8,7 @@ import { isSent, writingKey, type SendAction } from './ai/answer'
 import { useAiRefs } from './ai/useAiRefs'
 import { fetchProgress, fromItems, pauseAttempt, resumeAttempt, submitOrFetch } from './api'
 import { BottomBar } from './BottomBar'
+import { CheckBar } from './CheckBar'
 import { CamHint } from './CamHint'
 import { ConfirmDialog } from './ConfirmDialog'
 import { GroupPassage } from './GroupPassage'
@@ -17,6 +18,7 @@ import { ErrorCard } from './StatusCard'
 import { isAnswerable, isAnswered, rendererOf } from './questions/registry'
 import type { AiSession, Answer, Answers, AttemptResult, Bank, Progress } from './types'
 import { clearStoredText } from '../writing/useStoredText'
+import { useCheck, isCheckable, isLocked } from './useCheck'
 import { useCountdown } from './useCountdown'
 import { useDraft } from './useDraft'
 
@@ -84,6 +86,16 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
   answersRef.current = answers
   const draft = useDraft(attemptId, answers, !paused, () => void submit())
 
+  const retry = useCheck(attemptId, progress.retry, () => void submit())
+  const checkState = retry.checks[question.id]
+  const checkable = retry.enabled && isCheckable(question.type)
+  const locked = checkable && isLocked(checkState)
+  const runCheck = async () => {
+    setError(null)
+    const msg = await retry.check(question.id, answers[question.id] ?? {})
+    if (msg) setError(msg)
+  }
+
   const secondsLeft = useCountdown(progress.remainingSec, paused, syncedAt, () => void submit())
 
   const setProgress = (p: Progress) => qc.setQueryData(['attempt', attemptId, 'progress'], p)
@@ -127,7 +139,8 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
             Câu {index + 1}/{bank.questions.length} · {question.instruction ?? labelOf(question.type)}
           </p>
           <p className="text-lg font-black leading-6 text-ink md:text-2xl md:leading-[30px]">{question.prompt}</p>
-          {!aiQ && <Component key={question.id} question={question} value={answers[question.id]} onChange={onChange} disabled={paused || busy} />}
+          {!aiQ && <Component key={question.id} question={question} value={answers[question.id]} onChange={onChange} disabled={paused || busy || locked} />}
+          {checkable && <CheckBar state={checkState} canCheck={!paused && !busy && isAnswered(question.type, answers[question.id])} pending={retry.pending} onCheck={() => void runCheck()} />}
         </article>
           </div>
           {aiQ && (
@@ -151,7 +164,7 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
           </div>
         )}
       </main>
-      <CamHint hints={paused ? [] : (question.hints ?? [])} />
+      <CamHint hints={paused ? [] : (question.hints ?? [])} notice={checkable && !locked && retry.wrong?.questionId === question.id ? 'Chưa đúng, thử lại nhé' : null} openKey={retry.wrong?.questionId === question.id ? retry.wrong.n : undefined} />
       <BottomBar count={bank.questions.length} index={index} answered={answered} onGo={setIndex} onSubmit={openConfirm} disabled={paused || busy} submitDisabled={uploading} send={aiQ ? send : null} />
       {confirm && <ConfirmDialog pending={pending} zeroAi={zeroAi} grading={grading} busy={busy} error={error} onGo={(i) => { setIndex(i); setConfirm(false) }} onConfirm={() => void submit()} onCancel={() => setConfirm(false)} />}
     </div>

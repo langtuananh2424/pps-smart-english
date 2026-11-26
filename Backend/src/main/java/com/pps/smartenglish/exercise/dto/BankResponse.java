@@ -2,6 +2,7 @@ package com.pps.smartenglish.exercise.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.pps.smartenglish.catalog.domain.TopicSkill;
 import com.pps.smartenglish.exercise.dto.QuestionMediaDtos.QuestionMediaView;
 import java.util.List;
 
@@ -9,10 +10,12 @@ import java.util.List;
  * Không có trường nào mang đáp án: không answerKey, is_correct hay explanation, cũng không script (FR-EX-10).
  * playbackMode/playLimit (D-135): chế độ phát audio và số lần nghe mỗi part theo bộ (null = không giới hạn); bài giao có thể
  * ghi đè, số chính xác của lượt đang làm nằm ở phản hồi cấp link nghe.
+ * skill: kỹ năng của topic chứa bộ (D-58), vắng nếu topic không gắn; web dùng để mở khung IELTS Reading/Listening.
  */
 public record BankResponse(Long id, String title, Long lessonId, boolean isTrial, String mode,
                          Integer timeLimitSec, List<QuestionView> questions, List<GroupView> groups, String playbackMode,
-                         Integer playLimit) {
+                         Integer playLimit,
+                         @JsonInclude(JsonInclude.Include.NON_NULL) TopicSkill skill) {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record QuestionView(Long id, String type, String instruction, String prompt, JsonNode payload, List<ChoiceView> choices,

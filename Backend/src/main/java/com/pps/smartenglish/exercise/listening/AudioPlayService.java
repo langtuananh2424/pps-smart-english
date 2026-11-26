@@ -1,6 +1,7 @@
 package com.pps.smartenglish.exercise.listening;
 
 import com.pps.smartenglish.exercise.domain.QuestionBank;
+import com.pps.smartenglish.exercise.service.AttemptModes;
 import com.pps.smartenglish.exercise.domain.QuestionGroup;
 import com.pps.smartenglish.exercise.domain.StudentAttempt;
 import com.pps.smartenglish.exercise.listening.ListeningDtos.PlayGrant;
@@ -36,10 +37,11 @@ public class AudioPlayService {
     private final ListeningProperties props;
     private final CmsWrites writes;
     private final Clock clock;
+    private final AttemptModes modes;
 
     AudioPlayService(StudentAttemptRepository attempts, QuestionBankRepository banks, QuestionGroupRepository groups,
                      AudioPlayRepository plays, AudioMediaService audio, ForcedRules rules, PlaybackPolicies policies,
-                     ListeningProperties props, CmsWrites writes, Clock clock) {
+                     ListeningProperties props, CmsWrites writes, Clock clock, AttemptModes modes) {
         this.attempts = attempts;
         this.banks = banks;
         this.groups = groups;
@@ -50,6 +52,7 @@ public class AudioPlayService {
         this.props = props;
         this.writes = writes;
         this.clock = clock;
+        this.modes = modes;
     }
 
     @Transactional
@@ -109,7 +112,9 @@ public class AudioPlayService {
             return policies.of(QuestionBank.LOCKED);
         }
         String mode = bank.getPlaybackMode();
-        return policies.of(QuestionBank.LOCKED.equals(mode) ? QuestionBank.EXAM : mode);
+        // D-151: lượt Mô phỏng thi của bộ IELTS nghe theo luật thi dù bộ để FREE; bộ EXAM khác giữ FREE
+        boolean exam = QuestionBank.LOCKED.equals(mode) || (QuestionBank.FREE.equals(mode) && modes.choosable(bank) && QuestionBank.EXAM.equals(modes.of(attempt)));
+        return policies.of(exam ? QuestionBank.EXAM : mode);
     }
 
     /** Hạn link: độ dài audio + margin nếu biết, ngược lại mặc định; không vượt cận trên. */

@@ -1,5 +1,5 @@
 import { api, ApiError, postJson, sendKeepalive } from '../../lib/api'
-import type { AiSession, Answers, AnswerItem, AttemptResult, AttemptSummary, Bank, PlayGrant, PlayState, Progress, ScriptView, Started } from './types'
+import type { AiSession, Answer, Answers, AnswerItem, AttemptResult, AttemptSummary, Bank, CheckState, PlayGrant, PlayState, Progress, ScriptView, Started } from './types'
 
 export const fetchBank = (id: number) => api<Bank>(`/banks/${id}`)
 export const fetchOpenAttempt = async (bankId: number) =>
@@ -8,6 +8,8 @@ export const startAttempt = (bankId: number) => postJson<Started>(`/banks/${bank
 export const fetchProgress = (id: number) => api<Progress>(`/attempts/${id}/progress`)
 export const pauseAttempt = (id: number) => api<Progress>(`/attempts/${id}/pause`, { method: 'POST' })
 export const resumeAttempt = (id: number) => api<Progress>(`/attempts/${id}/resume`, { method: 'POST' })
+export const checkQuestion = (attemptId: number, questionId: number, answer: Answer) =>
+  postJson<CheckState>(`/attempts/${attemptId}/questions/${questionId}/check`, { answer })
 export const fetchAiSessions = async (attemptId: number) => (await api<{ data: AiSession[] }>(`/attempts/${attemptId}/ai-sessions`)).data
 export const fetchAttempt = (id: number) => api<AttemptResult>(`/attempts/${id}`)
 export const submitAttempt = (id: number, answers: Answers) => postJson<AttemptResult>(`/attempts/${id}/submit`, { answers: toItems(answers) })

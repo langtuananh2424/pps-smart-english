@@ -5,7 +5,6 @@ import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.domain.StudentAttempt;
 import com.pps.smartenglish.exercise.dto.AttemptProgress;
 import com.pps.smartenglish.exercise.dto.SubmitRequest;
-import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
 import com.pps.smartenglish.exercise.repository.StudentAttemptRepository;
 import com.pps.smartenglish.shared.error.ApiException;
 import java.time.Clock;
@@ -22,15 +21,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class AttemptTimerService {
 
     private final StudentAttemptRepository attempts;
-    private final QuestionBankRepository banks;
+    private final AttemptModes modes;
     private final QuestionLoader loader;
     private final ObjectMapper mapper;
     private final Clock clock;
+    private final AttemptCheckService retry;
 
-    AttemptTimerService(StudentAttemptRepository attempts, QuestionBankRepository banks, QuestionLoader loader,
-                        ObjectMapper mapper, Clock clock) {
+    AttemptTimerService(StudentAttemptRepository attempts, AttemptModes modes, QuestionLoader loader,
+                        ObjectMapper mapper, Clock clock, AttemptCheckService retry) {
+        this.retry = retry;
         this.attempts = attempts;
-        this.banks = banks;
+        this.modes = modes;
         this.loader = loader;
         this.mapper = mapper;
         this.clock = clock;
@@ -39,7 +40,7 @@ public class AttemptTimerService {
     @Transactional
     public AttemptProgress pause(long userId, long attemptId) {
         var a = openAttempt(userId, attemptId);
-        if (a.getTimeLimitSec() == null || !QuestionBank.PRACTICE.equals(bankMode(a))) {
+        if (a.getTimeLimitSec() == null || !QuestionBank.PRACTICE.equals(modes.of(a))) {
             throw new ApiException(HttpStatus.CONFLICT, "attempt_not_pausable", "Bài thi này không được tạm dừng");
         }
         Instant now = Instant.now(clock);
@@ -72,7 +73,7 @@ public class AttemptTimerService {
         }
         var questions = loader.load(a.getBankId()).questions();
         SubmissionService.indexAnswers(req.answers(), questions);
-        a.saveDraft(mapper.valueToTree(req.answers()));
+        a.saveDraft(mapper.valueToTree(retry.pinLocked(attemptId, req, questions).answers())); // D-150: câu đã khóa giữ lần kiểm tra cuối
         attempts.save(a);
         return progress(a);
     }
@@ -84,7 +85,7 @@ public class AttemptTimerService {
 
     AttemptProgress progress(StudentAttempt a) {
         return new AttemptProgress(a.getId(), a.getTimeLimitSec(), a.remainingSec(Instant.now(clock)), a.paused(),
-                a.getDraftAnswers());
+                a.getDraftAnswers(), modes.of(a), retry.stateOf(a));
     }
 
     private StudentAttempt openAttempt(long userId, long attemptId) {
@@ -98,10 +99,6 @@ public class AttemptTimerService {
     private StudentAttempt findOwned(long userId, long attemptId) {
         return attempts.findByIdAndUserId(attemptId, userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "attempt_not_found", "Không tìm thấy lượt làm bài"));
-    }
-
-    private String bankMode(StudentAttempt a) {
-        return banks.findById(a.getBankId()).map(QuestionBank::getMode).orElse(QuestionBank.EXAM);
     }
 
     private static ApiException timeUp() {

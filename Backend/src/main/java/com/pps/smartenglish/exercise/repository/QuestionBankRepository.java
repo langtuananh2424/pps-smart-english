@@ -41,6 +41,10 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long
             """)
     Optional<BankInfo> findInfo(@Param("id") Long id);
 
+    /** D-58: kỹ năng của topic chứa bộ; rỗng khi topic không gắn kỹ năng. */
+    @Query("select t.skill from QuestionBank b, Topic t where b.id = :id and t.id = b.topicId")
+    Optional<com.pps.smartenglish.catalog.domain.TopicSkill> findSkill(@Param("id") Long id);
+
     /** Tên khóa học chứa bộ câu hỏi, đưa vào prompt chấm viết để model chấm theo mục tiêu của khóa. */
     @Query("""
             select c.title from QuestionBank b, Topic t, CourseLevel lv, Course c
