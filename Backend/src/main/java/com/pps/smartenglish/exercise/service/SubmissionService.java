@@ -65,11 +65,14 @@ public class SubmissionService {
     private final ApplicationEventPublisher events;
     private final LearningStatsProperties props;
     private final AttemptCheckService checkService;
+    private final AssignedBanks assigned;
 
     SubmissionService(StudentAttemptRepository attempts, StudentAnswerRepository answers, AnswerGradingRepository gradings,
                       QuestionLoader loader, GraderRegistry graders, RewriteRules rewriteRules, RewriteJobInput rewriteInput,
                       ResultAssembler assembler, AiJobService aiJobs, AttemptAiScores aiScores, AddonCatalog addons, QuestionBankRepository banks, ObjectMapper mapper, Clock clock,
-                      ApplicationEventPublisher events, LearningStatsProperties props, AttemptCheckService checkService) {
+                      ApplicationEventPublisher events, LearningStatsProperties props, AttemptCheckService checkService,
+                      AssignedBanks assigned) {
+        this.assigned = assigned;
         this.props = props;
         this.checkService = checkService;
         this.events = events;
@@ -96,6 +99,9 @@ public class SubmissionService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "attempt_not_found", "Không tìm thấy lượt làm bài"));
         if (attempt.getSubmittedAt() != null) {
             throw alreadySubmitted();
+        }
+        if (req != null) {
+            assigned.requireActive(attempt.getAssignmentId()); // D-153; req null = hệ thống nộp khi hết giờ, vẫn phải chốt lượt
         }
         Instant now = Instant.now(clock);
         if (req == null || attempt.expired(now)) {

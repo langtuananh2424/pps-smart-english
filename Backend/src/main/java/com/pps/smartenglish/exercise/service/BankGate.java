@@ -38,13 +38,22 @@ class BankGate {
      * các policy quyền vẫn áp. Không mở cả bộ: chỗ khác của bộ vẫn gọi require thường.
      */
     BankInfo require(Long bankId, Long userId, boolean inAssignment) {
+        return check(bankId, userId, inAssignment || assigned.isAssigned(userId, bankId));
+    }
+
+    /** D-153: chỉ đường ĐỌC bộ bài; người nhận bài giao đã hủy vẫn xem lại được dù unit chưa mở. Đường ghi dùng require. */
+    BankInfo requireReadable(Long bankId, Long userId) {
+        return check(bankId, userId, assigned.isAssignedAnyStatus(userId, bankId));
+    }
+
+    private BankInfo check(Long bankId, Long userId, boolean unitOpenedByAssignment) {
         var bank = banks.findInfo(bankId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "bank_not_found", "Không tìm thấy bộ câu hỏi"));
         if (policies.stream().noneMatch(p -> p.allows(userId, bank))) {
             throw new ApiException(HttpStatus.FORBIDDEN, "bank_locked", "Bạn chưa có quyền làm bộ câu hỏi này");
         }
         // Học tuần tự (FR-LMS-04); bài thi cuối khóa mở theo tỷ lệ học (ExamService), không theo thứ tự unit.
-        if (courses.findByExamBankId(bankId).isEmpty() && !inAssignment && !assigned.isAssigned(userId, bankId)) {
+        if (courses.findByExamBankId(bankId).isEmpty() && !unitOpenedByAssignment) {
             unitUnlock.requireUnlocked(userId, bank.topicId());
         }
         return bank;

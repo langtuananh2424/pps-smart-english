@@ -32,7 +32,7 @@ class WritingHistoryController {
     /** Mới nhất trước, lọc theo câu hỏi, phân trang con trỏ. */
     @GetMapping("/api/me/writing")
     CursorPage<SessionSummary> mine(Authentication auth, @RequestParam(required = false) String questionId,
-                                    @RequestParam(required = false) String limit, @RequestParam(required = false) String cursor) {
+                                    @RequestParam(required = false) String assignmentId, @RequestParam(required = false) String limit, @RequestParam(required = false) String cursor) {
         Long question = null;
         if (questionId != null && !questionId.isBlank()) {
             try {
@@ -41,6 +41,8 @@ class WritingHistoryController {
                 throw ApiException.validation("questionId", "Phải là số nguyên");
             }
         }
-        return history.list(CurrentUser.id(auth), question, limit, cursor);
+        Long asg = assignmentId == null || assignmentId.isBlank() ? null
+                : PathId.parse(assignmentId, "assignment_not_found", "Không tìm thấy bài được giao");
+        return history.list(CurrentUser.id(auth), question, asg, limit, cursor);
     }
 }

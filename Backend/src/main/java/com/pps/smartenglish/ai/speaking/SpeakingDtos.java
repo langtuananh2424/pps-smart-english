@@ -23,7 +23,7 @@ public final class SpeakingDtos {
 
     /** audioUrl: URL ký ngắn hạn, null khi chưa có hoặc đã xóa audio. */
     public record SubmissionView(long id, long questionId, String status, JsonNode result, String audioUrl, BigDecimal durationSec,
-                                 Instant createdAt) {}
+                                 Instant createdAt, Long assignmentId) {}
 
     /** D-141: lượt nói cho giáo viên; audioDeleted = ghi âm đã bị xóa theo D-43 (audioUrl null, chép lời và kết quả vẫn còn). */
     public record StaffView(SubmissionView submission, boolean audioDeleted) {}

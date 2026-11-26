@@ -262,7 +262,7 @@ class AssignmentAiSecurityTest extends AiTestSupport {
         call(HttpMethod.POST, base(f) + "/" + asg + "/cancel", f.teacher().accessToken(), null).andExpect(status().isOk());
 
         completeSpeaking(s, id).andExpect(status().isNotFound());
-        getJson("/api/speaking/questions/" + f.sA() + "?assignmentId=" + asg, s).andExpect(status().isNotFound());
+        getJson("/api/speaking/questions/" + f.sA() + "?assignmentId=" + asg, s).andExpect(status().isOk()); // D-153: chỉ xem đề
         assertEquals(0, count("select count(*) from ai_jobs where kind = 'SPEAKING_GRADE' and user_id = ?", s.id()));
     }
 

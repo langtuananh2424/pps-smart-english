@@ -45,5 +45,5 @@ public final class WritingDtos {
                               String draft, String finalText, Long gradeJobId, JsonNode grade, Instant createdAt) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record SessionSummary(Long sessionId, Long questionId, String status, Integer scorePercent, Instant createdAt) {}
+    public record SessionSummary(Long sessionId, Long questionId, String status, Integer scorePercent, Instant createdAt, Long assignmentId) {}
 }

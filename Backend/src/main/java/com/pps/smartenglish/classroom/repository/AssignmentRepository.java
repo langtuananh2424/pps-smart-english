@@ -34,7 +34,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     @Query("select a from Assignment a where a.status = 'ACTIVE' "
             + "and a.classId in (select m.classId from ClassMember m where m.userId = :userId and m.status = 'ACTIVE') "
             + "and (not exists (select 1 from AssignmentTarget t where t.assignmentId = a.id) "
-            + "or exists (select 1 from AssignmentTarget t where t.assignmentId = a.id and t.userId = :userId)) order by a.dueAt, a.id")
+            + "or exists (select 1 from AssignmentTarget t where t.assignmentId = a.id and t.userId = :userId)) order by a.dueAt desc, a.id desc")
     List<Assignment> forStudent(@Param("userId") Long userId, Pageable page);
 
     /** Học viên đang học lớp của bài và là người nhận của bài còn hiệu lực. */
@@ -43,6 +43,20 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
             + "and (not exists (select 1 from AssignmentTarget t where t.assignmentId = a.id) "
             + "or exists (select 1 from AssignmentTarget t where t.assignmentId = a.id and t.userId = :userId))")
     boolean isRecipient(@Param("id") Long id, @Param("userId") Long userId);
+
+    /** Như isRecipient nhưng không đòi bài còn hiệu lực: người nhận vẫn xem được bài đã hủy (D-153). */
+    @Query("select count(a) > 0 from Assignment a where a.id = :id "
+            + "and a.classId in (select m.classId from ClassMember m where m.userId = :userId and m.status = 'ACTIVE') "
+            + "and (not exists (select 1 from AssignmentTarget t where t.assignmentId = a.id) "
+            + "or exists (select 1 from AssignmentTarget t where t.assignmentId = a.id and t.userId = :userId))")
+    boolean isRecipientAnyStatus(@Param("id") Long id, @Param("userId") Long userId);
+
+    /** Như isRecipientOfQuestion nhưng mọi trạng thái: xem đề của bài đã hủy (D-153). */
+    @Query("select count(a) > 0 from Assignment a where a.id = :id and a.questionId = :questionId "
+            + "and a.classId in (select m.classId from ClassMember m where m.userId = :userId and m.status = 'ACTIVE') "
+            + "and (not exists (select 1 from AssignmentTarget t where t.assignmentId = a.id) "
+            + "or exists (select 1 from AssignmentTarget t where t.assignmentId = a.id and t.userId = :userId))")
+    boolean isRecipientOfQuestionAnyStatus(@Param("id") Long id, @Param("userId") Long userId, @Param("questionId") Long questionId);
 
     /** Như isRecipient, và bài phải giao đúng câu Viết/Nói này (D-130). */
     @Query("select count(a) > 0 from Assignment a where a.id = :id and a.questionId = :questionId and a.status = 'ACTIVE' "
@@ -57,6 +71,13 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
             + "and (not exists (select 1 from AssignmentTarget t where t.assignmentId = a.id) "
             + "or exists (select 1 from AssignmentTarget t where t.assignmentId = a.id and t.userId = :userId))")
     boolean isBankAssigned(@Param("bankId") Long bankId, @Param("userId") Long userId);
+
+    /** Như isBankAssigned nhưng mọi trạng thái: chỉ để xem lại bộ đã giao (D-153). */
+    @Query("select count(a) > 0 from Assignment a where a.bankId = :bankId and a.questionId is null "
+            + "and a.classId in (select m.classId from ClassMember m where m.userId = :userId and m.status = 'ACTIVE') "
+            + "and (not exists (select 1 from AssignmentTarget t where t.assignmentId = a.id) "
+            + "or exists (select 1 from AssignmentTarget t where t.assignmentId = a.id and t.userId = :userId))")
+    boolean isBankAssignedAnyStatus(@Param("bankId") Long bankId, @Param("userId") Long userId);
 
     @Query("select a from Assignment a where a.status = 'ACTIVE' and a.remindedAt is null and a.dueAt > :now and a.dueAt <= :until")
     List<Assignment> dueForReminder(@Param("now") Instant now, @Param("until") Instant until);

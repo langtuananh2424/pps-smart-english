@@ -58,7 +58,7 @@ class SpeakingController {
 
     @GetMapping("/api/me/speaking")
     CursorPage<SubmissionView> list(Authentication auth, @RequestParam(required = false) String questionId,
-                                    @RequestParam(required = false) String limit, @RequestParam(required = false) String cursor) {
+                                    @RequestParam(required = false) String assignmentId, @RequestParam(required = false) String limit, @RequestParam(required = false) String cursor) {
         Long question = null;
         if (questionId != null && !questionId.isBlank()) {
             try {
@@ -67,7 +67,9 @@ class SpeakingController {
                 throw ApiException.validation("questionId", "Phải là số nguyên");
             }
         }
-        return speaking.list(CurrentUser.id(auth), question, limit, cursor);
+        Long asg = assignmentId == null || assignmentId.isBlank() ? null
+                : PathId.parse(assignmentId, "assignment_not_found", "Không tìm thấy bài được giao");
+        return speaking.list(CurrentUser.id(auth), question, asg, limit, cursor);
     }
 
     private static Long submissionId(String raw) {

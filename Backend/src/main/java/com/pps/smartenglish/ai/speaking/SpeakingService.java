@@ -153,7 +153,7 @@ public class SpeakingService {
             attemptLinks.requireOpen(userId, attemptId, questionId); // D-145: lượt hợp lệ thì bộ thi khóa cũng xem được đề
         }
         if (assignmentId != null) {
-            assigned.requireRecipient(userId, assignmentId, questionId);
+            assigned.requireViewer(userId, assignmentId, questionId); // D-153: bài đã hủy vẫn xem được đề
         }
         var q = questions.findForNewSession(questionId, userId, assignmentId != null, attemptId != null);
         if (attemptId == null && assignmentId == null) {
@@ -173,11 +173,14 @@ public class SpeakingService {
         return new StaffView(toView(s, false), s.getAudioDeletedAt() != null);
     }
 
-    public CursorPage<SubmissionView> list(long userId, Long questionId, String limit, String cursor) {
+    /** assignmentId có: chỉ lượt của bài giao đó (bỏ qua questionId); không có: như cũ. */
+    public CursorPage<SubmissionView> list(long userId, Long questionId, Long assignmentId, String limit, String cursor) {
         int size = Cursors.size(limit, DEFAULT_LIMIT, MAX_LIMIT);
         long before = Cursors.decode(cursor);
         var page = PageRequest.of(0, size + 1);
-        List<SpeakingSubmission> rows = questionId == null
+        List<SpeakingSubmission> rows = assignmentId != null
+                ? submissions.findByUserIdAndAssignmentIdAndIdLessThanOrderByIdDesc(userId, assignmentId, before, page)
+                : questionId == null
                 ? submissions.findByUserIdAndIdLessThanOrderByIdDesc(userId, before, page)
                 : submissions.findByUserIdAndQuestionIdAndIdLessThanOrderByIdDesc(userId, questionId, before, page);
         boolean more = rows.size() > size;
@@ -243,6 +246,6 @@ public class SpeakingService {
         boolean hasAudio = s.getAudioDeletedAt() == null && s.getSizeBytes() != null
                 && !SpeakingSubmission.AWAITING_UPLOAD.equals(s.getStatus()) && !SpeakingSubmission.EXPIRED.equals(s.getStatus());
         return new SubmissionView(s.getId(), s.getQuestionId(), s.getStatus(), hide ? null : s.getResult(),
-                hasAudio ? storage.presignGet(s.getObjectKey(), AUDIO_URL_TTL) : null, s.getDurationSec(), s.getCreatedAt());
+                hasAudio ? storage.presignGet(s.getObjectKey(), AUDIO_URL_TTL) : null, s.getDurationSec(), s.getCreatedAt(), s.getAssignmentId());
     }
 }

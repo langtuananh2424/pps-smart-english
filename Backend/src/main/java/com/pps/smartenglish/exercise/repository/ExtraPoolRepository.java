@@ -24,9 +24,11 @@ public class ExtraPoolRepository {
               and (b.lesson_id is null or exists (select 1 from lessons l where l.id = b.lesson_id and l.status = 'PUBLISHED'))
               and q.archived_at is null and q.group_id is null and q.type in (:types)
               and not exists (select 1 from student_exercise_attempts o
-                              where o.user_id = :userId and o.bank_id = b.id and o.submitted_at is null)
+                              where o.user_id = :userId and o.bank_id = b.id and o.submitted_at is null
+                                and (o.assignment_id is null or exists (select 1 from assignments s where s.id = o.assignment_id and s.status = 'ACTIVE')))
               and not exists (select 1 from attempt_questions aq join student_exercise_attempts oa on oa.id = aq.attempt_id
-                              where aq.question_id = q.id and oa.user_id = :userId and oa.submitted_at is null)
+                              where aq.question_id = q.id and oa.user_id = :userId and oa.submitted_at is null
+                                and (oa.assignment_id is null or exists (select 1 from assignments s where s.id = oa.assignment_id and s.status = 'ACTIVE')))
             """;
 
     public record TopicRow(long topicId, String title, int sortOrder, boolean freeTrial, long levelId, String levelTitle) {}

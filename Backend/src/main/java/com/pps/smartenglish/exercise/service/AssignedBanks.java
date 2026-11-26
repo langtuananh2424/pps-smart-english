@@ -7,4 +7,10 @@ package com.pps.smartenglish.exercise.service;
 public interface AssignedBanks {
 
     boolean isAssigned(long userId, long bankId);
+
+    /** D-153: người nhận bài giao bộ này ở mọi trạng thái (kể cả đã hủy): chỉ dùng cho đường đọc. */
+    boolean isAssignedAnyStatus(long userId, long bankId);
+
+    /** D-153: lượt của bài giao đã hủy không lưu nháp, kiểm câu hay nộp được nữa: 409 assignment_cancelled. null = lượt tự học. */
+    void requireActive(Long assignmentId);
 }

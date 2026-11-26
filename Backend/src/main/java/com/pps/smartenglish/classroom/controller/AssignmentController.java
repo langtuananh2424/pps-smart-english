@@ -69,6 +69,11 @@ class AssignmentController {
         return assignments.mine(CurrentUser.id(auth));
     }
 
+    @GetMapping("/api/me/assignments/{id}")
+    AssignmentView mineOne(Authentication auth, @PathVariable String id) {
+        return assignments.mineOne(CurrentUser.id(auth), asg(id));
+    }
+
     @PostMapping(BASE + "/{id}/cancel")
     AssignmentView cancel(Authentication auth, @PathVariable String classId, @PathVariable String id) {
         return assignments.cancel(CurrentUser.id(auth), cls(classId), asg(id));

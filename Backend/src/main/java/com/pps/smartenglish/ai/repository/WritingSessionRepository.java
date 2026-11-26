@@ -18,6 +18,9 @@ public interface WritingSessionRepository extends JpaRepository<WritingSession, 
 
     List<WritingSession> findByUserIdAndIdLessThanOrderByIdDesc(Long userId, Long before, Pageable page);
 
+    /** Phiên gắn một bài giao của chính học viên (D-130), tách khỏi phiên tự luyện cùng câu. */
+    List<WritingSession> findByUserIdAndAssignmentIdAndIdLessThanOrderByIdDesc(Long userId, Long assignmentId, Long before, Pageable page);
+
     List<WritingSession> findByUserIdAndQuestionIdAndIdLessThanOrderByIdDesc(Long userId, Long questionId, Long before, Pageable page);
 
     /** [questionId, lần nộp gần nhất] của các câu người dùng đã nộp (updated_at được đặt lúc nộp). */

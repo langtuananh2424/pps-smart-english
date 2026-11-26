@@ -115,7 +115,7 @@ public class AssignmentProgressService {
     @Transactional(readOnly = true)
     public MyResult mine(long userId, long classId, long assignmentId) {
         Assignment a = assignmentService.require(classId, assignmentId);
-        if (!assignments.isRecipient(assignmentId, userId)) {
+        if (!assignments.isRecipientAnyStatus(assignmentId, userId)) { // D-153: bài đã hủy vẫn xem kết quả
             throw AssignmentService.notFound();
         }
         var sub = latestOf(a, userId);

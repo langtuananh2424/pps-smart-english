@@ -47,10 +47,12 @@ public class AttemptCheckService {
     private final RetryProperties props;
     private final ObjectMapper mapper;
     private final Clock clock;
+    private final AssignedBanks assigned;
 
     AttemptCheckService(StudentAttemptRepository attempts, AttemptModes modes, QuestionCheckRepository checks,
                         QuestionLoader loader, GraderRegistry graders, RateLimiter limiter, RetryProperties props,
-                        ObjectMapper mapper, Clock clock) {
+                        ObjectMapper mapper, Clock clock, AssignedBanks assigned) {
+        this.assigned = assigned;
         this.attempts = attempts;
         this.modes = modes;
         this.checks = checks;
@@ -71,6 +73,7 @@ public class AttemptCheckService {
         if (a.getSubmittedAt() != null) {
             throw new ApiException(HttpStatus.CONFLICT, "attempt_already_submitted", "Lượt làm bài này đã được nộp");
         }
+        assigned.requireActive(a.getAssignmentId()); // D-153
         if (a.expired(Instant.now(clock))) {
             throw new ApiException(HttpStatus.CONFLICT, "attempt_time_up", "Đã hết giờ làm bài");
         }

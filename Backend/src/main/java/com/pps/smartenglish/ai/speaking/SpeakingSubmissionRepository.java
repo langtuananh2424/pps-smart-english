@@ -19,6 +19,9 @@ public interface SpeakingSubmissionRepository extends JpaRepository<SpeakingSubm
 
     List<SpeakingSubmission> findByUserIdAndIdLessThanOrderByIdDesc(Long userId, Long before, Pageable page);
 
+    /** Lượt nói gắn một bài giao của chính học viên (D-130), tách khỏi lượt tự luyện cùng câu. */
+    List<SpeakingSubmission> findByUserIdAndAssignmentIdAndIdLessThanOrderByIdDesc(Long userId, Long assignmentId, Long before, Pageable page);
+
     List<SpeakingSubmission> findByUserIdAndQuestionIdAndIdLessThanOrderByIdDesc(Long userId, Long questionId, Long before, Pageable page);
 
     /** Lượt nói gắn với lượt làm bài, cũ trước mới sau (D-145: câu nhiều lượt thì lấy lượt mới nhất). */
