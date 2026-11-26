@@ -4,7 +4,7 @@ import type { Hint } from './types'
 
 // Cam nổi góc dưới (Figma 10.01): chỉ có khi câu có gợi ý soạn sẵn (bộ EXAM backend trả rỗng).
 // Mobile có thêm nhãn "Hỏi Cam" cạnh Cam; bấm thì mở bong bóng liệt kê gợi ý.
-// D-150: kiểm tra sai thì Player đổi openKey để Cam tự mở, notice ("Chưa đúng...") hiện trên danh sách gợi ý; câu không có gợi ý vẫn có Cam khi có notice.
+// D-150: kiểm tra sai thì Player đổi openKey để Cam tự mở, notice ("Cần sửa...") hiện trên danh sách gợi ý; câu không có gợi ý vẫn có Cam khi có notice.
 export function CamHint({ hints, notice, openKey }: { hints: Hint[]; notice?: string | null; openKey?: number }) {
   const [open, setOpen] = useState(false)
   useEffect(() => {

@@ -164,7 +164,7 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
           </div>
         )}
       </main>
-      <CamHint hints={paused ? [] : (question.hints ?? [])} notice={checkable && !locked && retry.wrong?.questionId === question.id ? 'Chưa đúng, thử lại nhé' : null} openKey={retry.wrong?.questionId === question.id ? retry.wrong.n : undefined} />
+      <CamHint hints={paused ? [] : (question.hints ?? [])} notice={checkable && !locked && retry.wrong?.questionId === question.id ? 'Cần sửa, thử lại nhé' : null} openKey={retry.wrong?.questionId === question.id ? retry.wrong.n : undefined} />
       <BottomBar count={bank.questions.length} index={index} answered={answered} onGo={setIndex} onSubmit={openConfirm} disabled={paused || busy} submitDisabled={uploading} send={aiQ ? send : null} />
       {confirm && <ConfirmDialog pending={pending} zeroAi={zeroAi} grading={grading} busy={busy} error={error} onGo={(i) => { setIndex(i); setConfirm(false) }} onConfirm={() => void submit()} onCancel={() => setConfirm(false)} />}
     </div>

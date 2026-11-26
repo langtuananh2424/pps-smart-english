@@ -119,7 +119,7 @@ describe('khung thi IELTS', () => {
     await userEvent.click(within(q1).getByRole('radio', { name: /Sai 1/ }))
     await userEvent.click(within(q1).getByRole('button', { name: 'Kiểm tra' }))
     expect(calls).toEqual([{ answer: { choiceId: 12 } }])
-    expect(await screen.findByText('Chưa đúng, thử lại nhé')).toBeInTheDocument()
+    expect(await screen.findByText('Cần sửa, thử lại nhé')).toBeInTheDocument()
     expect(screen.getByText('Tìm từ khóa')).toBeInTheDocument()
   })
 
