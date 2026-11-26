@@ -7,6 +7,7 @@ import { isAnswered } from '../practice/questions/registry'
 import { ErrorCard } from '../practice/StatusCard'
 import type { Answer, Answers, Bank, Progress } from '../practice/types'
 import { useCountdown } from '../practice/useCountdown'
+import { useCheck } from '../practice/useCheck'
 import { useDraft } from '../practice/useDraft'
 import { EndConfirm } from './EndConfirm'
 import { ExamHeader } from './ExamHeader'
@@ -70,6 +71,14 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
   // Hết giờ theo đồng hồ máy chủ: tự nộp thẳng, không qua màn xem lại.
   const secondsLeft = useCountdown(progress.remainingSec, paused, syncedAt, () => void submit())
 
+  // D-150: thử lại chỉ có ở lượt Luyện tập (máy chủ chỉ trả progress.retry khi áp dụng)
+  const retry = useCheck(attemptId, progress.retry, () => void submit())
+  const runCheck = async (id: number) => {
+    setError(null)
+    const msg = await retry.check(id, answersRef.current[id] ?? {})
+    if (msg) setError(msg)
+  }
+
   const toggleRun = async (fn: typeof pauseAttempt) => {
     try {
       qc.setQueryData(['attempt', attemptId, 'progress'], await fn(attemptId))
@@ -106,7 +115,7 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
         {error && !confirm && <p role="alert" className="mb-3 rounded-md bg-danger-bg px-4 py-2 text-sm font-bold text-danger">{error}</p>}
         <div className={hasLeft ? 'grid items-start gap-4 md:grid-cols-2' : 'mx-auto max-w-[900px]'}>
           {hasLeft && part.group && <PassagePane key={part.key} bank={bank} group={part.group} attemptId={attemptId} disabled={paused || busy} />}
-          <QuestionsPane part={part} answers={answers} flagged={flags} currentId={currentId} disabled={paused || busy} onChange={onChange} onFocus={setCurrentId} />
+          <QuestionsPane part={part} answers={answers} flagged={flags} currentId={currentId} disabled={paused || busy} onChange={onChange} onFocus={setCurrentId} retry={retry.enabled ? { checks: retry.checks, pending: retry.pending, onCheck: (id) => void runCheck(id) } : undefined} />
         </div>
         {paused && (
           <div className="absolute inset-0 z-10 grid place-items-center bg-page/95 px-4 backdrop-blur-sm">
@@ -117,7 +126,7 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
           </div>
         )}
       </main>
-      {mode === 'PRACTICE' && <IeltsCam attemptId={attemptId} questionId={currentId} hidden={paused} />}
+      {mode === 'PRACTICE' && <IeltsCam attemptId={attemptId} questionId={currentId} hidden={paused} notice={retry.wrong?.questionId === currentId ? 'Chưa đúng, thử lại nhé' : null} openKey={retry.wrong?.questionId === currentId ? retry.wrong.n : undefined} />}
       <PartNav skill={bank.skill} parts={parts} currentId={currentId} states={states} flaggedNow={flags.has(currentId)} onGo={go} onFlag={() => toggle(currentId)} onSubmit={() => setView('review')} disabled={paused || busy} />
     </div>
   )

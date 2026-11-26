@@ -107,6 +107,31 @@ describe('khung thi IELTS', () => {
     expect(calls).not.toContain('/api/attempts/9/hints')
   })
 
+  test('Luyện tập có thử lại: kiểm tra sai mở Cam với gợi ý câu, Mô phỏng thi không có nút Kiểm tra (D-150)', async () => {
+    const calls: unknown[] = []
+    wire('PRACTICE', {
+      '/api/attempts/9/progress': () => json(200, { attemptId: 9, paused: false, remainingSec: 600, mode: 'PRACTICE', retry: { maxRetries: 1, checks: [] } }),
+      '/api/attempts/9/questions/1/check': (b) => { calls.push(b); return json(200, { questionId: 1, correct: false, checksLeft: 1 }) },
+    })
+    renderAt('/ielts/7')
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
+    const q1 = await screen.findByRole('article', { name: 'Câu 1' })
+    await userEvent.click(within(q1).getByRole('radio', { name: /Sai 1/ }))
+    await userEvent.click(within(q1).getByRole('button', { name: 'Kiểm tra' }))
+    expect(calls).toEqual([{ answer: { choiceId: 12 } }])
+    expect(await screen.findByText('Chưa đúng, thử lại nhé')).toBeInTheDocument()
+    expect(screen.getByText('Tìm từ khóa')).toBeInTheDocument()
+  })
+
+  test('Mô phỏng thi không có nút Kiểm tra dù bộ là PRACTICE', async () => {
+    wire('EXAM')
+    renderAt('/ielts/7')
+    await userEvent.click(await screen.findByRole('radio', { name: 'Mô phỏng thi' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Bắt đầu' }))
+    await screen.findByRole('article', { name: 'Câu 1' })
+    expect(screen.queryByRole('button', { name: 'Kiểm tra' })).not.toBeInTheDocument()
+  })
+
   test('điều hướng câu đổi phần, đánh dấu, xem lại, xác nhận rồi nộp và xem band', async () => {
     const calls = wire('PRACTICE')
     renderAt('/ielts/7')

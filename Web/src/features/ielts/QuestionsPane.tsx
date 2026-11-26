@@ -1,6 +1,8 @@
 import { labelOf } from '../exercises/format'
-import { rendererOf } from '../practice/questions/registry'
-import type { Answer, Answers } from '../practice/types'
+import { CheckBar } from '../practice/CheckBar'
+import { isAnswered, rendererOf } from '../practice/questions/registry'
+import type { Answer, Answers, CheckState } from '../practice/types'
+import { isCheckable, isLocked } from '../practice/useCheck'
 import type { Part } from './types'
 
 interface Props {
@@ -11,10 +13,11 @@ interface Props {
   disabled: boolean
   onChange: (questionId: number, v: Answer | undefined) => void
   onFocus: (questionId: number) => void
+  retry?: { checks: Record<number, CheckState>; pending: boolean; onCheck: (questionId: number) => void } // D-150: có ở lượt Luyện tập
 }
 
 // Cột câu hỏi (Figma 01.01): cả nhóm câu của phần đang mở, mỗi câu có số thứ tự toàn bài và renderer dùng chung với màn luyện tập.
-export function QuestionsPane({ part, answers, flagged, currentId, disabled, onChange, onFocus }: Props) {
+export function QuestionsPane({ part, answers, flagged, currentId, disabled, onChange, onFocus, retry }: Props) {
   const last = part.first + part.questions.length
   return (
     <section aria-label="Câu hỏi" className="flex flex-col gap-4 rounded-lg border-[1.5px] border-line bg-surface p-4 md:p-6">
@@ -24,6 +27,8 @@ export function QuestionsPane({ part, answers, flagged, currentId, disabled, onC
       </div>
       {part.questions.map((q, j) => {
         const { Component } = rendererOf(q.type)
+        const checkable = !!retry && isCheckable(q.type)
+        const state = retry?.checks[q.id]
         return (
           <article
             key={q.id}
@@ -39,7 +44,8 @@ export function QuestionsPane({ part, answers, flagged, currentId, disabled, onC
               {flagged.has(q.id) && <span className="ml-auto text-xs font-extrabold text-amber-700">Xem lại</span>}
             </p>
             {!q.prompt && <p className="text-sm font-semibold text-ink-secondary">{q.instruction ?? labelOf(q.type)}</p>}
-            <Component question={q} value={answers[q.id]} onChange={(v) => onChange(q.id, v)} disabled={disabled} />
+            <Component question={q} value={answers[q.id]} onChange={(v) => onChange(q.id, v)} disabled={disabled || (checkable && isLocked(state))} />
+            {checkable && <CheckBar state={state} canCheck={!disabled && isAnswered(q.type, answers[q.id])} pending={retry.pending} onCheck={() => retry.onCheck(q.id)} />}
           </article>
         )
       })}
