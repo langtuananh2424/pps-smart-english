@@ -39,6 +39,19 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query(value = "select question_id from writing_sessions where grade_job_id = :jobId", nativeQuery = true)
     Optional<Long> findWritingQuestionId(@Param("jobId") Long jobId);
 
+    /** D-149: bộ bài của lượt của userId khi lượt đã nộp và không còn job chấm lần đầu nào chờ; rỗng nếu chưa xong. */
+    @Query(value = "select b.id as \"bankId\", b.title as \"title\" from student_exercise_attempts a "
+            + "join question_banks b on b.id = a.bank_id where a.id = :attemptId and a.user_id = :userId and a.submitted_at is not null "
+            + "and not exists (select 1 from ai_jobs j where j.attempt_id = a.id and j.regrade_item_id is null "
+            + "and j.status in ('PENDING', 'RUNNING'))", nativeQuery = true)
+    Optional<SettledAttempt> findSettledAttempt(@Param("attemptId") Long attemptId, @Param("userId") Long userId);
+
+    interface SettledAttempt {
+        Long getBankId();
+
+        String getTitle();
+    }
+
     /** Ghi sent_at khi có ít nhất một lần push SENT; giữ lần đầu. */
     @Transactional
     @Modifying(flushAutomatically = true, clearAutomatically = true)

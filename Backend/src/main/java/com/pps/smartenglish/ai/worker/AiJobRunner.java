@@ -7,6 +7,7 @@ import com.pps.smartenglish.ai.domain.AiJobKind;
 import com.pps.smartenglish.ai.provider.AiCallException;
 import com.pps.smartenglish.shared.event.AiGradingFinished;
 import com.pps.smartenglish.shared.event.AiJobFailed;
+import com.pps.smartenglish.shared.event.AttemptGradingSettled;
 import jakarta.annotation.PreDestroy;
 import java.util.EnumMap;
 import java.util.List;
@@ -90,8 +91,11 @@ public class AiJobRunner {
                 notifier.publish(job.getId());
                 // retention nghe (không có transaction nên chạy ngay); lỗi ở đó không được làm hỏng job
                 // job chấm lại là việc của Admin: không có sự kiện nào cho người dùng
+                // job gắn lượt: D-149 thông báo theo lượt, không theo job
                 if (job.getRegradeItemId() == null) {
-                    events.publishEvent(new AiGradingFinished(job.getId(), job.getUserId(), job.getKind().name()));
+                    events.publishEvent(job.getAttemptId() == null
+                            ? new AiGradingFinished(job.getId(), job.getUserId(), job.getKind().name())
+                            : new AttemptGradingSettled(job.getAttemptId(), job.getUserId()));
                 }
             }
         } catch (AiCallException e) {
@@ -108,6 +112,9 @@ public class AiJobRunner {
         if (AiJob.FAILED.equals(finisher.fail(job, retryable, error))) {
             notifier.publish(job.getId());
             events.publishEvent(new AiJobFailed(job.getId(), job.getKind().name()));
+            if (job.getAttemptId() != null && job.getRegradeItemId() == null) {
+                events.publishEvent(new AttemptGradingSettled(job.getAttemptId(), job.getUserId()));
+            }
         }
     }
 
