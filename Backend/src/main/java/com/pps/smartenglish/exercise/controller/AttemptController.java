@@ -3,7 +3,10 @@ package com.pps.smartenglish.exercise.controller;
 import com.pps.smartenglish.exercise.dto.AttemptProgress;
 import com.pps.smartenglish.exercise.dto.AttemptResponse;
 import com.pps.smartenglish.exercise.dto.AttemptSummary;
+import com.pps.smartenglish.exercise.dto.CheckDtos.CheckRequest;
+import com.pps.smartenglish.exercise.dto.CheckDtos.CheckResult;
 import com.pps.smartenglish.exercise.dto.SubmitRequest;
+import com.pps.smartenglish.exercise.service.AttemptCheckService;
 import com.pps.smartenglish.exercise.service.AttemptService;
 import com.pps.smartenglish.exercise.service.AttemptTimerService;
 import com.pps.smartenglish.exercise.service.SubmissionService;
@@ -27,8 +30,10 @@ class AttemptController {
     private final AttemptService attempts;
     private final SubmissionService submissions;
     private final AttemptTimerService timer;
+    private final AttemptCheckService checks;
 
-    AttemptController(AttemptService attempts, SubmissionService submissions, AttemptTimerService timer) {
+    AttemptController(AttemptService attempts, SubmissionService submissions, AttemptTimerService timer, AttemptCheckService checks) {
+        this.checks = checks;
         this.attempts = attempts;
         this.submissions = submissions;
         this.timer = timer;
@@ -37,6 +42,12 @@ class AttemptController {
     @PostMapping("/api/attempts/{id}/submit")
     AttemptResponse submit(@PathVariable String id, Authentication auth, @Valid @RequestBody SubmitRequest req) {
         return submissions.submit(CurrentUser.id(auth), attemptId(id), req);
+    }
+
+    /** D-150: kiểm tra một câu, trả đúng/sai và số lần còn lại, không trả đáp án. */
+    @PostMapping("/api/attempts/{id}/questions/{questionId}/check")
+    CheckResult check(@PathVariable String id, @PathVariable String questionId, Authentication auth, @Valid @RequestBody CheckRequest req) {
+        return checks.check(CurrentUser.id(auth), attemptId(id), PathId.parse(questionId, "question_not_found", "Không tìm thấy câu hỏi"), req.answer());
     }
 
     @GetMapping("/api/attempts/{id}")

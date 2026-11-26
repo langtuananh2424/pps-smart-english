@@ -26,9 +26,11 @@ public class AttemptTimerService {
     private final QuestionLoader loader;
     private final ObjectMapper mapper;
     private final Clock clock;
+    private final AttemptCheckService retry;
 
     AttemptTimerService(StudentAttemptRepository attempts, QuestionBankRepository banks, QuestionLoader loader,
-                        ObjectMapper mapper, Clock clock) {
+                        ObjectMapper mapper, Clock clock, AttemptCheckService retry) {
+        this.retry = retry;
         this.attempts = attempts;
         this.banks = banks;
         this.loader = loader;
@@ -84,7 +86,7 @@ public class AttemptTimerService {
 
     AttemptProgress progress(StudentAttempt a) {
         return new AttemptProgress(a.getId(), a.getTimeLimitSec(), a.remainingSec(Instant.now(clock)), a.paused(),
-                a.getDraftAnswers());
+                a.getDraftAnswers(), retry.stateOf(a));
     }
 
     private StudentAttempt openAttempt(long userId, long attemptId) {
