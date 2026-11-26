@@ -112,8 +112,8 @@ public class AudioPlayService {
             return policies.of(QuestionBank.LOCKED);
         }
         String mode = bank.getPlaybackMode();
-        // D-151: lượt Mô phỏng thi nghe theo luật thi dù bộ để FREE
-        boolean exam = QuestionBank.LOCKED.equals(mode) || (QuestionBank.FREE.equals(mode) && QuestionBank.EXAM.equals(modes.of(attempt)));
+        // D-151: lượt Mô phỏng thi của bộ IELTS nghe theo luật thi dù bộ để FREE; bộ EXAM khác giữ FREE
+        boolean exam = QuestionBank.LOCKED.equals(mode) || (QuestionBank.FREE.equals(mode) && modes.choosable(bank) && QuestionBank.EXAM.equals(modes.of(attempt)));
         return policies.of(exam ? QuestionBank.EXAM : mode);
     }
 

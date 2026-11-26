@@ -58,6 +58,7 @@ class AudioPlayApiTest extends ListeningTestSupport {
     @Test
     void examAttemptOnFreeBankFollowsExamRules() throws Exception { // D-151: Mô phỏng thi nghe theo luật thi dù bộ để FREE
         var w = world("FREE", null);
+        jdbc.update("update topics set skill = 'LISTENING' where id = ?", w.topic()); // chỉ bộ IELTS mới có Mô phỏng thi
         var u = student(0);
         long a = startAttempt(u, w);
         jdbc.update("update student_exercise_attempts set mode = 'EXAM' where id = ?", a);
