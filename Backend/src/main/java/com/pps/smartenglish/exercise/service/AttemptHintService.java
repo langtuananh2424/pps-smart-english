@@ -6,6 +6,8 @@ import com.pps.smartenglish.exercise.dto.BankResponse.HintView;
 import com.pps.smartenglish.exercise.repository.QuestionHintRepository;
 import com.pps.smartenglish.exercise.repository.StudentAttemptRepository;
 import com.pps.smartenglish.shared.error.ApiException;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
@@ -22,8 +24,10 @@ public class AttemptHintService {
     private final AttemptModes modes;
     private final QuestionLoader loader;
     private final QuestionHintRepository hints;
+    private final Clock clock;
 
-    AttemptHintService(StudentAttemptRepository attempts, AttemptModes modes, QuestionLoader loader, QuestionHintRepository hints) {
+    AttemptHintService(StudentAttemptRepository attempts, AttemptModes modes, QuestionLoader loader, QuestionHintRepository hints, Clock clock) {
+        this.clock = clock;
         this.attempts = attempts;
         this.modes = modes;
         this.loader = loader;
@@ -34,6 +38,9 @@ public class AttemptHintService {
     public List<QuestionHints> of(long userId, long attemptId) {
         var a = attempts.findByIdAndUserId(attemptId, userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "attempt_not_found", "Không tìm thấy lượt làm bài"));
+        if (a.expired(Instant.now(clock))) {
+            throw new ApiException(HttpStatus.CONFLICT, "attempt_time_up", "Đã hết giờ làm bài");
+        }
         if (a.getSubmittedAt() != null || !QuestionBank.PRACTICE.equals(modes.of(a))) {
             throw new ApiException(HttpStatus.FORBIDDEN, "hints_unavailable", "Gợi ý chỉ có khi đang luyện tập");
         }
