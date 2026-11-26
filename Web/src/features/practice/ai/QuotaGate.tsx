@@ -5,7 +5,7 @@ import { useQuota } from '../../home/api'
 import { VN_TZ } from '../../home/format'
 import { pillNeutral, pillPrimary } from '../questions/ui'
 
-// Chưa có màn Ví lượt AI riêng; Trợ lý AI là nơi đặt thẻ ví (docs/ba/figma-missing-screens A5). Đổi ở đây khi màn ví có route.
+// Chưa có màn Ví lượt AI riêng (docs/ba/figma-missing-screens A5): tạm mở Đơn hàng. Đổi ở đây khi màn ví có route.
 export const WALLET_PATH = '/don-hang'
 
 // Hết lượt: máy chủ trả 402, hoặc /me/quota cho thấy pool và mọi ví khóa đều 0. Lấy lại số liệu (đổi tab về) thì bỏ cờ 402 cũ.
