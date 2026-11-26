@@ -44,7 +44,7 @@ public class AttemptHintService {
         if (a.getSubmittedAt() != null || !QuestionBank.PRACTICE.equals(modes.of(a))) {
             throw new ApiException(HttpStatus.FORBIDDEN, "hints_unavailable", "Gợi ý chỉ có khi đang luyện tập");
         }
-        var ids = loader.load(a.getBankId()).questions().stream().map(q -> q.getId()).toList();
+        var ids = loader.load(a).questions().stream().map(q -> q.getId()).toList();
         if (ids.isEmpty()) {
             return List.of();
         }

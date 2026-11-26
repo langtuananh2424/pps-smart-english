@@ -101,7 +101,7 @@ public class SubmissionService {
         if (req == null || attempt.expired(now)) {
             req = draftRequest(attempt);
         }
-        var set = loader.load(attempt.getBankId());
+        var set = loader.load(attempt);
         req = checkService.pinLocked(attemptId, req, set.questions()); // D-150: câu đã khóa dùng câu trả lời của lần kiểm tra cuối
         Map<Long, JsonNode> given = indexAnswers(req.answers(), set.questions());
         Map<Long, Integer> times = validTimes(req.answers());

@@ -20,6 +20,8 @@ public class QuestionBank extends Auditable {
     /** Bộ của khóa học (có topic) hoặc đề kiểm tra đầu vào (FR-TEST-01, không topic, luôn EXAM, bắt buộc time_limit_sec). */
     public static final String COURSE = "COURSE";
     public static final String PLACEMENT = "PLACEMENT";
+    /** D-152: bộ neo của các lượt Luyện thêm (không topic, không hiển thị). */
+    public static final String EXTRA = "EXTRA";
     /** D-135: FREE nghe và tua tự do; EXAM tự phát, không thao tác; LOCKED = Nghe ép (FR-EX-10). */
     public static final String FREE = "FREE";
     public static final String LOCKED = "LOCKED";
@@ -95,6 +97,7 @@ public class QuestionBank extends Auditable {
     public Integer getPlayLimit() { return playLimit; }
     public int getPassPct() { return passPct; }
     public boolean isPlacement() { return PLACEMENT.equals(purpose); }
+    public boolean isExtra() { return EXTRA.equals(purpose); }
 
     public void setLessonId(Long lessonId) { this.lessonId = lessonId; }
     public void setTitle(String title) { this.title = title; }

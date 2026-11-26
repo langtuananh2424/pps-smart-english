@@ -44,6 +44,12 @@ public class UnitUnlockService {
         return new Position(ordered.size(), ordered.size(), null);
     }
 
+    /** Topic CHƯA xong của học viên trong khóa (D-122). */
+    @Transactional(readOnly = true)
+    public Set<Long> unfinishedTopicIds(long userId, long courseId) {
+        return new HashSet<>(units.unfinishedTopicIds(courseId, userId));
+    }
+
     /** Topic bị khóa của khóa này đối với học viên; rỗng nếu khóa không bật tuần tự. */
     @Transactional(readOnly = true)
     public Set<Long> lockedTopicIds(long userId, long courseId, boolean sequential) {

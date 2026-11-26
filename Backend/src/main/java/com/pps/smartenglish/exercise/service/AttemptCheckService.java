@@ -77,7 +77,7 @@ public class AttemptCheckService {
         if (!enabled(a)) {
             throw new ApiException(HttpStatus.CONFLICT, "retry_not_available", "Bộ này không có thử lại kèm gợi ý");
         }
-        var set = loader.load(a.getBankId());
+        var set = loader.load(a);
         var q = set.questions().stream().filter(x -> x.getId() == questionId).findFirst()
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "question_not_found", "Câu hỏi không thuộc bộ này"));
         if (!graders.isAutoGraded(q.getType())) {
