@@ -198,4 +198,55 @@ class RetryIeltsTesterTest extends ListeningTestSupport {
             play(u, legacy, w.g2()).andExpect(status().isOk()).andExpect(jsonPath("$.playbackMode").value("FREE"));
         }
     }
+    /** FAQ chỉ chặn theo lượt EXAM đang mở của chính học viên: bộ ngoài IELTS, lượt PRACTICE, học viên khác không bị chặn sai. */
+    @Test
+    void faqBlockIsScopedToOwnOpenExamAttempt() throws Exception {
+        var other = world("FREE", null); // ngoài IELTS, bộ PRACTICE
+        insert("bank_faqs", Map.of("bank_id", other.bank(), "question", "Hỏi", "answer", "FAQ-NGOAI", "sort_order", 0));
+        var u = student(0);
+        startAttempt(u, other);
+        getJson("/api/banks/" + other.bank() + "/faqs", u).andExpect(status().isOk()).andExpect(content().string(containsString("FAQ-NGOAI")));
+
+        var w = ielts();
+        insert("bank_faqs", Map.of("bank_id", w.bank(), "question", "Hỏi", "answer", "FAQ-IELTS", "sort_order", 0));
+        start(u, w, "EXAM");
+        var stranger = student(0);
+        getJson("/api/banks/" + w.bank() + "/faqs", stranger).andExpect(status().isOk()).andExpect(content().string(containsString("FAQ-IELTS")));
+        getJson("/api/banks/" + w.bank() + "/faqs", u).andExpect(status().isForbidden()).andExpect(content().string(not(containsString("FAQ-IELTS"))));
+    }
+
+    /** Lượt EXAM hết giờ mà chưa nộp: vẫn không lộ FAQ hay gợi ý. */
+    @Test
+    void timedOutExamAttemptStillLeaksNoFaqOrHints() throws Exception {
+        var w = ielts();
+        jdbc.update("update question_banks set time_limit_sec = 60 where id = ?", w.bank());
+        insert("bank_faqs", Map.of("bank_id", w.bank(), "question", "Hỏi", "answer", "FAQ-HET-GIO", "sort_order", 0));
+        var u = student(0);
+        long a = start(u, w, "EXAM");
+        clock.set(Instant.now().plusSeconds(120));
+        getJson("/api/banks/" + w.bank() + "/faqs", u).andExpect(content().string(not(containsString("FAQ-HET-GIO"))));
+        int s = getJson("/api/attempts/" + a + "/hints", u).andExpect(content().string(not(containsString(HINT)))).andReturn().getResponse().getStatus();
+        org.junit.jupiter.api.Assertions.assertTrue(s == 403 || s == 409, "hints trả " + s);
+    }
+
+    /** Bộ EXAM ngoài IELTS vẫn bị chặn FAQ như trước (assistant_unavailable). */
+    @Test
+    void nonIeltsExamBankFaqStaysBlocked() throws Exception {
+        var w = world("FREE", null);
+        jdbc.update("update question_banks set mode = 'EXAM' where id = ?", w.bank());
+        insert("bank_faqs", Map.of("bank_id", w.bank(), "question", "Hỏi", "answer", "FAQ-THI", "sort_order", 0));
+        getJson("/api/banks/" + w.bank() + "/faqs", student(0)).andExpect(status().isForbidden()) // bank_locked hoặc assistant_unavailable tùy cổng
+                .andExpect(content().string(not(containsString("FAQ-THI"))));
+    }
+
+    /** Lượt PRACTICE trên bộ IELTS FREE vẫn nghe tự do (không bị luật thi). */
+    @Test
+    void practiceAttemptOnIeltsFreeBankStaysFree() throws Exception {
+        var w = ielts();
+        var u = student(0);
+        long a = start(u, w, "PRACTICE");
+        for (int i = 0; i < 3; i++) {
+            play(u, a, w.g1()).andExpect(status().isOk()).andExpect(jsonPath("$.playbackMode").value("FREE"));
+        }
+    }
 }

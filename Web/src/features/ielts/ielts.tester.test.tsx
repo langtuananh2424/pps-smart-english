@@ -122,3 +122,16 @@ describe('khôi phục khi tải lại và lỗi mạng', () => {
     expect(screen.getByRole('button', { name: 'Bắt đầu' })).toBeEnabled()
   })
 })
+
+describe('Luyện tập trên bộ Listening FREE vẫn tự do', () => {
+  test('có thanh tua, không gọi complete', async () => {
+    const calls = wire('PRACTICE', {}, { '/api/attempts/9/groups/1/play': () => json(200, { playbackMode: 'FREE', url: 'u', expiresAt: 'x' }) }, listening())
+    renderAt('/ielts/7')
+    await screen.findByRole('article', { name: 'Câu 1' })
+    expect(await screen.findByLabelText('Tua audio')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Phát/ }))
+    await waitFor(() => expect(audios.length).toBeGreaterThan(0))
+    await act(async () => void audios.at(-1)!.dispatchEvent(new Event('ended')))
+    expect(calls).not.toContain('/api/attempts/9/groups/1/play/complete')
+  })
+})
