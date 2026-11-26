@@ -79,9 +79,36 @@ public class ExtraPoolRepository {
         if (topicIds.isEmpty()) {
             return List.of();
         }
-        return jdbc.query("select q.id, b.topic_id, q.type " + SOURCE + " and b.topic_id in (:topics) order by q.id limit :limit",
-                params(userId, courseId, types).addValue("topics", topicIds).addValue("limit", limit),
+        // Câu từng sai đi trước (sắp theo số lần sai), phần còn lại lấy mẫu ngẫu nhiên: kể cả Topic lớn hơn limit câu vẫn ưu tiên đúng câu sai
+        // và không chỉ gặp các câu id nhỏ nhất. shortcut: order by random() sắp cả nguồn của Topic, ổn với vài nghìn câu; lớn hơn thì lấy mẫu theo khoảng id.
+        var wrongIds = wrongIds(userId, topicIds, Math.max(1, limit / 2));
+        Map<Long, Candidate> out = new java.util.LinkedHashMap<>();
+        if (!wrongIds.isEmpty()) {
+            query(SOURCE + " and b.topic_id in (:topics) and q.id in (:wrong)", params(userId, courseId, types).addValue("topics", topicIds)
+                    .addValue("wrong", wrongIds), "q.id", limit).forEach(c -> out.put(c.questionId(), c));
+        }
+        query(SOURCE + " and b.topic_id in (:topics)", params(userId, courseId, types).addValue("topics", topicIds), "random()", limit)
+                .forEach(c -> out.putIfAbsent(c.questionId(), c));
+        return out.values().stream().limit(limit).toList();
+    }
+
+    private List<Candidate> query(String from, MapSqlParameterSource p, String order, int limit) {
+        return jdbc.query("select q.id, b.topic_id, q.type " + from + " order by " + order + " limit :limit", p.addValue("limit", limit),
                 (rs, i) -> new Candidate(rs.getLong(1), rs.getLong(2), rs.getString(3)));
+    }
+
+    /** Câu của các topic mà học viên từng sai (cùng cách đếm với wrongCounts), nhiều lần sai nhất trước. */
+    private List<Long> wrongIds(long userId, Collection<Long> topicIds, int limit) {
+        return jdbc.queryForList("select w.question_id from (select question_id, sum(n) as n from ("
+                + "select a.question_id as question_id, count(*) as n from student_answers a "
+                + "join student_exercise_attempts t on t.id = a.attempt_id join questions q on q.id = a.question_id "
+                + "where t.user_id = :u and t.submitted_at is not null and a.is_correct = false and a.answer_version = q.answer_version "
+                + "group by a.question_id "
+                + "union all select c.question_id, sum(c.wrong_count) from attempt_question_checks c "
+                + "join student_exercise_attempts t on t.id = c.attempt_id where t.user_id = :u group by c.question_id) h "
+                + "group by question_id) w join questions q on q.id = w.question_id join question_banks b on b.id = q.bank_id "
+                + "where b.topic_id in (:topics) and w.n > 0 order by w.n desc, w.question_id limit :limit",
+                new MapSqlParameterSource("u", userId).addValue("topics", topicIds).addValue("limit", limit), Long.class);
     }
 
     /**
