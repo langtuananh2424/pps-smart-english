@@ -10,7 +10,8 @@ public final class ExtraDtos {
     private ExtraDtos() {}
 
     public record Overview(Long courseId, String courseSlug, String courseTitle, int reviewSize, int challengeSize, double maxRatio,
-                           List<LevelView> levels, List<TopicCard> review, List<TopicCard> challenge) {}
+                           List<LevelView> levels, List<TopicCard> review, List<TopicCard> challenge,
+                           Long openAttemptId) {} // lượt Luyện thêm chưa nộp của học viên (mọi khóa), null nếu không có
 
     public record LevelView(Long id, String title) {}
 

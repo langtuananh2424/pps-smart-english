@@ -66,6 +66,13 @@ export function ExtraPracticePage() {
         </div>
       </header>
 
+      {o.openAttemptId != null && (
+        <div role="status" className="flex flex-col gap-3 rounded-lg border border-line-subtle bg-reward-bg p-4 shadow-edge-card sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm font-bold text-ink">Bạn đang có lượt Luyện thêm chưa nộp. Kết quả Viết/Nói của các câu trong lượt sẽ hiện lại sau khi bạn nộp.</p>
+          <Link to={`/bai-tap/luyen-them/${o.openAttemptId}`} className={btnNeutral}>Tiếp tục</Link>
+        </div>
+      )}
+
       <div className="flex flex-col gap-3">
         <div role="group" aria-label="Lọc theo Level" className="flex flex-wrap gap-2">
           <button type="button" aria-pressed={level == null} onClick={() => setLevel(null)} className={chipBtn(level == null)}>Tất cả Level</button>

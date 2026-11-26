@@ -97,6 +97,20 @@ describe('màn Luyện thêm', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/bai-tap/luyen-them/55'))
   })
 
+  test('có lượt Luyện thêm chưa nộp thì nhắc nộp kèm nút Tiếp tục; không có thì không hiện', async () => {
+    wire(overview({ openAttemptId: 31 }))
+    renderAt('/bai-tap/khoa/1/luyen-them')
+    const note = (await screen.findByText(/Kết quả Viết\/Nói của các câu trong lượt sẽ hiện lại sau khi bạn nộp/)).closest('[role="status"]') as HTMLElement
+    expect(within(note).getByRole('link', { name: 'Tiếp tục' })).toHaveAttribute('href', '/bai-tap/luyen-them/31')
+  })
+
+  test('không có lượt mở thì không có ghi chú', async () => {
+    wire()
+    renderAt('/bai-tap/khoa/1/luyen-them')
+    await screen.findByRole('region', { name: 'Ôn lại' })
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
   test('trạng thái trống và lỗi', async () => {
     wire(overview({ review: [], challenge: [] }))
     renderAt('/bai-tap/khoa/1/luyen-them')

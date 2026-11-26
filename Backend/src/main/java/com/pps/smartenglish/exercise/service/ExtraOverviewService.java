@@ -6,7 +6,11 @@ import com.pps.smartenglish.exercise.config.ExtraProperties;
 import com.pps.smartenglish.exercise.dto.ExtraDtos.LevelView;
 import com.pps.smartenglish.exercise.dto.ExtraDtos.Overview;
 import com.pps.smartenglish.exercise.dto.ExtraDtos.TopicCard;
+import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.domain.QuestionType;
+import com.pps.smartenglish.exercise.domain.StudentAttempt;
+import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
+import com.pps.smartenglish.exercise.repository.StudentAttemptRepository;
 import com.pps.smartenglish.exercise.repository.ExtraPoolRepository;
 import com.pps.smartenglish.exercise.repository.ExtraPoolRepository.CountRow;
 import com.pps.smartenglish.shared.error.ApiException;
@@ -29,8 +33,13 @@ public class ExtraOverviewService {
     private final ExtraTopics topics;
     private final ExtraPoolRepository pool;
     private final ExtraProperties props;
+    private final QuestionBankRepository banks;
+    private final StudentAttemptRepository attempts;
 
-    ExtraOverviewService(CourseRepository courses, ExtraTopics topics, ExtraPoolRepository pool, ExtraProperties props) {
+    ExtraOverviewService(CourseRepository courses, ExtraTopics topics, ExtraPoolRepository pool, ExtraProperties props,
+                         QuestionBankRepository banks, StudentAttemptRepository attempts) {
+        this.banks = banks;
+        this.attempts = attempts;
         this.courses = courses;
         this.topics = topics;
         this.pool = pool;
@@ -64,7 +73,13 @@ public class ExtraOverviewService {
         }
         Collections.reverse(review); // mới học xong đứng đầu
         return new Overview(courseId, course.getSlug(), course.getTitle(), props.reviewSize(), props.challengeSize(), props.challengeMaxRatio(),
-                List.copyOf(levels.values()), review, challenge);
+                List.copyOf(levels.values()), review, challenge, openAttemptId(userId));
+    }
+
+    private Long openAttemptId(long userId) {
+        return banks.findByPurposeOrderByIdAsc(QuestionBank.EXTRA).stream().findFirst()
+                .flatMap(b -> attempts.findFirstByUserIdAndBankIdAndSubmittedAtIsNullOrderByIdDesc(userId, b.getId()))
+                .map(StudentAttempt::getId).orElse(null);
     }
 
     private static Map<String, Integer> available(List<CountRow> rows, ExtraTopics.State s) {
