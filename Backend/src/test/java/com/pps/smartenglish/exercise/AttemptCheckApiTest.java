@@ -93,15 +93,84 @@ class AttemptCheckApiTest extends ApiTestBase {
         check(id, b.mcq(), u, b.right()).andExpect(status().isConflict()).andExpect(jsonPath("$.error.code").value("retry_exhausted"));
         assertWrongCount(id, b.mcq(), 2);
 
-        // Điểm theo câu trả lời cuối khi nộp, không theo lần kiểm tra
-        post("/api/attempts/" + id + "/submit", u, Map.of("answers", List.of(Map.of("questionId", b.mcq(), "answer", Map.of("choiceId", b.right())))))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.score").value(1));
+        // Câu đã khóa: nháp và nộp bài bỏ đáp án khác, điểm theo câu trả lời của lần kiểm tra cuối (sai)
+        var other = List.of(Map.of("questionId", b.mcq(), "answer", Map.of("choiceId", b.right())));
+        send(MockMvcRequestBuilders.put("/api/attempts/" + id + "/draft").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("answers", other))), u).andExpect(status().isOk())
+                .andExpect(jsonPath("$.answers[0].answer.choiceId").value(b.wrong()));
+        post("/api/attempts/" + id + "/submit", u, Map.of("answers", other))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.score").value(0));
         check(id, b.mcq(), u, b.right()).andExpect(status().isConflict()).andExpect(jsonPath("$.error.code").value("attempt_already_submitted"));
     }
 
     private void assertWrongCount(long attempt, long question, int expected) {
         org.junit.jupiter.api.Assertions.assertEquals(expected, jdbc.queryForObject(
                 "select wrong_count from attempt_question_checks where attempt_id = ? and question_id = ?", Integer.class, attempt, question));
+    }
+
+    @Test
+    void solvedQuestionKeepsTheCorrectAnswerWhenSubmitSendsAnother() throws Exception {
+        var b = bank();
+        var u = register(newEmail(), PASSWORD).accessToken();
+        long id = start(b, u);
+        check(id, b.mcq(), u, b.right()).andExpect(jsonPath("$.correct").value(true));
+        post("/api/attempts/" + id + "/submit", u, Map.of("answers", List.of(Map.of("questionId", b.mcq(), "answer", Map.of("choiceId", b.wrong())))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.score").value(1));
+    }
+
+    /** Hai kiểm tra sai song song khi chỉ còn một lần: đúng một lần được tính, lần kia retry_exhausted. */
+    @Test
+    void parallelChecksNeverExceedTheLimit() throws Exception {
+        var b = bank();
+        var u = register(newEmail(), PASSWORD).accessToken();
+        long id = start(b, u);
+        check(id, b.mcq(), u, b.wrong()).andExpect(jsonPath("$.checksLeft").value(1));
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        var go = new java.util.concurrent.CountDownLatch(1);
+        List<java.util.concurrent.Future<Integer>> results = new java.util.ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            results.add(pool.submit(() -> {
+                go.await();
+                return check(id, b.mcq(), u, b.wrong()).andReturn().getResponse().getStatus();
+            }));
+        }
+        go.countDown();
+        var codes = new java.util.ArrayList<Integer>();
+        for (var f : results) {
+            codes.add(f.get(60, java.util.concurrent.TimeUnit.SECONDS));
+        }
+        pool.shutdown();
+        org.junit.jupiter.api.Assertions.assertEquals(List.of(200, 409), codes.stream().sorted().toList());
+        assertWrongCount(id, b.mcq(), 2);
+    }
+
+    /** Bài giáo viên giao của bộ PRACTICE đi cùng đường lượt, có thử lại. */
+    @Test
+    void assignedPracticeAttemptHasRetry() throws Exception {
+        var b = bank();
+        long course = jdbc.queryForObject("select c.id from question_banks qb join topics t on t.id = qb.topic_id "
+                + "join course_levels l on l.id = t.level_id join courses c on c.id = l.course_id where qb.id = ?", Long.class, b.id());
+        jdbc.update("update courses set delivery_mode = 'CLASS_BASED', sequential = false where id = ?", course);
+        long cls = insert("classes", Map.of("course_id", course, "name", "Lớp " + UUID.randomUUID().toString().substring(0, 4),
+                "starts_on", java.time.LocalDate.now().minusDays(10), "ends_on", java.time.LocalDate.now().plusDays(60), "mode", "ONLINE", "capacity", 20));
+        var teacher = register(newEmail(), PASSWORD);
+        jdbc.update("insert into user_roles (user_id, role_id) select ?, id from roles where code = 'TEACHER'", teacher.id());
+        var teacherToken = login(teacher.email(), PASSWORD).accessToken();
+        jdbc.update("insert into class_staff (class_id, user_id, role, assigned_from) values (?, ?, 'TEACHER', ?)", cls, teacher.id(), java.time.LocalDate.now().minusDays(10));
+        var s = register(newEmail(), PASSWORD);
+        jdbc.update("insert into user_course_enrollments (user_id, course_id, status, starts_at, expires_at) values (?, ?, 'ACTIVE', "
+                + "TIMESTAMP '2020-01-01 00:00:00', TIMESTAMP '2099-01-01 00:00:00')", s.id(), course);
+        jdbc.update("insert into class_members (class_id, course_id, user_id, status, live_key, joined_at) values (?, ?, ?, 'ACTIVE', ?, CURRENT_TIMESTAMP)",
+                cls, course, s.id(), course + ":" + s.id());
+        String made = post("/api/classes/" + cls + "/assignments", teacherToken,
+                Map.of("bankId", b.id(), "dueAt", java.time.Instant.now().plus(48, java.time.temporal.ChronoUnit.HOURS).toString()))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long asg = json.readTree(made).get("id").asLong();
+        String started = post("/api/classes/" + cls + "/assignments/" + asg + "/start", s.accessToken(), Map.of())
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        long id = json.readTree(started).get("id").asLong();
+        check(id, b.mcq(), s.accessToken(), b.wrong()).andExpect(status().isOk()).andExpect(jsonPath("$.checksLeft").value(1));
+        send(get("/api/attempts/" + id + "/progress"), s.accessToken()).andExpect(jsonPath("$.retry.maxRetries").value(1));
     }
 
     @Test
