@@ -48,10 +48,12 @@ public class BankService {
     private final AudioPlayService audioPlays;
     private final AudioMediaService audio;
     private final StudentAttemptRepository attempts;
+    private final AttemptModes modes;
 
     BankService(BankGate gate, QuestionLoader loader, ExamService exam, QuestionHintRepository hints, QuestionMediaService media,
                 QuestionGroupRepository groups, RichText rich, QuestionBankRepository banks, AudioPlayService audioPlays,
-                AudioMediaService audio, StudentAttemptRepository attempts) {
+                AudioMediaService audio, StudentAttemptRepository attempts, AttemptModes modes) {
+        this.modes = modes;
         this.attempts = attempts;
         this.banks = banks;
         this.audioPlays = audioPlays;
@@ -70,7 +72,9 @@ public class BankService {
         exam.guardView(userId, bankId); // trước gate: cùng mã lỗi exam_* như lúc bắt đầu thi
         var bank = gate.require(bankId, userId);
         var set = loader.load(bankId);
-        var hintsByQuestion = hintsOf(bank.mode(), set.questions());
+        var playback = banks.findById(bankId).orElseThrow(); // findInfo vừa tìm thấy bộ này
+        // D-151: bộ chọn được chế độ không trả gợi ý ở đây, chỉ qua /attempts/{id}/hints của lượt Luyện tập
+        var hintsByQuestion = modes.choosable(playback) ? Map.<Long, List<HintView>>of() : hintsOf(bank.mode(), set.questions());
         var groupRows = groups.findByBankIdOrderBySortOrderAscIdAsc(bankId);
         // một lần gọi kho ảnh cho mọi HTML của đề (đề bài, lựa chọn, bài đọc)
         var html = rich.render(Stream.of(set.questions().stream().map(Question::getPromptHtml),
@@ -79,7 +83,6 @@ public class BankService {
         var durations = audio.durations(groupRows.stream().map(QuestionGroup::getAudioAssetId).filter(java.util.Objects::nonNull).toList());
         long attemptId = attempts.findFirstByUserIdAndBankIdAndSubmittedAtIsNullOrderByIdDesc(userId, bankId)
                 .map(StudentAttempt::getId).orElse(0L); // chưa có lượt mở: seed 0, vẫn khác thứ tự soạn
-        var playback = banks.findById(bankId).orElseThrow(); // findInfo vừa tìm thấy bộ này
         return new BankResponse(bank.id(), bank.title(), bank.lessonId(), bank.trial(), bank.mode(),
                 bank.timeLimitSec(), questionViews(set, hintsByQuestion,
                         media.forQuestions(set.questions().stream().map(Question::getId).toList()), html, attemptId),

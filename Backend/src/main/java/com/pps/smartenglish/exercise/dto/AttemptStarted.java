@@ -2,4 +2,4 @@ package com.pps.smartenglish.exercise.dto;
 
 import java.time.Instant;
 
-public record AttemptStarted(Long id, Long bankId, Instant startedAt, Integer timeLimitSec) {}
+public record AttemptStarted(Long id, Long bankId, Instant startedAt, Integer timeLimitSec, String mode) {}

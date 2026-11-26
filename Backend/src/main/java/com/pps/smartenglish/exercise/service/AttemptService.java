@@ -8,6 +8,7 @@ import com.pps.smartenglish.exercise.dto.AttemptResponse;
 import com.pps.smartenglish.exercise.dto.AttemptStarted;
 import com.pps.smartenglish.exercise.dto.AttemptSummary;
 import com.pps.smartenglish.exercise.repository.AnswerGradingRepository;
+import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
 import com.pps.smartenglish.exercise.repository.StudentAnswerRepository;
 import com.pps.smartenglish.exercise.repository.StudentAttemptRepository;
 import com.pps.smartenglish.shared.error.ApiException;
@@ -39,10 +40,15 @@ public class AttemptService {
     private final Clock clock;
     private final ForcedAttempts forced;
     private final ExamBands bands;
+    private final AttemptModes modes;
+    private final QuestionBankRepository banks;
 
     AttemptService(BankGate gate, StudentAttemptRepository attempts, StudentAnswerRepository answers,
                    AnswerGradingRepository gradings, AiJobService aiJobs, QuestionLoader loader, ResultAssembler assembler,
-                   ExamService exam, LearningStatsService stats, Clock clock, ForcedAttempts forced, ExamBands bands) {
+                   ExamService exam, LearningStatsService stats, Clock clock, ForcedAttempts forced, ExamBands bands,
+                   AttemptModes modes, QuestionBankRepository banks) {
+        this.modes = modes;
+        this.banks = banks;
         this.bands = bands;
         this.forced = forced;
         this.stats = stats;
@@ -57,13 +63,18 @@ public class AttemptService {
         this.clock = clock;
     }
 
-    @Transactional
     public AttemptStarted start(Long bankId, long userId) {
+        return start(bankId, userId, null);
+    }
+
+    @Transactional
+    public AttemptStarted start(Long bankId, long userId, String requestedMode) {
         exam.guardStart(userId, bankId); // trước gate để người chưa mua nhận exam_requires_enrollment thay vì bank_locked
         var bank = gate.require(bankId, userId);
         requireNoOpenAttempt(userId, bankId);
-        var a = attempts.save(forced.applySelfStudy(new StudentAttempt(userId, bankId, Instant.now(clock), bank.timeLimitSec())));
-        return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec());
+        var mode = modes.resolve(banks.findById(bankId).orElseThrow(), requestedMode); // gate vừa tìm thấy bộ
+        var a = attempts.save(forced.applySelfStudy(new StudentAttempt(userId, bankId, Instant.now(clock), bank.timeLimitSec()).withMode(mode)));
+        return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec(), a.getMode());
     }
 
     /**
@@ -92,13 +103,13 @@ public class AttemptService {
         var open = attempts.findFirstByAssignmentIdAndUserIdAndSubmittedAtIsNullOrderByIdDesc(assignmentId, userId);
         if (open.isPresent()) {
             var a = open.get();
-            return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec());
+            return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec(), a.getMode());
         }
         var bank = gate.require(bankId, userId);
         requireNoOpenAttempt(userId, bankId); // D-147: còn lượt tự học (hoặc bài giao khác) mở trên bộ này thì 409
         var a = attempts.save(forced.applyAssigned(new StudentAttempt(userId, bankId, Instant.now(clock), bank.timeLimitSec(), assignmentId),
                 assignmentId, forcedAssignment));
-        return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec());
+        return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec(), a.getMode());
     }
 
     /** Chưa nộp: không có đáp án. Đã nộp: kết quả từ đáp án đã lưu (không chấm lại). */

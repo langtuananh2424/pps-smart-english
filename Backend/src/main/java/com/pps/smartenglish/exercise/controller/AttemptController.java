@@ -4,6 +4,7 @@ import com.pps.smartenglish.exercise.dto.AttemptProgress;
 import com.pps.smartenglish.exercise.dto.AttemptResponse;
 import com.pps.smartenglish.exercise.dto.AttemptSummary;
 import com.pps.smartenglish.exercise.dto.SubmitRequest;
+import com.pps.smartenglish.exercise.service.AttemptHintService;
 import com.pps.smartenglish.exercise.service.AttemptService;
 import com.pps.smartenglish.exercise.service.AttemptTimerService;
 import com.pps.smartenglish.exercise.service.SubmissionService;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import java.util.List;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,8 +29,10 @@ class AttemptController {
     private final AttemptService attempts;
     private final SubmissionService submissions;
     private final AttemptTimerService timer;
+    private final AttemptHintService hintService;
 
-    AttemptController(AttemptService attempts, SubmissionService submissions, AttemptTimerService timer) {
+    AttemptController(AttemptService attempts, SubmissionService submissions, AttemptTimerService timer, AttemptHintService hintService) {
+        this.hintService = hintService;
         this.attempts = attempts;
         this.submissions = submissions;
         this.timer = timer;
@@ -42,6 +46,12 @@ class AttemptController {
     @GetMapping("/api/attempts/{id}")
     AttemptResponse get(@PathVariable String id, Authentication auth) {
         return attempts.get(CurrentUser.id(auth), attemptId(id));
+    }
+
+    /** D-151: gợi ý Cam của lượt Luyện tập (bộ IELTS không trả gợi ý ở GET /api/banks/{id}). */
+    @GetMapping("/api/attempts/{id}/hints")
+    List<AttemptHintService.QuestionHints> hints(@PathVariable String id, Authentication auth) {
+        return hintService.of(CurrentUser.id(auth), attemptId(id));
     }
 
     @GetMapping("/api/attempts/{id}/progress")
