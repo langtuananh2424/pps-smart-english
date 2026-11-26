@@ -212,7 +212,7 @@ public class CmsBankService {
     }
 
     private QuestionBank find(long id) {
-        return banks.findById(id)
+        return banks.findById(id).filter(b -> !b.isExtra()) // D-152: bộ neo Luyện thêm không có trong CMS
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "bank_not_found", "Không tìm thấy bộ câu hỏi"));
     }
 
