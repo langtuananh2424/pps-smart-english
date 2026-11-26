@@ -4,10 +4,16 @@ import { api } from '../../lib/api'
 // payload.url là đường dẫn web do backend tính (D-92); thông báo cũ có thể thiếu.
 export interface NotificationItem {
   id: number
-  type: 'STREAK_REMINDER' | 'WRITING_GRADED'
+  type: 'STREAK_REMINDER' | 'WRITING_GRADED' | 'EXERCISE_GRADED'
   payload: { title?: string; body?: string; url?: string }
   createdAt: string
   readAt: string | null
+}
+
+// Thông báo EXERCISE_GRADED chưa đọc mới nhất (D-149), lấy từ trang đầu của danh sách (mới nhất trước).
+export const useGradedNotice = () => {
+  const { data } = useNotifications()
+  return data?.pages[0]?.data.find((n) => n.type === 'EXERCISE_GRADED' && n.readAt === null) ?? null
 }
 
 // Một khóa chung cho chuông ở trang chủ và màn Thông báo.

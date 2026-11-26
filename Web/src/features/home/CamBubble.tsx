@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import cam from '../../assets/home/cam-kinh.png'
+import { useGradedNotice } from '../notifications/api'
 import { useCamMessages } from './api'
 
 const KEY = 'cam-bubble-dismissed'
@@ -28,10 +29,12 @@ const nav = 'grid size-11 place-items-center rounded-sm bg-input text-lg font-ex
 // Bong bóng Cam góc dưới phải: tin xem lần lượt bằng nút ‹ ›, không tự chuyển.
 export function CamBubble() {
   const { data } = useCamMessages()
+  // Có thông báo chấm xong chưa đọc thì GradedBubble (AppShell) đã hiện Cam ở góc này: nhường để không chồng và không nhắc trùng (D-149).
+  const graded = useGradedNotice()
   const [open, setOpen] = useState(() => isDesktop() && !read())
   const [i, setI] = useState(0)
   const messages = data?.messages ?? []
-  if (messages.length === 0) return null
+  if (messages.length === 0 || graded) return null
   const msg = messages[Math.min(i, messages.length - 1)]
   const set = (v: boolean) => {
     setOpen(v)
