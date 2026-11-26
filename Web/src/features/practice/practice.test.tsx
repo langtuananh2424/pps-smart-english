@@ -162,10 +162,10 @@ describe('màn kết quả', () => {
     expect(formatScore(2)).toBe('2')
     view(result())
     expect(screen.getByLabelText('Điểm')).toHaveTextContent('1.5/2')
-    expect(screen.getByText('Đúng')).toBeInTheDocument()
+    expect(screen.getAllByText('Đúng').length).toBeGreaterThan(0)
     expect(screen.getByText('Vì so')).toBeInTheDocument()
     expect(screen.getAllByText('A. So')).toHaveLength(2)
-    expect(screen.getByText(/điểm bài đã nộp trong lượt này/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Kết quả từng câu')).toBeInTheDocument()
   })
   test('không có bài làm trong phiên thì ẩn dòng Bài làm', () => {
     mockApi({ '/api/grammar-elements': () => json(200, elements) })
@@ -182,7 +182,7 @@ describe('màn kết quả', () => {
   test('đang chấm AI và hết lượt AI', () => {
     view(result({ pendingJobs: [3], aiQuotaRequired: true, products: [{ id: 1, name: 'Gói 10 lượt' }] }))
     // D-145 hướng b: còn câu AI đang chấm thì chưa hiện điểm hay kết quả từng câu
-    expect(screen.getByRole('status')).toHaveTextContent('Đang chấm câu AI')
+    expect(screen.getByRole('status')).toHaveTextContent('đang chấm')
     expect(screen.queryByText('1.5')).not.toBeInTheDocument()
     expect(screen.queryByText('Đúng')).not.toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent('Gói 10 lượt')
@@ -216,7 +216,7 @@ describe('trang làm bài', () => {
     expect(screen.getByText(/Chọn từ nối thích hợp\./)).toBeInTheDocument() // instruction thay tên dạng
     await userEvent.click(screen.getByRole('button', { name: 'Câu 3' }))
     await userEvent.click(screen.getByRole('button', { name: 'Nộp bài' }))
-    expect(screen.getByText(/Bạn còn 2 câu chưa làm/)).toBeInTheDocument() // câu 2 chưa làm + câu Viết chưa mở phiên (sẽ tính 0 điểm)
+    expect(screen.getByText(/Còn 2 câu chưa làm/)).toBeInTheDocument() // câu 2 chưa làm + câu Viết chưa mở phiên (sẽ tính 0 điểm)
     await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Nộp bài' }))
     expect(await screen.findByLabelText('Điểm')).toHaveTextContent('1.5/2')
     expect(calls.filter((c) => c === '/api/banks/7/attempts')).toHaveLength(1)

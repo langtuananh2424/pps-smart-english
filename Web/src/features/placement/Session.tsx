@@ -84,11 +84,11 @@ export function Session({ saved, onDone }: Props) {
   const question = qs[index]
   const { Component } = rendererOf(question.type)
   const answered = qs.map((q) => isAnswered(q.type, sync.answers[q.id]))
-  const unanswered = qs.filter((q) => isAnswerable(q.type) && !isAnswered(q.type, sync.answers[q.id])).length
+  const pending = qs.flatMap((q, i) => (isAnswerable(q.type) && !answered[i] ? [i] : []))
   const onChange = (v: Answer | undefined) => sync.setAnswers({ ...sync.answers, [question.id]: v })
 
   return (
-    <div className="min-h-dvh bg-page pb-[72px]">
+    <div className="min-h-dvh bg-page pb-[124px] md:pb-[72px]">
       <PlayHeader title={started.title} secondsLeft={secondsLeft} draft={sync.status} canPause={false} paused={false} onPause={() => {}} back={{ to: '/khoa-hoc', label: 'Rời bài kiểm tra, bài làm được giữ trên máy' }} />
       <main className="mx-auto max-w-[900px] px-4 py-3">
         <h2 className="mb-2.5 text-lg font-black leading-6 text-ink md:hidden">{started.title}</h2>
@@ -107,7 +107,7 @@ export function Session({ saved, onDone }: Props) {
         </article>
       </main>
       <BottomBar count={qs.length} index={index} answered={answered} onGo={setIndex} onSubmit={() => setConfirm(true)} disabled={busy} />
-      {confirm && <ConfirmDialog unanswered={unanswered} busy={busy} error={error} onConfirm={() => void submit()} onCancel={() => setConfirm(false)} />}
+      {confirm && <ConfirmDialog pending={pending} zeroAi={0} grading={0} busy={busy} error={error} onGo={(i) => { setIndex(i); setConfirm(false) }} onConfirm={() => void submit()} onCancel={() => setConfirm(false)} />}
     </div>
   )
 }
