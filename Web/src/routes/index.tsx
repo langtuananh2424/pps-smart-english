@@ -17,6 +17,7 @@ import { ExerciseListPage } from '../features/exercises/ListPage'
 import { ExercisePickerPage } from '../features/exercises/PickerPage'
 import { ProfilePage } from '../features/profile/ProfilePage'
 import { AttemptResultPage } from '../features/practice/AttemptResultPage'
+import { IeltsPage } from '../features/ielts/IeltsPage'
 import { PracticePage } from '../features/practice/PracticePage'
 import { PlacementPage } from '../features/placement/PlacementPage'
 import { SpeakingPage } from '../features/speaking/SpeakingPage'
@@ -94,6 +95,7 @@ export const routes: RouteObject[] = [
         element: <RequireAuth />,
         children: [
           { path: '/bai-tap/:bankId', element: <PracticePage /> },
+          { path: '/ielts/:bankId', element: <IeltsPage /> },
           { path: '/bai-tap/:bankId/ket-qua/:attemptId', element: <AttemptResultPage /> },
           { path: '/viet/:questionId', element: <WritingPage /> },
           { path: '/noi/:questionId', element: <SpeakingPage /> },

@@ -14,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,9 +47,12 @@ class BankController {
 
     @PostMapping("/{id}/attempts")
     @ResponseStatus(HttpStatus.CREATED)
-    AttemptStarted start(@PathVariable String id, Authentication auth) {
-        return attempts.start(bankId(id), CurrentUser.id(auth));
+    AttemptStarted start(@PathVariable String id, Authentication auth, @RequestBody(required = false) StartRequest req) {
+        return attempts.start(bankId(id), CurrentUser.id(auth), req == null ? null : req.mode());
     }
+
+    /** D-151: mode tùy chọn (PRACTICE|EXAM), chỉ có nghĩa với bộ IELTS Reading/Listening. */
+    record StartRequest(String mode) {}
 
     private static Long bankId(String raw) {
         return PathId.parse(raw, "bank_not_found", "Không tìm thấy bộ câu hỏi");
