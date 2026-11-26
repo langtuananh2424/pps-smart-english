@@ -43,14 +43,16 @@ public class RetentionListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onExerciseScored(ExerciseScored e) {
+        // D-152: Luyện thêm dùng chung một bộ neo nên XP khóa theo lượt; ref âm = mã lượt, không đụng mã bộ của bài thường
+        long ref = e.extra() ? -e.attemptId() : e.bankId();
         if (e.initial()) {
             safely("streak", () -> streak.recordActivity(e.userId()));
-            safely("xp", () -> xp.grant(e.userId(), "EXERCISE", e.bankId(), props.xp().exercise()));
+            safely("xp", () -> xp.grant(e.userId(), "EXERCISE", ref, props.xp().exercise()));
         }
         // sự kiện sau khi AI chấm xong câu viết lại cũng xét thưởng điểm cao, nhưng không tính thêm ngày học
         if (e.maxScore() > 0 && e.score().multiply(BigDecimal.valueOf(100))
                 .compareTo(BigDecimal.valueOf((long) props.xp().highScorePercent() * e.maxScore())) >= 0) {
-            safely("xp-high", () -> xp.grant(e.userId(), "EXERCISE_HIGH", e.bankId(), props.xp().highScore()));
+            safely("xp-high", () -> xp.grant(e.userId(), "EXERCISE_HIGH", ref, props.xp().highScore()));
         }
     }
 

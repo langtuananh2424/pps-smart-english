@@ -77,6 +77,8 @@ public class CamService {
         return attempts.findFirstByUserIdAndSubmittedAtIsNullOrderByIdDesc(userId)
                 .filter(a -> !a.expired(now))
                 .flatMap(a -> banks.findById(a.getBankId())
-                        .map(b -> new OpenAttempt(b.getId(), b.getTitle(), a.remainingSec(now))));
+                        // D-152: lượt Luyện thêm mở ở màn riêng, không phải /bai-tap/{bộ neo}
+                        .map(b -> new OpenAttempt(a.isExtra() ? "/bai-tap/luyen-them/" + a.getId() : "/bai-tap/" + b.getId(),
+                                a.isExtra() ? "Luyện thêm" : b.getTitle(), a.remainingSec(now))));
     }
 }

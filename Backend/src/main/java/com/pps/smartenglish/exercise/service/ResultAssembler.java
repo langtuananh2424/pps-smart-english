@@ -53,7 +53,7 @@ class ResultAssembler {
                 .collect(Collectors.toMap(AnswerGrading::getAnswerId, AnswerGrading::getResult, (a, b) -> a));
         var results = set.questions().stream().map(q -> result(q, set, byQuestion.get(q.getId()), gradingByAnswer)).toList();
         // D-145: một chỗ chung cho nộp bài và GET; đề đầu vào không có đạt/chưa, Nghe ép bị shaper bỏ trường này
-        var bank = banks.findById(attempt.getBankId()).filter(b -> !b.isPlacement()).orElse(null);
+        var bank = banks.findById(attempt.getBankId()).filter(b -> !b.isPlacement() && !b.isExtra()).orElse(null);
         Integer passPct = bank == null ? null : bank.getPassPct();
         boolean awaiting = awaitsAi(answers, set);
         var full = new AttemptResponse(attempt.getId(), attempt.getBankId(), attempt.getStartedAt(), submittedAt, score, maxScore,

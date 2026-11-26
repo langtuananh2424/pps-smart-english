@@ -13,7 +13,7 @@ import { PracticeBanner } from './PracticeBanner'
 import { StatTiles } from './StatTiles'
 import { TypeGroups } from './TypeGroups'
 
-// FR-EX-04, FR-EXAM-02, D-62..D-64: hệ thống bài tập của một khóa.
+// FR-EX-04, FR-EXAM-02, D-62..D-64, D-152: hệ thống bài tập của một khóa.
 export function ExerciseListPage() {
   const courseId = Number(useParams().courseId)
   const courses = useMyCourses()
@@ -51,7 +51,7 @@ export function ExerciseListPage() {
       <ExamCard status={exam.data} courseId={courseId} />
       {noBanks && <EmptyCard courseId={courseId} />}
       {roadmap.data && <LectureList roadmap={roadmap.data} query={query} />}
-      <PracticeBanner />
+      <PracticeBanner courseId={courseId} />
       {stats.data && <TypeGroups stats={stats.data} query={query} quota={quota.data} courseId={courseId} />}
     </div>
   )

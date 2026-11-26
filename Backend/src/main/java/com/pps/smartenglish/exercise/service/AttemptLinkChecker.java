@@ -1,6 +1,7 @@
 package com.pps.smartenglish.exercise.service;
 
 import com.pps.smartenglish.ai.service.AttemptLinks;
+import com.pps.smartenglish.exercise.repository.AttemptQuestionRepository;
 import com.pps.smartenglish.exercise.repository.QuestionRepository;
 import com.pps.smartenglish.exercise.repository.StudentAttemptRepository;
 import com.pps.smartenglish.shared.error.ApiException;
@@ -13,8 +14,10 @@ class AttemptLinkChecker implements AttemptLinks {
 
     private final StudentAttemptRepository attempts;
     private final QuestionRepository questions;
+    private final AttemptQuestionRepository extra;
 
-    AttemptLinkChecker(StudentAttemptRepository attempts, QuestionRepository questions) {
+    AttemptLinkChecker(StudentAttemptRepository attempts, QuestionRepository questions, AttemptQuestionRepository extra) {
+        this.extra = extra;
         this.attempts = attempts;
         this.questions = questions;
     }
@@ -42,7 +45,7 @@ class AttemptLinkChecker implements AttemptLinks {
     public Long openAttemptForQuestion(long userId, long questionId) {
         return questions.findById(questionId)
                 .flatMap(q -> attempts.findFirstByUserIdAndBankIdAndSubmittedAtIsNullOrderByIdDesc(userId, q.getBankId()))
-                .map(a -> a.getId()).orElse(null);
+                .map(a -> a.getId()).or(() -> extra.openAttemptOf(userId, questionId)).orElse(null); // D-152: cả lượt Luyện thêm đang mở
     }
 
     @Override
@@ -81,7 +84,9 @@ class AttemptLinkChecker implements AttemptLinks {
         if (a.getSubmittedAt() != null) {
             throw new ApiException(HttpStatus.CONFLICT, "attempt_already_submitted", "Lượt làm bài này đã được nộp");
         }
-        if (!questions.findById(questionId).map(q -> q.getBankId().equals(a.getBankId())).orElse(false)) {
+        boolean inAttempt = a.isExtra() ? extra.contains(attemptId, questionId)
+                : questions.findById(questionId).map(q -> q.getBankId().equals(a.getBankId())).orElse(false);
+        if (!inAttempt) {
             throw ApiException.validation("attemptId", "Câu hỏi không thuộc bộ của lượt làm bài này");
         }
     }

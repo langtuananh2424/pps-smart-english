@@ -110,7 +110,7 @@ class RegradeApplier {
                 newResult, Instant.now(clock));
         if (newScore.compareTo(oldScore) > 0) {
             int max = attempt.getMaxScore() == null ? 0 : attempt.getMaxScore();
-            events.publishEvent(new ExerciseScored(attempt.getUserId(), attempt.getBankId(), attempt.getId(), newScore, max, false));
+            events.publishEvent(new ExerciseScored(attempt.getUserId(), attempt.getBankId(), attempt.getId(), newScore, max, false, attempt.isExtra()));
         }
         return true;
     }

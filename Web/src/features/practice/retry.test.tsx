@@ -41,7 +41,7 @@ describe('thử lại kèm gợi ý', () => {
     await userEvent.click(check)
     expect(calls).toEqual([{ answer: { choiceId: 6 } }])
     const cam = await screen.findByRole('region', { name: 'Gợi ý của Cam' })
-    expect(cam).toHaveTextContent('Chưa đúng, thử lại nhé')
+    expect(cam).toHaveTextContent('Cần sửa, thử lại nhé')
     expect(cam).toHaveTextContent('Nghĩ về quan hệ nguyên nhân')
     expect(screen.getByRole('radio', { name: /So/ })).toBeEnabled() // còn lượt: sửa được
   })
@@ -62,7 +62,7 @@ describe('thử lại kèm gợi ý', () => {
     renderAt('/bai-tap/7')
     await userEvent.click(await screen.findByRole('radio', { name: /But/ }))
     await userEvent.click(screen.getByRole('button', { name: 'Kiểm tra' }))
-    expect(await screen.findByRole('region', { name: 'Gợi ý của Cam' })).toHaveTextContent('Chưa đúng, thử lại nhé')
+    expect(await screen.findByRole('region', { name: 'Gợi ý của Cam' })).toHaveTextContent('Cần sửa, thử lại nhé')
   })
 
   test('mở lại lượt: câu đã đúng hoặc hết lượt khôi phục trạng thái khóa', async () => {

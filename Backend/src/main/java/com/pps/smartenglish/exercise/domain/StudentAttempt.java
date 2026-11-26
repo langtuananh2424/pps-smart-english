@@ -71,6 +71,10 @@ public class StudentAttempt {
     @Column(name = "rule_id", updatable = false)
     private Long ruleId;
 
+    /** D-152: lượt Luyện thêm, danh sách câu nằm ở attempt_questions thay vì cả bộ; bank_id là bộ neo. */
+    @Column(nullable = false, updatable = false)
+    private boolean extra;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "draft_answers")
     private JsonNode draftAnswers;
@@ -107,6 +111,12 @@ public class StudentAttempt {
         return this;
     }
 
+    public StudentAttempt asExtra() {
+        this.extra = true;
+        return this;
+    }
+
+    public boolean isExtra() { return extra; }
     public boolean isCountOnly() { return COUNT_ONLY.equals(resultMode); }
     public Long getRuleId() { return ruleId; }
     public Long getAssignmentId() { return assignmentId; }

@@ -62,7 +62,7 @@ class RewriteResultApplier implements RewriteResultSink {
             attempts.recomputeScore(attemptId);
             // báo điểm mới để retention xét thưởng điểm cao cho câu viết lại chấm muộn (không tính thêm ngày học)
             attempts.findById(attemptId).ifPresent(a -> events.publishEvent(new ExerciseScored(a.getUserId(), a.getBankId(),
-                    attemptId, a.getScore(), a.getMaxScore(), false)));
+                    attemptId, a.getScore(), a.getMaxScore(), false, a.isExtra())));
         }
     }
 }

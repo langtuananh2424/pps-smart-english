@@ -35,13 +35,14 @@ public class AttemptResultGate {
      * lượt chưa nộp của chính học viên thì cũng giấu (phiên tạo trước khi mở lượt).
      */
     public boolean sealedSession(long userId, long questionId, Long attemptId) {
-        return attemptId != null ? sealed(attemptId) : attempts.openAttemptForQuestion(userId, questionId) != null;
+        // D-152: câu có thể nằm đồng thời trong lượt Luyện thêm và lượt của bộ; còn lượt nào mở thì kết quả của lượt kia vẫn giấu
+        return (attemptId != null && sealed(attemptId)) || attempts.openAttemptForQuestion(userId, questionId) != null;
     }
 
     /** Job chấm Viết/Nói: theo lượt của job, hoặc theo câu của phiên khi job không gắn lượt. Job chấm lại của Admin không giấu. */
     public boolean sealed(AiJob job) {
-        if (job.getAttemptId() != null) {
-            return sealed(job.getAttemptId());
+        if (job.getAttemptId() != null && sealed(job.getAttemptId())) {
+            return true;
         }
         Long question = switch (job.getKind()) {
             case WRITING_GRADE -> job.getSessionId() == null ? null : writing.findById(job.getSessionId()).map(s -> s.getQuestionId()).orElse(null);

@@ -90,7 +90,7 @@ describe('khôi phục khi tải lại và lỗi mạng', () => {
     })
     renderAt('/ielts/7')
     const q1 = await screen.findByRole('article', { name: 'Câu 1' })
-    expect(within(q1).getByText('Chưa đúng. Xem đáp án ở màn kết quả')).toBeInTheDocument()
+    expect(within(q1).getByText('Cần sửa. Xem đáp án ở màn kết quả')).toBeInTheDocument()
     expect(within(q1).queryByRole('button', { name: 'Kiểm tra' })).not.toBeInTheDocument()
     expect(within(q1).getByRole('radio', { name: /Đúng 1/ })).toBeDisabled()
     const q2 = screen.getByRole('article', { name: 'Câu 2' })

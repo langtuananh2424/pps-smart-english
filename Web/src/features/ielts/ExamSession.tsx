@@ -126,7 +126,7 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
           </div>
         )}
       </main>
-      {mode === 'PRACTICE' && <IeltsCam attemptId={attemptId} questionId={currentId} hidden={paused} notice={retry.wrong?.questionId === currentId ? 'Chưa đúng, thử lại nhé' : null} openKey={retry.wrong?.questionId === currentId ? retry.wrong.n : undefined} />}
+      {mode === 'PRACTICE' && <IeltsCam attemptId={attemptId} questionId={currentId} hidden={paused} notice={retry.wrong?.questionId === currentId ? 'Cần sửa, thử lại nhé' : null} openKey={retry.wrong?.questionId === currentId ? retry.wrong.n : undefined} />}
       <PartNav skill={bank.skill} parts={parts} currentId={currentId} states={states} flaggedNow={flags.has(currentId)} onGo={go} onFlag={() => toggle(currentId)} onSubmit={() => setView('review')} disabled={paused || busy} />
     </div>
   )

@@ -2,6 +2,8 @@ package com.pps.smartenglish.exercise.service;
 
 import com.pps.smartenglish.exercise.domain.Question;
 import com.pps.smartenglish.exercise.domain.QuestionChoice;
+import com.pps.smartenglish.exercise.domain.StudentAttempt;
+import com.pps.smartenglish.exercise.repository.AttemptQuestionRepository;
 import com.pps.smartenglish.exercise.repository.QuestionChoiceRepository;
 import com.pps.smartenglish.exercise.repository.QuestionRepository;
 import java.util.Collection;
@@ -14,10 +16,34 @@ public class QuestionLoader {
 
     private final QuestionRepository questions;
     private final QuestionChoiceRepository choices;
+    private final AttemptQuestionRepository extra;
 
-    QuestionLoader(QuestionRepository questions, QuestionChoiceRepository choices) {
+    QuestionLoader(QuestionRepository questions, QuestionChoiceRepository choices, AttemptQuestionRepository extra) {
         this.questions = questions;
         this.choices = choices;
+        this.extra = extra;
+    }
+
+    /** Câu còn hiệu lực của lượt: cả bộ, hoặc danh sách riêng của lượt Luyện thêm (D-152). */
+    public QuestionSet load(StudentAttempt a) {
+        if (!a.isExtra()) {
+            return load(a.getBankId());
+        }
+        return withChoices(ofIds(a.getId()).stream().filter(q -> q.getArchivedAt() == null).toList());
+    }
+
+    /** Xem lại lượt đã nộp: như loadForHistory(bankId, ...) nhưng theo lượt. */
+    public QuestionSet loadForHistory(StudentAttempt a, Collection<Long> answeredQuestionIds) {
+        if (!a.isExtra()) {
+            return loadForHistory(a.getBankId(), answeredQuestionIds);
+        }
+        return withChoices(ofIds(a.getId()).stream().filter(q -> q.getArchivedAt() == null || answeredQuestionIds.contains(q.getId())).toList());
+    }
+
+    private List<Question> ofIds(Long attemptId) {
+        var ids = extra.questionIds(attemptId);
+        var byId = questions.findAllById(ids).stream().collect(Collectors.toMap(Question::getId, q -> q));
+        return ids.stream().map(byId::get).filter(java.util.Objects::nonNull).toList();
     }
 
     /** Câu còn hiệu lực: cho lượt làm mới, không có câu đã lưu trữ (D-138). */

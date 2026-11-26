@@ -81,7 +81,7 @@ public class AttemptService {
      * D-147: mỗi bộ chỉ một lượt mở cho mỗi học viên (mở thêm lượt để xem trước bản sửa AI của lượt kia). Khóa dòng user để hai
      * start song song không tạo hai lượt; bộ EXAM đã có exam_in_progress ở ExamService.
      */
-    private void requireNoOpenAttempt(long userId, long bankId) {
+    void requireNoOpenAttempt(long userId, long bankId) {
         attempts.lockUser(userId);
         attempts.findFirstByUserIdAndBankIdAndSubmittedAtIsNullOrderByIdDesc(userId, bankId).ifPresent(open -> {
             throw new ApiException(HttpStatus.CONFLICT, "attempt_in_progress", "Bạn đang có một lượt làm bài chưa nộp ở bộ này",
@@ -124,7 +124,7 @@ public class AttemptService {
         var gradingRows = stored.isEmpty() ? List.<AnswerGrading>of()
                 : gradings.findByAnswerIdIn(stored.stream().map(StudentAnswer::getId).toList());
         var base = assembler.submitted(a, a.getSubmittedAt(), a.getScore(), a.getMaxScore(),
-                loader.loadForHistory(a.getBankId(), stored.stream().map(StudentAnswer::getQuestionId).toList()), stored,
+                loader.loadForHistory(a, stored.stream().map(StudentAnswer::getQuestionId).toList()), stored,
                 gradingRows, aiJobs.pendingIds(a.getId()), null);
         return new AttemptResponse(base.id(), base.bankId(), base.startedAt(), base.submittedAt(), base.score(), base.maxScore(),
                 base.results(), base.pendingJobs(), base.aiQuotaRequired(), base.products(),

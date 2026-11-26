@@ -84,7 +84,7 @@ public class CmsQuestionService {
 
     @Transactional
     public QuestionDetail create(long bankId, CreateQuestion req) {
-        QuestionBank bank = banks.findById(bankId)
+        QuestionBank bank = banks.findById(bankId).filter(b -> !b.isExtra()) // D-152: bộ neo không nhận câu
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "bank_not_found", "Không tìm thấy bộ câu hỏi"));
         var question = insert(bank, prepare(bank, req, elements()), req.sortOrder() == null ? 0 : req.sortOrder(), null);
         var after = one(question);

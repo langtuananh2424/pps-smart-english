@@ -14,6 +14,8 @@ import { CourseDetailPage } from '../features/courses/DetailPage'
 import { CourseTestResult } from '../features/exercises/CourseTestResult'
 import { CourseTestsPage } from '../features/exercises/CourseTestsPage'
 import { ExerciseListPage } from '../features/exercises/ListPage'
+import { ExtraPracticePage } from '../features/extra/ExtraPage'
+import { ExtraRunPage } from '../features/extra/ExtraRunPage'
 import { ExercisePickerPage } from '../features/exercises/PickerPage'
 import { ProfilePage } from '../features/profile/ProfilePage'
 import { AttemptResultPage } from '../features/practice/AttemptResultPage'
@@ -75,6 +77,7 @@ export const routes: RouteObject[] = [
               { path: '/bai-tap/khoa/:courseId/kiem-tra/:attemptId/ket-qua', element: <CourseTestResult /> },
               { path: '/bai-tap', element: <ExercisePickerPage /> },
               { path: '/bai-tap/khoa/:courseId', element: <ExerciseListPage /> },
+              { path: '/bai-tap/khoa/:courseId/luyen-them', element: <ExtraPracticePage /> },
               { path: '/ho-so', element: <ProfilePage /> },
               { path: '/chuoi-hoc', element: <StreakPage /> },
               { path: '/muc-tieu', element: <GoalPage /> },
@@ -95,6 +98,7 @@ export const routes: RouteObject[] = [
         element: <RequireAuth />,
         children: [
           { path: '/bai-tap/:bankId', element: <PracticePage /> },
+          { path: '/bai-tap/luyen-them/:attemptId', element: <ExtraRunPage /> },
           { path: '/ielts/:bankId', element: <IeltsPage /> },
           { path: '/bai-tap/:bankId/ket-qua/:attemptId', element: <AttemptResultPage /> },
           { path: '/viet/:questionId', element: <WritingPage /> },

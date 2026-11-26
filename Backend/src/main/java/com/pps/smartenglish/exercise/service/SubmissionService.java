@@ -101,7 +101,7 @@ public class SubmissionService {
         if (req == null || attempt.expired(now)) {
             req = draftRequest(attempt);
         }
-        var set = loader.load(attempt.getBankId());
+        var set = loader.load(attempt);
         req = checkService.pinLocked(attemptId, req, set.questions()); // D-150: câu đã khóa dùng câu trả lời của lần kiểm tra cuối
         Map<Long, JsonNode> given = indexAnswers(req.answers(), set.questions());
         Map<Long, Integer> times = validTimes(req.answers());
@@ -164,7 +164,7 @@ public class SubmissionService {
             aiJobs.pendingIds(attemptId).stream().filter(id -> !pending.contains(id)).forEach(pending::add);
         }
         // retention nghe sau commit: mọi lần nộp tính là một ngày có học, điểm dùng để xét thưởng
-        events.publishEvent(new ExerciseScored(userId, attempt.getBankId(), attemptId, score, maxScore, true));
+        events.publishEvent(new ExerciseScored(userId, attempt.getBankId(), attemptId, score, maxScore, true, attempt.isExtra()));
         return assembler.submitted(attempt, now, score, maxScore, set, rows, ruleRows, pending, quotaProducts);
     }
 

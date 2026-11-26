@@ -182,7 +182,7 @@ public class ImportService {
 
     /** Đề kiểm tra đầu vào bắt buộc skill và chỉ nhận dạng chấm tự động nên chưa nằm trong nhập hàng loạt. */
     private QuestionBank importableBank(long bankId) {
-        QuestionBank bank = banks.findById(bankId)
+        QuestionBank bank = banks.findById(bankId).filter(b -> !b.isExtra())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "bank_not_found", "Không tìm thấy bộ câu hỏi"));
         if (bank.isPlacement()) {
             throw ApiException.validation("bank", "Đề kiểm tra đầu vào chưa hỗ trợ nhập hàng loạt");
