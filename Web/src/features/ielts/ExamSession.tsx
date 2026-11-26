@@ -114,7 +114,7 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
       <main className={`relative mx-auto max-w-[1440px] px-4 py-4 md:px-7 ${FONTS[font]}`}>
         {error && !confirm && <p role="alert" className="mb-3 rounded-md bg-danger-bg px-4 py-2 text-sm font-bold text-danger">{error}</p>}
         <div className={hasLeft ? 'grid items-start gap-4 md:grid-cols-2' : 'mx-auto max-w-[900px]'}>
-          {hasLeft && part.group && <PassagePane key={part.key} bank={bank} group={part.group} attemptId={attemptId} disabled={paused || busy} />}
+          {hasLeft && part.group && <PassagePane key={part.key} bank={bank} group={part.group} attemptId={attemptId} disabled={paused || busy} exam={mode === 'EXAM'} />}
           <QuestionsPane part={part} answers={answers} flagged={flags} currentId={currentId} disabled={paused || busy} onChange={onChange} onFocus={setCurrentId} retry={retry.enabled ? { checks: retry.checks, pending: retry.pending, onCheck: (id) => void runCheck(id) } : undefined} />
         </div>
         {paused && (
