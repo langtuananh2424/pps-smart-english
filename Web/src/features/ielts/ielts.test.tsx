@@ -95,6 +95,18 @@ describe('khung thi IELTS', () => {
     expect(screen.queryByRole('complementary', { name: 'Cam gợi ý' })).not.toBeInTheDocument()
   })
 
+  test('bố cục ngang điện thoại: hai cột cuộn riêng, ẩn nút Xem bài đọc, thanh gọn (US-508)', async () => {
+    wire('PRACTICE')
+    renderAt('/ielts/7')
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
+    const q = await screen.findByRole('article', { name: 'Câu 1' })
+    expect(screen.getByRole('button', { name: 'Xem bài đọc' })).toHaveClass('land:hidden')
+    expect(q.closest('div[class*="land:overflow-y-auto"]')).not.toBeNull()
+    expect(q.closest('.grid')).toHaveClass('land:grid-cols-2')
+    expect(screen.getByRole('navigation', { name: 'Điều hướng câu' })).toHaveClass('land:static')
+    expect(screen.getByRole('banner')).toHaveClass('land:h-12')
+  })
+
   test('Mô phỏng thi: không tạm dừng, không gọi gợi ý', async () => {
     const calls = wire('EXAM')
     renderAt('/ielts/7')

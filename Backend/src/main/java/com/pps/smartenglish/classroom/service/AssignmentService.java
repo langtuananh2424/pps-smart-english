@@ -42,6 +42,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class AssignmentService {
 
     public static final int LIST_LIMIT = 50;
+    /** shortcut: trần an toàn cho danh sách của học viên (mới nhất theo hạn), bài chưa nộp cũ hơn trần bị cắt; nâng cấp bằng truy vấn riêng theo trạng thái nếu có học viên vượt. */
+    static final int MINE_CAP = 500;
+    static final int MINE_SUBMITTED_LIMIT = 50;
 
     private final AssignmentRepository assignments;
     private final AssignmentTargetRepository targets;
@@ -164,18 +167,40 @@ public class AssignmentService {
         return views(assignments.findByClassIdOrderByIdDesc(classId, PageRequest.of(0, LIST_LIMIT)), 0);
     }
 
-    /** Mọi bài còn hiệu lực của các lớp học viên đang học, hạn gần nhất trước. */
+    /** Mọi bài chưa nộp còn hiệu lực + tối đa MINE_SUBMITTED_LIMIT bài đã nộp gần nhất theo hạn; hạn gần nhất trước. */
     @Transactional(readOnly = true)
     public List<AssignmentView> mine(long userId) {
-        return views(assignments.forStudent(userId, PageRequest.of(0, LIST_LIMIT)), userId);
+        var all = views(assignments.forStudent(userId, PageRequest.of(0, MINE_CAP)), userId); // hạn mới nhất trước
+        var out = new java.util.ArrayList<AssignmentView>();
+        int submitted = 0;
+        for (AssignmentView v : all) {
+            boolean todo = AssignmentProgressService.NOT_SUBMITTED.equals(v.myStatus()) || AssignmentProgressService.OVERDUE.equals(v.myStatus());
+            if (todo || submitted++ < MINE_SUBMITTED_LIMIT) {
+                out.add(v);
+            }
+        }
+        java.util.Collections.reverse(out); // hạn gần nhất trước
+        return out;
+    }
+
+    /** Một bài của chính học viên, kể cả bài đã hủy (D-153, status CANCELLED); không phải người nhận thì 404. */
+    @Transactional(readOnly = true)
+    public AssignmentView mineOne(long userId, long assignmentId) {
+        if (!assignments.isRecipientAnyStatus(assignmentId, userId)) {
+            throw notFound();
+        }
+        return views(List.of(assignments.findById(assignmentId).orElseThrow(AssignmentService::notFound)), userId).get(0);
     }
 
     /** Bắt đầu hoặc làm tiếp bài được giao; chỉ người nhận. Trả lượt làm bài, nộp qua /api/attempts/{id}/submit như bài thường. */
     @Transactional
     public AttemptStarted start(long userId, long classId, long assignmentId) {
         Assignment a = require(classId, assignmentId);
-        if (!assignments.isRecipient(assignmentId, userId)) {
+        if (!assignments.isRecipientAnyStatus(assignmentId, userId)) {
             throw notFound();
+        }
+        if (!a.isActive()) {
+            throw new ApiException(HttpStatus.CONFLICT, "assignment_cancelled", "Bài này đã được giáo viên hủy");
         }
         if (a.isAiQuestion()) {
             throw new ApiException(HttpStatus.CONFLICT, "assignment_not_attemptable", "Bài Viết/Nói làm ở màn Viết/Nói, gửi kèm assignmentId");

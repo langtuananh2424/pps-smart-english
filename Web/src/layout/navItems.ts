@@ -9,7 +9,7 @@ export const navItems: { to: string; label: string; mobileLabel?: string; icon: 
   { to: '/', label: 'Trang chủ', mobileLabel: 'Học', icon: home },
   { to: '/khoa-hoc', label: 'Khóa học', icon: courses, also: ['/thanh-toan'] },
   { to: '/bai-giang', label: 'Bài giảng', icon: lectures },
-  { to: '/bai-tap', label: 'Bài tập', icon: exercises },
+  { to: '/bai-tap', label: 'Bài tập', icon: exercises, also: ['/bai-giao', '/lop'] },
   { to: '/ho-so', label: 'Hồ sơ', icon: profile, also: ['/chuoi-hoc', '/muc-tieu', '/don-hang'] },
 ]
 

@@ -171,7 +171,11 @@ class AssignmentApiTest extends ApiTestBase {
                 .andExpect(jsonPath("$.error.code").value("assignment_submitted"));
 
         call(HttpMethod.POST, base(f) + "/" + asg + "/cancel", t, null).andExpect(status().isOk());
-        call(HttpMethod.GET, "/api/banks/" + f.bankB(), s1.accessToken(), null).andExpect(status().isForbidden());
+        // D-153: người nhận vẫn xem lại bộ (chỉ đọc); tự học thì khóa unit giữ nguyên, người không nhận vẫn bị chặn
+        call(HttpMethod.GET, "/api/banks/" + f.bankB(), s1.accessToken(), null).andExpect(status().isOk());
+        call(HttpMethod.GET, "/api/banks/" + f.bankB(), s2.accessToken(), null).andExpect(status().isForbidden());
+        call(HttpMethod.POST, "/api/banks/" + f.bankB() + "/attempts", s1.accessToken(), null).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("unit_locked"));
         call(HttpMethod.GET, base(f), s1.accessToken(), null).andExpect(jsonPath("$", hasSize(0)));
     }
 

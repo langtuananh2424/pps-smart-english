@@ -70,7 +70,7 @@ public class BankService {
     @Transactional(readOnly = true)
     public BankResponse get(Long bankId, Long userId) {
         exam.guardView(userId, bankId); // trước gate: cùng mã lỗi exam_* như lúc bắt đầu thi
-        var bank = gate.require(bankId, userId);
+        var bank = gate.requireReadable(bankId, userId);
         var set = loader.load(bankId);
         var playback = banks.findById(bankId).orElseThrow(); // findInfo vừa tìm thấy bộ này
         // D-151: bộ chọn được chế độ không trả gợi ý ở đây, chỉ qua /attempts/{id}/hints của lượt Luyện tập

@@ -31,7 +31,7 @@ public class AttemptQuestionRepository {
     /** Lượt Luyện thêm đang mở của học viên có câu này (D-147 mục 11). */
     public Optional<Long> openAttemptOf(long userId, long questionId) {
         return jdbc.queryForList("select a.id from student_exercise_attempts a join attempt_questions aq on aq.attempt_id = a.id "
-                + "where a.user_id = ? and a.submitted_at is null and aq.question_id = ? order by a.id desc limit 1",
+                + "where a.user_id = ? and a.submitted_at is null and (a.assignment_id is null or exists (select 1 from assignments s where s.id = a.assignment_id and s.status = 'ACTIVE')) and aq.question_id = ? order by a.id desc limit 1",
                 Long.class, userId, questionId).stream().findFirst();
     }
 }

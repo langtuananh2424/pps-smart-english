@@ -26,9 +26,11 @@ public class AttemptTimerService {
     private final ObjectMapper mapper;
     private final Clock clock;
     private final AttemptCheckService retry;
+    private final AssignedBanks assigned;
 
     AttemptTimerService(StudentAttemptRepository attempts, AttemptModes modes, QuestionLoader loader,
-                        ObjectMapper mapper, Clock clock, AttemptCheckService retry) {
+                        ObjectMapper mapper, Clock clock, AttemptCheckService retry, AssignedBanks assigned) {
+        this.assigned = assigned;
         this.retry = retry;
         this.attempts = attempts;
         this.modes = modes;
@@ -68,6 +70,7 @@ public class AttemptTimerService {
     @Transactional
     public AttemptProgress saveDraft(long userId, long attemptId, SubmitRequest req) {
         var a = openAttempt(userId, attemptId);
+        assigned.requireActive(a.getAssignmentId()); // D-153
         if (a.expired(Instant.now(clock))) {
             throw timeUp();
         }

@@ -1,6 +1,8 @@
 export type Id = number | string
 
 export interface Choice { id: number; label: string; content: string; contentHtml?: string | null }
+// D-134: ảnh gắn câu; url đã ký sẵn, displaySize là cỡ theo khung.
+export interface QuestionMedia { assetId: number; url: string; width: number; height: number; role: 'INLINE' | 'DIAGRAM'; displaySize: 'SM' | 'MD' | 'LG' | 'FULL'; altText: string }
 export interface Hint { id: number; content: string; detail?: string | null }
 export interface Question {
   id: number
@@ -13,6 +15,7 @@ export interface Question {
   hints?: Hint[]
   groupId?: number | null
   promptHtml?: string | null
+  media?: QuestionMedia[]
 }
 // D-133: bài đọc/audio dùng chung; passageHtml đã được máy chủ làm sạch.
 export interface BankGroup { id: number; title: string | null; instruction: string | null; passageHtml: string | null; sortOrder: number; hasAudio: boolean; audioDurationMs: number | null }

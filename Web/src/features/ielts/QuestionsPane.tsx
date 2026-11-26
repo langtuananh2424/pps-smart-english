@@ -1,5 +1,6 @@
 import { labelOf } from '../exercises/format'
 import { CheckBar } from '../practice/CheckBar'
+import { PromptText, QuestionMediaList } from '../practice/QuestionStem'
 import { isAnswered, rendererOf } from '../practice/questions/registry'
 import type { Answer, Answers, CheckState } from '../practice/types'
 import { isCheckable, isLocked } from '../practice/useCheck'
@@ -38,12 +39,13 @@ export function QuestionsPane({ part, answers, flagged, currentId, disabled, onC
             onPointerDown={() => onFocus(q.id)}
             className={`flex flex-col gap-2 rounded-md border-[1.5px] p-3 ${q.id === currentId ? 'border-line-brand' : 'border-transparent'}`}
           >
-            <p className="flex items-start gap-2 text-base font-black text-ink">
+            <div className="flex items-start gap-2 text-base font-black text-ink">
               <span className="grid size-8 shrink-0 place-items-center rounded-sm bg-subtle text-[13px] font-extrabold text-brand-strong">{part.first + j + 1}</span>
-              <span>{q.prompt}</span>
+              <PromptText question={q} className="min-w-0 flex-1" />
               {flagged.has(q.id) && <span className="ml-auto text-xs font-extrabold text-amber-700">Xem lại</span>}
-            </p>
-            {!q.prompt && <p className="text-sm font-semibold text-ink-secondary">{q.instruction ?? labelOf(q.type)}</p>}
+            </div>
+            <QuestionMediaList question={q} />
+            {!q.prompt && !q.promptHtml && <p className="text-sm font-semibold text-ink-secondary">{q.instruction ?? labelOf(q.type)}</p>}
             <Component question={q} value={answers[q.id]} onChange={(v) => onChange(q.id, v)} disabled={disabled || (checkable && isLocked(state))} />
             {checkable && <CheckBar state={state} canCheck={!disabled && isAnswered(q.type, answers[q.id])} pending={retry.pending} onCheck={() => retry.onCheck(q.id)} />}
           </article>

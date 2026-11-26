@@ -11,7 +11,8 @@ export function Mcq({ question, value, onChange, disabled }: QuestionProps) {
         return (
           <button key={c.id} type="button" role="radio" aria-checked={active} disabled={disabled} onClick={() => onChange({ choiceId: c.id })} className={option(active)}>
             <span className={optionCode}>{c.label}</span>
-            <span>{c.content}</span>
+            {/* contentHtml do máy chủ đã làm sạch */}
+            {c.contentHtml ? <span dangerouslySetInnerHTML={{ __html: c.contentHtml }} /> : <span>{c.content}</span>}
           </button>
         )
       })}

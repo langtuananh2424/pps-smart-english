@@ -83,11 +83,14 @@ public class WritingHistoryService {
     }
 
     @Transactional(readOnly = true)
-    public CursorPage<SessionSummary> list(long userId, Long questionId, String limit, String cursor) {
+    public CursorPage<SessionSummary> list(long userId, Long questionId, Long assignmentId, String limit, String cursor) {
         int size = Cursors.size(limit, DEFAULT_LIMIT, MAX_LIMIT);
         long before = Cursors.decode(cursor);
         var page = PageRequest.of(0, size + 1);
-        List<WritingSession> rows = questionId == null
+        // assignmentId có: chỉ phiên của bài giao đó (bỏ qua questionId); không có: như cũ
+        List<WritingSession> rows = assignmentId != null
+                ? sessions.findByUserIdAndAssignmentIdAndIdLessThanOrderByIdDesc(userId, assignmentId, before, page)
+                : questionId == null
                 ? sessions.findByUserIdAndIdLessThanOrderByIdDesc(userId, before, page)
                 : sessions.findByUserIdAndQuestionIdAndIdLessThanOrderByIdDesc(userId, questionId, before, page);
         boolean more = rows.size() > size;
@@ -97,7 +100,7 @@ public class WritingHistoryService {
         return new CursorPage<>(shown.stream().map(s -> new SessionSummary(s.getId(), s.getQuestionId(), s.getStatus(),
                 sealed.computeIfAbsent(s.getAttemptId() != null ? s.getAttemptId() : -s.getQuestionId(),
                         k -> gate.sealedSession(userId, s.getQuestionId(), s.getAttemptId())) ? null : scores.get(s.getGradeJobId()),
-                s.getCreatedAt())).toList(),
+                s.getCreatedAt(), s.getAssignmentId())).toList(),
                 more ? Cursors.encode(shown.get(size - 1).getId()) : null);
     }
 

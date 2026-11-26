@@ -1,11 +1,14 @@
 import { api, postJson } from '../../lib/api'
 import type { Completed, SpeakingQuestion, SubmissionView, UploadPermit } from './types'
 
-export const fetchQuestion = (id: number) => api<SpeakingQuestion>(`/speaking/questions/${id}`)
-export const latestSubmission = async (questionId: number) =>
-  (await api<{ data: SubmissionView[] }>(`/me/speaking?questionId=${questionId}&limit=1`)).data[0] ?? null
+export const fetchQuestion = (id: number, assignmentId?: number) =>
+  api<SpeakingQuestion>(`/speaking/questions/${id}${assignmentId ? `?assignmentId=${assignmentId}` : ''}`)
+// assignmentId (D-130): chỉ lượt của bài giao đó, không bao giờ rơi về lượt tự luyện cùng câu.
+export const latestSubmission = async (questionId: number, assignmentId?: number) =>
+  (await api<{ data: SubmissionView[] }>(`/me/speaking?questionId=${questionId}&limit=1${assignmentId ? `&assignmentId=${assignmentId}` : ''}`)).data[0] ?? null
 export const fetchSubmission = (id: number) => api<SubmissionView>(`/speaking/submissions/${id}`)
-export const createSubmission = (questionId: number, attemptId?: number) => postJson<UploadPermit>('/speaking/submissions', { questionId, attemptId })
+export const createSubmission = (questionId: number, attemptId?: number, assignmentId?: number) =>
+  postJson<UploadPermit>('/speaking/submissions', { questionId, attemptId, assignmentId })
 export const completeSubmission = (id: number) => postJson<Completed>(`/speaking/submissions/${id}/complete`, {})
 
 // Lỗi tải lên MinIO: status 0 là lỗi mạng hoặc CORS (trình duyệt không cho biết nguyên nhân).

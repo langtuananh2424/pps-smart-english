@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useParams } from 'react-router'
+import { useParams, useSearchParams } from 'react-router'
 import { ApiError } from '../../lib/api'
+import { useAssignmentCancelled } from '../assignments/api'
 import { fetchQuestion, latestSubmission } from './api'
 import { BlockingError } from './errors'
 import { Outcome } from './Outcome'
@@ -14,9 +15,11 @@ const SHOWN = ['GRADING', 'GRADED', 'UNCLEAR']
 // Vào trang: bản nộp gần nhất đang chấm / đã có kết quả thì hiện tiếp; chưa có (hoặc bấm Nói lại) thì ghi âm.
 export function SpeakingPage() {
   const questionId = Number(useParams().questionId)
+  const assignmentId = Number(useSearchParams()[0].get('assignmentId')) || undefined
   const valid = Number.isInteger(questionId)
-  const question = useQuery({ queryKey: ['speaking', 'question', questionId], queryFn: () => fetchQuestion(questionId), retry: false, staleTime: 0, gcTime: 0, enabled: valid })
-  const latest = useQuery({ queryKey: ['speaking', 'latest', questionId], queryFn: () => latestSubmission(questionId), retry: false, staleTime: 0, gcTime: 0, enabled: valid })
+  const question = useQuery({ queryKey: ['speaking', 'question', questionId, assignmentId], queryFn: () => fetchQuestion(questionId, assignmentId), retry: false, staleTime: 0, gcTime: 0, enabled: valid })
+  const latest = useQuery({ queryKey: ['speaking', 'latest', questionId, assignmentId], queryFn: () => latestSubmission(questionId, assignmentId), retry: false, staleTime: 0, gcTime: 0, enabled: valid })
+  const cancelled = useAssignmentCancelled(assignmentId)
   const [active, setActive] = useState<{ id: number; jobId: number | null } | null>(null)
   const [redo, setRedo] = useState(false)
 
@@ -27,6 +30,6 @@ export function SpeakingPage() {
 
   const last = latest.data
   const shown = active ?? (!redo && last && SHOWN.includes(last.status) ? { id: last.id, jobId: null } : null)
-  if (shown) return <Outcome key={shown.id} question={question.data} id={shown.id} jobId={shown.jobId} onRedo={() => { setActive(null); setRedo(true) }} />
-  return <Practice question={question.data} onSubmitted={(id, jobId) => setActive({ id, jobId })} />
+  if (shown) return <Outcome key={shown.id} question={question.data} id={shown.id} jobId={shown.jobId} cancelled={cancelled} onRedo={() => { setActive(null); setRedo(true) }} />
+  return <Practice question={question.data} assignmentId={assignmentId} onSubmitted={(id, jobId) => setActive({ id, jobId })} />
 }

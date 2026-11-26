@@ -16,10 +16,10 @@ export function PassagePane({ bank, group, attemptId, disabled, exam }: Props) {
       {group.hasAudio && <GroupAudio key={group.id} attemptId={attemptId} group={group} mode={exam && playback === 'FREE' ? 'EXAM' : playback} defaultLimit={bank.playLimit} disabled={disabled} />}
       {hasText && (
         <>
-          <button type="button" onClick={() => setOpen(true)} className="min-h-11 rounded-full border-[1.5px] border-line-input bg-surface px-4 text-sm font-extrabold text-ink md:hidden">
+          <button type="button" onClick={() => setOpen(true)} className="min-h-11 rounded-full border-[1.5px] border-line-input bg-surface px-4 text-sm font-extrabold text-ink md:hidden land:hidden">
             Xem bài đọc
           </button>
-          <div className={open ? 'fixed inset-0 z-20 overflow-y-auto bg-page p-4' : 'hidden md:block'}>
+          <div className={open ? 'fixed inset-0 z-20 overflow-y-auto bg-page p-4' : 'hidden md:block land:block'}>
             {open && (
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-xl font-black text-ink">Bài đọc</h2>

@@ -3,6 +3,8 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      // Điện thoại xoay ngang (FR-EX-05, US-508): rộng nhưng thấp
+      screens: { land: { raw: '(orientation: landscape) and (max-height: 500px)' } },
       // Màu, bo góc, đổ bóng theo token Figma (trang Design System)
       colors: {
         page: '#fff8f1',

@@ -31,9 +31,12 @@ public interface StudentAttemptRepository extends JpaRepository<StudentAttempt, 
     /** Luôn kèm userId: attempt của người khác coi như không tồn tại. */
     Optional<StudentAttempt> findByIdAndUserId(Long id, Long userId);
 
-    /** bankId null = mọi bộ; openOnly = chỉ lượt chưa nộp. */
+    /** D-153: lượt của bài giao đã hủy bị đóng băng, không tính là lượt mở. Dùng chung cho mọi truy vấn lượt mở. */
+    String LIVE = "(a.assignmentId is null or exists (select 1 from Assignment s where s.id = a.assignmentId and s.status = 'ACTIVE'))";
+
+    /** bankId null = mọi bộ; openOnly = chỉ lượt chưa nộp (và không thuộc bài đã hủy). */
     @Query("select a from StudentAttempt a where a.userId = :userId and a.id < :before "
-            + "and (:bankId is null or a.bankId = :bankId) and (:openOnly = false or a.submittedAt is null) order by a.id desc")
+            + "and (:bankId is null or a.bankId = :bankId) and (:openOnly = false or (a.submittedAt is null and " + LIVE + ")) order by a.id desc")
     List<StudentAttempt> findPage(@Param("userId") Long userId, @Param("before") Long before,
                                   @Param("bankId") Long bankId, @Param("openOnly") boolean openOnly, Pageable page);
 
@@ -70,7 +73,12 @@ public interface StudentAttemptRepository extends JpaRepository<StudentAttempt, 
     boolean existsByAssignmentIdAndUserIdAndSubmittedAtIsNotNull(Long assignmentId, Long userId);
 
     /** Lượt đang làm dở (chưa nộp) mới nhất của người dùng, mọi bộ. */
-    Optional<StudentAttempt> findFirstByUserIdAndSubmittedAtIsNullOrderByIdDesc(Long userId);
+    @Query("select a from StudentAttempt a where a.userId = :userId and a.submittedAt is null and " + LIVE + " order by a.id desc")
+    List<StudentAttempt> openOfUser(@Param("userId") Long userId, Pageable page);
+
+    default Optional<StudentAttempt> findFirstByUserIdAndSubmittedAtIsNullOrderByIdDesc(Long userId) {
+        return openOfUser(userId, Pageable.ofSize(1)).stream().findFirst();
+    }
 
     /** [bankId, lần nộp gần nhất] của các bộ người dùng đã nộp. */
     @Query("select a.bankId, max(a.submittedAt) from StudentAttempt a where a.userId = :userId and a.bankId in :bankIds "
@@ -78,7 +86,12 @@ public interface StudentAttemptRepository extends JpaRepository<StudentAttempt, 
     List<Object[]> lastSubmitted(@Param("userId") Long userId, @Param("bankIds") java.util.Collection<Long> bankIds);
 
     /** Lượt đang làm dở (chưa nộp) mới nhất của bài thi. */
-    Optional<StudentAttempt> findFirstByUserIdAndBankIdAndSubmittedAtIsNullOrderByIdDesc(Long userId, Long bankId);
+    @Query("select a from StudentAttempt a where a.userId = :userId and a.bankId = :bankId and a.submittedAt is null and " + LIVE + " order by a.id desc")
+    List<StudentAttempt> openOfBank(@Param("userId") Long userId, @Param("bankId") Long bankId, Pageable page);
+
+    default Optional<StudentAttempt> findFirstByUserIdAndBankIdAndSubmittedAtIsNullOrderByIdDesc(Long userId, Long bankId) {
+        return openOfBank(userId, bankId, Pageable.ofSize(1)).stream().findFirst();
+    }
 
     Optional<StudentAttempt> findFirstByUserIdAndBankIdAndSubmittedAtIsNotNullOrderBySubmittedAtDesc(Long userId, Long bankId);
 
