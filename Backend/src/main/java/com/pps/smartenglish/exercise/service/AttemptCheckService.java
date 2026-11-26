@@ -4,11 +4,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.pps.smartenglish.exercise.config.RetryProperties;
+import com.pps.smartenglish.exercise.domain.Question;
 import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.domain.QuestionCheck;
 import com.pps.smartenglish.exercise.domain.StudentAttempt;
 import com.pps.smartenglish.exercise.dto.CheckDtos.CheckResult;
 import com.pps.smartenglish.exercise.dto.CheckDtos.RetryState;
+import com.pps.smartenglish.exercise.dto.SubmitRequest;
+import com.pps.smartenglish.exercise.dto.SubmitRequest.AnswerInput;
 import com.pps.smartenglish.exercise.grading.Credit;
 import com.pps.smartenglish.exercise.grading.GraderRegistry;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
@@ -19,6 +22,12 @@ import com.pps.smartenglish.shared.ratelimit.RateLimiter;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -80,7 +89,7 @@ public class AttemptCheckService {
             throw new ApiException(HttpStatus.CONFLICT, "retry_exhausted", "Câu này đã hết lượt thử");
         }
         boolean correct = Credit.isFull(graders.credit(q.getType(), set.inputOf(q), answer));
-        row.record(correct);
+        row.record(correct, answer);
         checks.save(row);
         a.saveDraft(withAnswer(a.getDraftAnswers(), questionId, answer)); // như lưu nháp: tải lại trang không mất câu trả lời
         attempts.save(a);
@@ -96,7 +105,35 @@ public class AttemptCheckService {
         return new RetryState(props.maxRetries(), checks.findByAttemptId(a.getId()).stream().map(this::result).toList());
     }
 
-    /** D-150: bộ EXAM (gồm bài thi khóa, kiểm tra đầu vào) và lượt Nghe ép (COUNT_ONLY) không có thử lại. */
+    /**
+     * Câu đã khóa (đúng hoặc hết lượt) giữ câu trả lời của lần kiểm tra cuối: nháp và nộp bài bỏ giá trị khác gửi lên, không báo lỗi để
+     * không làm hỏng việc lưu cả bộ. Chỉ câu còn hiệu lực trong bộ (questions) mới được ghim.
+     */
+    public SubmitRequest pinLocked(long attemptId, SubmitRequest req, List<Question> questions) {
+        Set<Long> valid = questions.stream().map(Question::getId).collect(Collectors.toSet());
+        Map<Long, QuestionCheck> locked = checks.findByAttemptId(attemptId).stream()
+                .filter(c -> c.getAnswer() != null && valid.contains(c.getQuestionId()) && c.locked(props.maxRetries()))
+                .collect(Collectors.toMap(QuestionCheck::getQuestionId, Function.identity()));
+        if (locked.isEmpty()) {
+            return req;
+        }
+        Map<Long, Long> times = new java.util.HashMap<>();
+        List<AnswerInput> out = new ArrayList<>();
+        for (AnswerInput in : req.answers()) {
+            if (locked.containsKey(in.questionId())) {
+                times.put(in.questionId(), in.timeSpentMs());
+            } else {
+                out.add(in);
+            }
+        }
+        locked.forEach((qid, c) -> out.add(new AnswerInput(qid, c.getAnswer(), times.get(qid))));
+        return new SubmitRequest(out);
+    }
+
+    /**
+     * Điều kiện duy nhất "lượt áp dụng thử lại" (D-150): bộ EXAM (gồm bài thi khóa, kiểm tra đầu vào) và lượt Nghe ép (COUNT_ONLY) không có.
+     * D-151 sẽ đổi dòng bankMode sang chế độ của lượt.
+     */
     private boolean enabled(StudentAttempt a) {
         return !a.isCountOnly() && banks.findById(a.getBankId()).map(b -> QuestionBank.PRACTICE.equals(b.getMode())).orElse(false);
     }

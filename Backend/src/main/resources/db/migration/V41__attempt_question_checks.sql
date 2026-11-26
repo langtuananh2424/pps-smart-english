@@ -6,5 +6,6 @@ CREATE TABLE attempt_question_checks (
     question_id bigint  NOT NULL REFERENCES questions (id),
     wrong_count integer NOT NULL DEFAULT 0,
     solved      boolean NOT NULL DEFAULT false, -- đã có một lần kiểm tra đúng: câu khóa
+    answer      json, -- câu trả lời của lần kiểm tra cuối: câu khóa thì nháp và nộp bài dùng đúng giá trị này
     CONSTRAINT uq_attempt_question_checks UNIQUE (attempt_id, question_id)
 );

@@ -64,12 +64,14 @@ public class SubmissionService {
     private final Clock clock;
     private final ApplicationEventPublisher events;
     private final LearningStatsProperties props;
+    private final AttemptCheckService checkService;
 
     SubmissionService(StudentAttemptRepository attempts, StudentAnswerRepository answers, AnswerGradingRepository gradings,
                       QuestionLoader loader, GraderRegistry graders, RewriteRules rewriteRules, RewriteJobInput rewriteInput,
                       ResultAssembler assembler, AiJobService aiJobs, AttemptAiScores aiScores, AddonCatalog addons, QuestionBankRepository banks, ObjectMapper mapper, Clock clock,
-                      ApplicationEventPublisher events, LearningStatsProperties props) {
+                      ApplicationEventPublisher events, LearningStatsProperties props, AttemptCheckService checkService) {
         this.props = props;
+        this.checkService = checkService;
         this.events = events;
         this.rewriteInput = rewriteInput;
         this.attempts = attempts;
@@ -100,6 +102,7 @@ public class SubmissionService {
             req = draftRequest(attempt);
         }
         var set = loader.load(attempt.getBankId());
+        req = checkService.pinLocked(attemptId, req, set.questions()); // D-150: câu đã khóa dùng câu trả lời của lần kiểm tra cuối
         Map<Long, JsonNode> given = indexAnswers(req.answers(), set.questions());
         Map<Long, Integer> times = validTimes(req.answers());
 

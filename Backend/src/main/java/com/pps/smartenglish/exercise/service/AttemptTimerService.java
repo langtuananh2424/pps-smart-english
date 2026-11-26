@@ -74,7 +74,7 @@ public class AttemptTimerService {
         }
         var questions = loader.load(a.getBankId()).questions();
         SubmissionService.indexAnswers(req.answers(), questions);
-        a.saveDraft(mapper.valueToTree(req.answers()));
+        a.saveDraft(mapper.valueToTree(retry.pinLocked(attemptId, req, questions).answers())); // D-150: câu đã khóa giữ lần kiểm tra cuối
         attempts.save(a);
         return progress(a);
     }

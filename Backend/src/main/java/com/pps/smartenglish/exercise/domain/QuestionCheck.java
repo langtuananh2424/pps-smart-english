@@ -1,11 +1,14 @@
 package com.pps.smartenglish.exercise.domain;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /** D-150: số lần kiểm tra sai của một câu trong một lượt, và câu đã kiểm tra đúng chưa. */
 @Entity
@@ -28,6 +31,10 @@ public class QuestionCheck {
     @Column(nullable = false)
     private boolean solved;
 
+    /** Câu trả lời của lần kiểm tra gần nhất. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    private JsonNode answer;
+
     protected QuestionCheck() {}
 
     public QuestionCheck(Long attemptId, Long questionId) {
@@ -44,7 +51,8 @@ public class QuestionCheck {
         return Math.max(0, maxRetries + 1 - wrongCount);
     }
 
-    public void record(boolean correct) {
+    public void record(boolean correct, JsonNode answer) {
+        this.answer = answer;
         if (correct) {
             solved = true;
         } else {
@@ -55,4 +63,5 @@ public class QuestionCheck {
     public Long getQuestionId() { return questionId; }
     public int getWrongCount() { return wrongCount; }
     public boolean isSolved() { return solved; }
+    public JsonNode getAnswer() { return answer; }
 }
