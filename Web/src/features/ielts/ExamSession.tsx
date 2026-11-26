@@ -109,13 +109,13 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
   }
   const hasLeft = !!part.group && (!!part.group.passageHtml || !!part.group.title || part.group.hasAudio)
   return (
-    <div className="min-h-dvh bg-page pb-[88px]">
+    <div className="min-h-dvh bg-page pb-[88px] land:flex land:h-dvh land:flex-col land:overflow-hidden land:pb-0">
       <ExamHeader title={bank.title} mode={mode} secondsLeft={secondsLeft} canPause={canPause} paused={paused} onPause={() => void toggleRun(pauseAttempt)} onFont={() => setFont((f) => (f + 1) % FONTS.length)} />
-      <main className={`relative mx-auto max-w-[1440px] px-4 py-4 md:px-7 ${FONTS[font]}`}>
+      <main className={`relative mx-auto w-full max-w-[1440px] px-4 py-4 md:px-7 land:min-h-0 land:flex-1 land:overflow-y-auto land:py-2 ${FONTS[font]}`}>
         {error && !confirm && <p role="alert" className="mb-3 rounded-md bg-danger-bg px-4 py-2 text-sm font-bold text-danger">{error}</p>}
-        <div className={hasLeft ? 'grid items-start gap-4 md:grid-cols-2' : 'mx-auto max-w-[900px]'}>
-          {hasLeft && part.group && <PassagePane key={part.key} bank={bank} group={part.group} attemptId={attemptId} disabled={paused || busy} exam={mode === 'EXAM'} />}
-          <QuestionsPane part={part} answers={answers} flagged={flags} currentId={currentId} disabled={paused || busy} onChange={onChange} onFocus={setCurrentId} retry={retry.enabled ? { checks: retry.checks, pending: retry.pending, onCheck: (id) => void runCheck(id) } : undefined} />
+        <div className={hasLeft ? 'grid items-start gap-4 md:grid-cols-2 land:h-full land:grid-cols-2 land:items-stretch' : 'mx-auto max-w-[900px]'}>
+          {hasLeft && part.group && <div className="land:min-h-0 land:overflow-y-auto"><PassagePane key={part.key} bank={bank} group={part.group} attemptId={attemptId} disabled={paused || busy} exam={mode === 'EXAM'} /></div>}
+          <div className="land:min-h-0 land:overflow-y-auto land:pb-14"><QuestionsPane part={part} answers={answers} flagged={flags} currentId={currentId} disabled={paused || busy} onChange={onChange} onFocus={setCurrentId} retry={retry.enabled ? { checks: retry.checks, pending: retry.pending, onCheck: (id) => void runCheck(id) } : undefined} /></div>
         </div>
         {paused && (
           <div className="absolute inset-0 z-10 grid place-items-center bg-page/95 px-4 backdrop-blur-sm">

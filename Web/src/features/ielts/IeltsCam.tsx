@@ -10,8 +10,11 @@ import { fetchHints } from './api'
 // D-150: kiểm tra sai thì Session đổi openKey để Cam tự mở, notice hiện trên danh sách gợi ý (kể cả câu không có gợi ý).
 interface Props { attemptId: number; questionId: number; hidden: boolean; notice?: string | null; openKey?: number }
 
+// Màn ngang thấp (khớp screen `land`): Cam thu gọn thành biểu tượng, không bong bóng (Figma 06.01).
+const LAND = '(orientation: landscape) and (max-height: 500px)'
+
 export function IeltsCam({ attemptId, questionId, hidden, notice, openKey }: Props) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => typeof window.matchMedia === 'function' && window.matchMedia(LAND).matches)
   const [popup, setPopup] = useState(false)
   const q = useQuery({ queryKey: ['attempt', attemptId, 'hints'], queryFn: () => fetchHints(attemptId), retry: false, staleTime: Infinity })
   useEffect(() => {
@@ -21,9 +24,9 @@ export function IeltsCam({ attemptId, questionId, hidden, notice, openKey }: Pro
   if (hidden || (hints.length === 0 && !notice)) return null
   const detail = hints.filter((h) => h.detail)
   return (
-    <aside aria-label="Cam gợi ý" className="fixed bottom-[88px] right-3 z-10 flex max-w-[calc(100vw-1.5rem)] flex-col items-end gap-2 md:right-7">
+    <aside aria-label="Cam gợi ý" className="fixed bottom-[88px] land:bottom-14 right-3 z-10 flex max-w-[calc(100vw-1.5rem)] flex-col items-end gap-2 md:right-7">
       {!collapsed && (
-        <section aria-label="Gợi ý của Cam" className="w-[282px] rounded-[20px] border border-line bg-surface p-3.5 shadow-edge-card md:w-[326px]">
+        <section aria-label="Gợi ý của Cam" className="w-[282px] rounded-[20px] border border-line bg-surface p-3.5 shadow-edge-card md:w-[326px] land:max-h-[60dvh] land:w-[260px] land:overflow-y-auto">
           <div className="flex items-center justify-between">
             <h2 className="text-[15px] font-extrabold text-brand-strong">Gợi ý của Cam</h2>
             <button type="button" aria-label="Thu gọn Cam" onClick={() => setCollapsed(true)} className="grid size-11 place-items-center rounded-[10px] bg-input text-[13px] font-extrabold text-ink">×</button>
@@ -35,7 +38,7 @@ export function IeltsCam({ attemptId, questionId, hidden, notice, openKey }: Pro
           {detail.length > 0 && <button type="button" onClick={() => setPopup(true)} className="mt-2 min-h-11 text-sm font-extrabold text-brand-strong">Xem chi tiết</button>}
         </section>
       )}
-      <button type="button" aria-expanded={!collapsed} aria-label="Hỏi Cam" onClick={() => setCollapsed((v) => !v)} className="grid size-[60px] place-items-center rounded-full border border-line bg-surface p-0.5 md:size-[76px]">
+      <button type="button" aria-expanded={!collapsed} aria-label="Hỏi Cam" onClick={() => setCollapsed((v) => !v)} className="grid size-[60px] land:size-11 place-items-center rounded-full border border-line bg-surface p-0.5 md:size-[76px]">
         <img src={cam} alt="" className="size-full object-contain" />
       </button>
       {popup && (

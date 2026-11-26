@@ -17,7 +17,7 @@ const btn = 'grid min-h-11 min-w-11 place-items-center rounded-[12px] border bor
 // Thanh đầu bài (Figma 01.01): quay lại, tên kỹ năng, đồng hồ, cỡ chữ; Tạm dừng chỉ ở Luyện tập (D-67, D-151).
 export function ExamHeader({ title, mode, secondsLeft, canPause, paused, onPause, onFont }: Props) {
   return (
-    <header className="flex h-20 items-center justify-between gap-2 border-b border-line bg-surface px-3 md:px-7">
+    <header className="flex h-20 land:h-12 items-center justify-between gap-2 border-b border-line bg-surface px-3 md:px-7 land:py-0">
       <div className="flex min-w-0 items-center gap-3">
         <Link to="/bai-tap" aria-label="Thoát bài" className={btn}>‹</Link>
         <h1 className="truncate text-base font-black text-ink md:text-lg">{title}</h1>
