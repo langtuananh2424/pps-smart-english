@@ -14,6 +14,9 @@ import { CourseDetailPage } from '../features/courses/DetailPage'
 import { CourseTestResult } from '../features/exercises/CourseTestResult'
 import { CourseTestsPage } from '../features/exercises/CourseTestsPage'
 import { ExerciseListPage } from '../features/exercises/ListPage'
+import { AssignmentPage } from '../features/assignments/AssignmentPage'
+import { AssignmentRunPage } from '../features/assignments/AssignmentRunPage'
+import { AssignmentsPage } from '../features/assignments/AssignmentsPage'
 import { ExtraPracticePage } from '../features/extra/ExtraPage'
 import { ExtraRunPage } from '../features/extra/ExtraRunPage'
 import { ExercisePickerPage } from '../features/exercises/PickerPage'
@@ -78,6 +81,8 @@ export const routes: RouteObject[] = [
               { path: '/bai-tap', element: <ExercisePickerPage /> },
               { path: '/bai-tap/khoa/:courseId', element: <ExerciseListPage /> },
               { path: '/bai-tap/khoa/:courseId/luyen-them', element: <ExtraPracticePage /> },
+              { path: '/bai-giao', element: <AssignmentsPage /> },
+              { path: '/lop/:classId/bai-giao/:assignmentId', element: <AssignmentPage /> },
               { path: '/ho-so', element: <ProfilePage /> },
               { path: '/chuoi-hoc', element: <StreakPage /> },
               { path: '/muc-tieu', element: <GoalPage /> },
@@ -99,6 +104,7 @@ export const routes: RouteObject[] = [
         children: [
           { path: '/bai-tap/:bankId', element: <PracticePage /> },
           { path: '/bai-tap/luyen-them/:attemptId', element: <ExtraRunPage /> },
+          { path: '/lop/:classId/bai-giao/:assignmentId/lam-bai/:attemptId', element: <AssignmentRunPage /> },
           { path: '/ielts/:bankId', element: <IeltsPage /> },
           { path: '/bai-tap/:bankId/ket-qua/:attemptId', element: <AttemptResultPage /> },
           { path: '/viet/:questionId', element: <WritingPage /> },

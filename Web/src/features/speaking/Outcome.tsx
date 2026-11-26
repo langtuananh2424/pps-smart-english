@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import cam from '../../assets/exercises/cam-kinh-lup.webp'
 import type { JobView } from '../../lib/sse'
+import { CANCELLED_NOTE } from '../assignments/view'
 import { pillPrimary } from '../practice/questions/ui'
 import { card, Frame } from '../writing/Frame'
 import { JobWaiter } from '../writing/JobWaiter'
@@ -15,7 +16,7 @@ const POLL_MS = 5000
 const GRADING_TEXT = 'Đang chấm bài nói, vài phút nữa có kết quả…'
 
 // Một bản nộp đã có: chờ chấm (SSE khi biết jobId, đồng thời hỏi lại định kỳ), rồi hiện kết quả / không rõ / lỗi.
-export function Outcome({ question, id, jobId, onRedo }: { question: SpeakingQuestion; id: number; jobId: number | null; onRedo: () => void }) {
+export function Outcome({ question, id, jobId, onRedo, cancelled }: { question: SpeakingQuestion; id: number; jobId: number | null; onRedo: () => void; cancelled?: boolean }) {
   const [waiting, setWaiting] = useState(jobId != null)
   const [failed, setFailed] = useState<JobView | null>(null)
   const q = useQuery({
@@ -26,7 +27,7 @@ export function Outcome({ question, id, jobId, onRedo }: { question: SpeakingQue
   if (!q.data) return <p role="status" className="p-10 text-center font-bold text-ink-secondary">Đang tải…</p>
   const s = q.data
 
-  if (s.status === 'GRADED') return <SpeakingResultView question={question} sub={s} onRedo={onRedo} />
+  if (s.status === 'GRADED') return <SpeakingResultView question={question} sub={s} onRedo={onRedo} cancelled={cancelled} />
 
   let body: ReactNode
   if (s.status === 'GRADING' || s.status === 'AWAITING_UPLOAD') {
@@ -48,7 +49,9 @@ export function Outcome({ question, id, jobId, onRedo }: { question: SpeakingQue
       : failed?.quotaRefunded ? 'Chấm bài gặp lỗi, lượt chấm đã được hoàn lại. Bạn có thể nói lại.' : 'Chấm bài gặp lỗi. Bạn có thể nói lại.'
     body = <p role="alert" className="rounded-md bg-danger-bg p-4 text-sm font-bold text-danger-fg">{msg}</p>
   }
-  const redo = s.status === 'GRADING' || s.status === 'AWAITING_UPLOAD' ? undefined : (
+  const redo = s.status === 'GRADING' || s.status === 'AWAITING_UPLOAD' ? undefined : cancelled ? (
+    <p role="status" className="font-bold text-ink-secondary">{CANCELLED_NOTE}</p>
+  ) : (
     <button type="button" onClick={onRedo} className={`${pillPrimary} w-full md:w-[220px]`}>Nói lại</button>
   )
   return (

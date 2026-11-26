@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router'
 import cam from '../../assets/exercises/cam-kinh-lup.webp'
 import { pillNeutral, pillPrimary } from '../practice/questions/ui'
+import { CANCELLED_NOTE } from '../assignments/view'
 import { card, Frame } from '../writing/Frame'
 import { Prompt } from './Prompt'
 import type { SpeakingQuestion, SubmissionView } from './types'
@@ -15,14 +16,16 @@ const BANDS = [
 const band = (n: number) => n.toFixed(1)
 
 // Kết quả Nói (FR-AI-03, D-48): band IELTS 0–9. Figma chưa có khung kết quả nên dùng cùng thẻ với màn Viết.
-export function SpeakingResultView({ question, sub, onRedo }: { question: SpeakingQuestion; sub: SubmissionView; onRedo: () => void }) {
+export function SpeakingResultView({ question, sub, onRedo, cancelled }: { question: SpeakingQuestion; sub: SubmissionView; onRedo: () => void; cancelled?: boolean }) {
   const r = sub.result
   const navigate = useNavigate()
   const bands = r?.bands
   if (!r || !bands) return null
   const actions = (
     <>
-      <button type="button" onClick={onRedo} className={pillNeutral}>Nói lại</button>
+      {cancelled
+        ? <p role="status" className="font-bold text-ink-secondary">{CANCELLED_NOTE}</p> // D-153: bài đã hủy chỉ xem
+        : <button type="button" onClick={onRedo} className={pillNeutral}>Nói lại</button>}
       <button type="button" onClick={() => navigate(-1)} className={`${pillPrimary} w-[220px]`}>Hoàn thành →</button>
     </>
   )

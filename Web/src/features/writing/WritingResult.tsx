@@ -3,6 +3,7 @@ import cam from '../../assets/exercises/cam-kinh-lup.webp'
 import { useGrammarElements } from '../practice/elements'
 import { pillNeutral, pillPrimary } from '../practice/questions/ui'
 import { card, Frame, PromptCard } from './Frame'
+import { CANCELLED_NOTE } from '../assignments/view'
 import { splitMarked } from './marked'
 import type { ElementStatus, SessionView, WritingGrade } from './types'
 
@@ -19,14 +20,16 @@ const STATUS: Record<ElementStatus, [string, string]> = {
 }
 
 // Kết quả Viết luyện tập (D-81): điểm % theo backend, không quy đổi band. Bố cục đối chiếu theo Figma 294:15245.
-export interface RewriteState { busy: boolean; error: string | null }
+export interface RewriteState { busy: boolean; error: string | null; cancelled?: boolean }
 
 export function WritingResult({ s, onRewrite, rewrite }: { s: SessionView; onRewrite: () => void; rewrite?: RewriteState }) {
   const g = s.grade as WritingGrade
   const navigate = useNavigate()
   const actions = (
     <>
-      <button type="button" onClick={onRewrite} disabled={rewrite?.busy} className={pillNeutral}>{rewrite?.busy ? 'Đang tạo…' : 'Viết lại'}</button>
+      {rewrite?.cancelled
+        ? <p role="status" className="font-bold text-ink-secondary">{CANCELLED_NOTE}</p> // D-153: bài đã hủy chỉ xem
+        : <button type="button" onClick={onRewrite} disabled={rewrite?.busy} className={pillNeutral}>{rewrite?.busy ? 'Đang tạo…' : 'Viết lại'}</button>}
       <button type="button" onClick={() => navigate(-1)} className={`${pillPrimary} w-[220px]`}>Hoàn thành →</button>
     </>
   )
