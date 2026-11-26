@@ -58,12 +58,12 @@ class ResultAssembler {
         boolean awaiting = awaitsAi(answers, set);
         var full = new AttemptResponse(attempt.getId(), attempt.getBankId(), attempt.getStartedAt(), submittedAt, score, maxScore,
                 results, pendingJobs, quotaProducts == null ? null : Boolean.TRUE, quotaProducts, null, null,
-                passed(passPct, score, maxScore, awaiting), passPct);
+                passed(passPct, score, maxScore, awaiting), passPct, null);
         var shaped = shapers.shape(full, attempt, set, answers); // Nghe ép: ẩn đáp án theo result_mode
         if (awaiting || !pendingJobs.isEmpty()) {
             // D-147: còn câu AI chưa chốt thì không có điểm tạm, đáp án hay đạt/chưa; chỉ trạng thái đang chấm
             return new AttemptResponse(shaped.id(), shaped.bankId(), shaped.startedAt(), shaped.submittedAt(), null, shaped.maxScore(),
-                    null, pendingJobs, shaped.aiQuotaRequired(), shaped.products(), null, shaped.forced(), null, shaped.passPct());
+                    null, pendingJobs, shaped.aiQuotaRequired(), shaped.products(), null, shaped.forced(), null, shaped.passPct(), null);
         }
         return shaped;
     }

@@ -86,7 +86,7 @@ public class BankService {
                 groupRows.stream().map(g -> new GroupView(g.getId(), g.getTitle(), g.getInstruction(),
                         rendered(html, g.getPassageHtml()), g.getSortOrder(), g.getAudioAssetId() != null && durations.containsKey(g.getAudioAssetId()),
                         g.getAudioAssetId() == null ? null : durations.getOrDefault(g.getAudioAssetId(), java.util.Optional.empty()).orElse(null))).toList(),
-                playback.getPlaybackMode(), audioPlays.limitOf(playback));
+                playback.getPlaybackMode(), audioPlays.limitOf(playback), banks.findSkill(bankId).orElse(null));
     }
 
     /** Kiểm tra đầu vào dùng bản này: chưa có HTML giàu định dạng. */

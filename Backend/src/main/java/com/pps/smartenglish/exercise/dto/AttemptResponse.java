@@ -1,5 +1,6 @@
 package com.pps.smartenglish.exercise.dto;
 
+import com.pps.smartenglish.exercise.dto.ExamBandDtos.AttemptBands;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.pps.smartenglish.commerce.dto.ProductView;
@@ -18,13 +19,14 @@ import java.util.List;
  * passed, passPct (D-145): chỉ bài thường đã nộp; passed vắng khi còn câu AI chưa chấm, passPct vẫn trả. Nghe ép, đề đầu vào: không có.
  * Còn câu AI chưa chốt (D-147): chỉ có id, bankId, startedAt, submittedAt, maxScore, pendingJobs (và aiQuotaRequired, products
  * nếu hết lượt, passPct); không có score, results, breakdown, passed. QuestionResult.aiFailure: lý do câu Viết/Nói tính 0.
+ * bands (FR-EXAM-03): chỉ ở GET lượt đã nộp đã có điểm (ẩn khi còn câu AI chưa chốt, D-147, và ở Nghe ép); null khi bộ chưa có bảng quy đổi.
  * forced (FR-EX-10): thay results và breakdown ở lượt Nghe ép (COUNT_ONLY): chỉ số câu đúng, không có đáp án từng câu.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record AttemptResponse(Long id, Long bankId, Instant startedAt, Instant submittedAt, BigDecimal score, Integer maxScore,
                               List<QuestionResult> results, List<Long> pendingJobs, Boolean aiQuotaRequired,
                               List<ProductView> products, Breakdown breakdown, ForcedResult forced,
-                              Boolean passed, Integer passPct) {
+                              Boolean passed, Integer passPct, AttemptBands bands) {
 
     /** isCorrect null = chưa chấm xong (dạng AI): khi đó không có correctAnswer. */
     public record QuestionResult(Long questionId, Boolean isCorrect,
