@@ -1,12 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import cam from '../../assets/cam-chao.png'
 import type { Hint } from './types'
 
 // Cam nổi góc dưới (Figma 10.01): chỉ có khi câu có gợi ý soạn sẵn (bộ EXAM backend trả rỗng).
 // Mobile có thêm nhãn "Hỏi Cam" cạnh Cam; bấm thì mở bong bóng liệt kê gợi ý.
-export function CamHint({ hints }: { hints: Hint[] }) {
+// D-150: kiểm tra sai thì Player đổi openKey để Cam tự mở, notice ("Chưa đúng...") hiện trên danh sách gợi ý; câu không có gợi ý vẫn có Cam khi có notice.
+export function CamHint({ hints, notice, openKey }: { hints: Hint[]; notice?: string | null; openKey?: number }) {
   const [open, setOpen] = useState(false)
-  if (hints.length === 0) return null
+  useEffect(() => {
+    if (openKey) setOpen(true)
+  }, [openKey])
+  if (hints.length === 0 && !notice) return null
   return (
     <div className="fixed bottom-[88px] right-4 z-10 flex max-w-[calc(100vw-2rem)] flex-col items-end gap-2 md:right-7">
       {open && (
@@ -17,6 +21,7 @@ export function CamHint({ hints }: { hints: Hint[] }) {
               ×
             </button>
           </div>
+          {notice && <p role="status" className="mb-2 text-sm font-extrabold text-danger-fg">{notice}</p>}
           <ul className="flex flex-col gap-2 text-sm font-semibold text-ink">
             {hints.map((h) => (
               <li key={h.id}>
