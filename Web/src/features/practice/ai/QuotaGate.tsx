@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import type { ApiError } from '../../../lib/api'
 import { useQuota } from '../../home/api'
+import { VN_TZ } from '../../home/format'
 import { pillNeutral, pillPrimary } from '../questions/ui'
 
 // Chưa có màn Ví lượt AI riêng; Trợ lý AI là nơi đặt thẻ ví (docs/ba/figma-missing-screens A5). Đổi ở đây khi màn ví có route.
@@ -19,7 +20,7 @@ export function useQuotaGate() {
 }
 export type QuotaGate = ReturnType<typeof useQuotaGate>
 
-const day = (iso: string) => new Date(iso).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
+const day = (iso: string) => new Date(iso).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: VN_TZ })
 
 // Thẻ hết lượt (Figma 606-17745): giữ nguyên bài đã làm bên dưới; "Mua thêm lượt" mở tab mới để không mất chỗ đang làm.
 export function QuotaNotice({ gate, onSkip }: { gate: QuotaGate; onSkip: () => void }) {

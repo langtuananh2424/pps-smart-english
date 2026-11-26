@@ -4,7 +4,7 @@ import type { MyCourse, Roadmap, RoadmapLevel } from './types'
 export const currentCourse = (courses?: MyCourse[]) =>
   courses?.find((c) => c.status === 'ACTIVE') ?? courses?.find((c) => c.status === 'TRIAL') ?? courses?.[0]
 
-const VN_TZ = 'Asia/Ho_Chi_Minh'
+export const VN_TZ = 'Asia/Ho_Chi_Minh'
 export const formatXp = (xp: number) => `${xp.toLocaleString('vi-VN')} XP`
 
 export const formatMmSs = (sec: number) =>
