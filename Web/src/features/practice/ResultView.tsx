@@ -12,6 +12,7 @@ import { isAnswerable } from './questions/registry'
 import { isAiType } from '../exercises/format'
 import { AiReview } from './AiReview'
 import { PendingCard } from './PendingCard'
+import { QuestionStem } from './QuestionStem'
 import { ResultList } from './ResultList'
 import { useAiOutcomes } from './useAiOutcomes'
 import { ForcedResultView } from './listening/ForcedResultView'
@@ -144,7 +145,7 @@ function Row({ index, question, result, mine, showMine, pending, elementName }: 
         <p className="text-[13px] font-extrabold leading-[18px] text-brand-strong">Câu {index + 1} · {question.instruction ?? labelOf(question.type)}</p>
         {badge && <span className={`${chip} ${badge[1]}`}>{badge[0]}</span>}
       </div>
-      <p className="text-lg font-black leading-6 text-ink">{question.prompt}</p>
+      <QuestionStem question={question} className="text-lg font-black leading-6 text-ink" />
       {skipped ? (
         <>
           <p className="text-sm font-semibold text-ink-secondary">Câu này làm ở màn Viết/Nói; điểm bài đã nộp trong lượt này được cộng vào điểm tổng.</p>

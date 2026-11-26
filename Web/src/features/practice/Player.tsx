@@ -14,6 +14,7 @@ import { ConfirmDialog } from './ConfirmDialog'
 import { GroupPassage } from './GroupPassage'
 import { GroupAudio } from './listening/GroupAudio'
 import { PlayHeader } from './PlayHeader'
+import { QuestionStem } from './QuestionStem'
 import { ErrorCard } from './StatusCard'
 import { isAnswerable, isAnswered, rendererOf } from './questions/registry'
 import type { AiSession, Answer, Answers, AttemptResult, Bank, Progress } from './types'
@@ -138,7 +139,7 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
           <p className="text-[13px] font-extrabold leading-[18px] text-brand-strong">
             Câu {index + 1}/{bank.questions.length} · {question.instruction ?? labelOf(question.type)}
           </p>
-          <p className="text-lg font-black leading-6 text-ink md:text-2xl md:leading-[30px]">{question.prompt}</p>
+          <QuestionStem question={question} className="text-lg font-black leading-6 text-ink md:text-2xl md:leading-[30px]" />
           {!aiQ && <Component key={question.id} question={question} value={answers[question.id]} onChange={onChange} disabled={paused || busy || locked} />}
           {checkable && <CheckBar state={checkState} canCheck={!paused && !busy && isAnswered(question.type, answers[question.id])} pending={retry.pending} onCheck={() => void runCheck()} />}
         </article>
