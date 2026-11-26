@@ -47,6 +47,6 @@ class AiCreditApplier implements AttemptCreditSink {
         attempts.recomputeScore(attemptId);
         // báo điểm mới để retention xét thưởng điểm cao, không tính thêm ngày học
         attempts.findById(attemptId).ifPresent(r -> events.publishEvent(new ExerciseScored(r.getUserId(), r.getBankId(),
-                attemptId, r.getScore(), r.getMaxScore(), false)));
+                attemptId, r.getScore(), r.getMaxScore(), false, r.isExtra())));
     }
 }

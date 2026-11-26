@@ -164,7 +164,7 @@ public class SubmissionService {
             aiJobs.pendingIds(attemptId).stream().filter(id -> !pending.contains(id)).forEach(pending::add);
         }
         // retention nghe sau commit: mọi lần nộp tính là một ngày có học, điểm dùng để xét thưởng
-        events.publishEvent(new ExerciseScored(userId, attempt.getBankId(), attemptId, score, maxScore, true));
+        events.publishEvent(new ExerciseScored(userId, attempt.getBankId(), attemptId, score, maxScore, true, attempt.isExtra()));
         return assembler.submitted(attempt, now, score, maxScore, set, rows, ruleRows, pending, quotaProducts);
     }
 
