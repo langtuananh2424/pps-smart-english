@@ -37,10 +37,12 @@ public class CmsBankService {
     private final CmsGroupService groups;
     private final AuditRecorder audit;
     private final ListeningProperties listening;
+    private final CmsExamBandService bands;
 
     CmsBankService(QuestionBankRepository banks, QuestionRepository questions, GrammarElementRepository grammar,
                    CatalogReferences catalog, QuestionDetails details, CmsWrites writes, AuditRecorder audit, CmsGroupService groups,
-                   ListeningProperties listening) {
+                   ListeningProperties listening, CmsExamBandService bands) {
+        this.bands = bands;
         this.listening = listening;
         this.groups = groups;
         this.audit = audit;
@@ -175,6 +177,9 @@ public class CmsBankService {
         }
         if (published && count == 0) {
             throw ApiException.validation("questions", "Cần ít nhất 1 câu hỏi trước khi xuất bản");
+        }
+        if (published) {
+            bands.requireSkillsIfBanded(bank);
         }
         var before = full(bank, count);
         bank.setStatus(published ? QuestionBank.PUBLISHED : QuestionBank.DRAFT);

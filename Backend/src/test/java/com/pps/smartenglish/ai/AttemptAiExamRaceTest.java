@@ -187,8 +187,8 @@ class AttemptAiExamRaceTest extends AiTestSupport {
         submitWriting(u, openWriting(u, q, attempt)).andExpect(status().isAccepted());
         postJson("/api/attempts/" + attempt + "/submit", u, Map.of("answers", List.of())).andExpect(status().isOk());
         jdbc.update("update ai_jobs set status = 'FAILED' where attempt_id = ?", attempt); // giả bài giao: job không trừ lượt
-        tx.executeWithoutResult(t -> sink.applyFailure(attempt, q, "AI chấm lỗi", false));
-        getJson("/api/attempts/" + attempt, u).andExpect(jsonPath("$.results[0].aiFailure").value("AI chấm lỗi"))
+        tx.executeWithoutResult(t -> sink.applyFailure(attempt, q, "Cam chưa chấm được câu này", false));
+        getJson("/api/attempts/" + attempt, u).andExpect(jsonPath("$.results[0].aiFailure").value("Cam chưa chấm được câu này"))
                 .andExpect(jsonPath("$.results[0].aiRefunded").value(false));
     }
 }

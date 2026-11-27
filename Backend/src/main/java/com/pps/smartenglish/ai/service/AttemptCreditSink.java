@@ -13,4 +13,7 @@ public interface AttemptCreditSink {
 
     /** D-147: câu không chấm được (đã chấm lại một lần, đã hoàn lượt AI): credit 0 kèm lý do; refunded = lượt AI của câu đã được hoàn. Idempotent như applyCredit. */
     void applyFailure(long attemptId, long questionId, String reason, boolean refunded);
+
+    /** D-147: mọi câu viết lại của lượt chưa có kết quả (job lỗi hẳn hoặc hết lượt AI lúc nộp) tính sai, credit 0 kèm lý do. Idempotent. */
+    void applyRewriteFailure(long attemptId, String reason, boolean refunded);
 }

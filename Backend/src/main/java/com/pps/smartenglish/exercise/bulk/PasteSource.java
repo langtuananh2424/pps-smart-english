@@ -21,6 +21,7 @@ final class PasteSource implements ImportSource {
     private static final Pattern OPTION = Pattern.compile("^(\\*?)\\s*([A-Za-z0-9]{1,10})\\)\\s*(.+)$");
     private static final Pattern BLANK_ANSWER = Pattern.compile("^([^\\s:]{1,20})\\s*:\\s*(.+)$");
     private static final Pattern EXPLAIN = Pattern.compile("^(?iu:giải thích)\\s*:\\s*(.*)$");
+    private static final Pattern SKILL = Pattern.compile("^(?iu:kỹ năng)\\s*:\\s*(.*)$");
     private static final Pattern TAGS = Pattern.compile("^(?iu:thẻ)\\s*:\\s*(.*)$");
     private static final String SUPPORTED = "Trắc nghiệm, Ghép hai vế, Điền từ, Xếp khối";
 
@@ -131,6 +132,8 @@ final class PasteSource implements ImportSource {
                 cells.put(BaseTemplate.EXPLAIN, m.group(1));
             } else if ((m = TAGS.matcher(l.text)).matches()) {
                 cells.put(BaseTemplate.TAGS, m.group(1));
+            } else if ((m = SKILL.matcher(l.text)).matches()) {
+                cells.put(BaseTemplate.SKILL, m.group(1));
             } else if (type == QuestionType.CONNECTIVE_MCQ && (m = OPTION.matcher(l.text)).matches()) {
                 cells.put("Lựa chọn " + m.group(2), m.group(3));
                 if (!m.group(1).isEmpty()) {

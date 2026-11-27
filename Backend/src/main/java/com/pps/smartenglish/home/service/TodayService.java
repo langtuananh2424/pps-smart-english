@@ -131,7 +131,7 @@ public class TodayService {
         }
         Map<Long, Instant> last = lastSubmitted(writing.lastSubmitted(userId, qIds));
         return qIds.stream().filter(q -> !last.containsKey(q) || day.isToday(last.get(q))).findFirst()
-                .map(q -> new TodayTask(TaskKind.WRITING, "Bài viết AI", s.topic().title(), null, null, q, null, null,
+                .map(q -> new TodayTask(TaskKind.WRITING, "Bài viết", s.topic().title(), null, null, q, null, null,
                         day.isToday(last.get(q))));
     }
 

@@ -246,7 +246,7 @@ class AttemptAiSealRetryTest extends AiTestSupport {
         assertEquals(5, balance(u)); // hoàn đúng một lần
         assertEquals("0", credit(attempt, q));
         getJson("/api/attempts/" + attempt, u).andExpect(jsonPath("$.passed").value(false)).andExpect(jsonPath("$.score").value(0))
-                .andExpect(jsonPath("$.results[0].aiFailure").value("AI chấm lỗi"));
+                .andExpect(jsonPath("$.results[0].aiFailure").value("Cam chưa chấm được câu này"));
         assertEquals(0, runner.runDueNow()); // không còn gì để chạy lại, không hoàn lần hai
         assertEquals(5, balance(u));
     }
@@ -287,6 +287,6 @@ class AttemptAiSealRetryTest extends AiTestSupport {
         assertEquals(5, balance(u));
         var body = new HashMap<String, Object>(Map.of("answers", List.of()));
         postJson("/api/attempts/" + attempt + "/submit", u, body).andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false))
-                .andExpect(jsonPath("$.results[0].aiFailure").value("AI chấm lỗi"));
+                .andExpect(jsonPath("$.results[0].aiFailure").value("Cam chưa chấm được câu này"));
     }
 }

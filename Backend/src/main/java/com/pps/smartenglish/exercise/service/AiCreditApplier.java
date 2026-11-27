@@ -48,6 +48,13 @@ class AiCreditApplier implements AttemptCreditSink {
         apply(attemptId, () -> answers.applyAiFailure(attemptId, questionId, reason, refunded));
     }
 
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void applyRewriteFailure(long attemptId, String reason, boolean refunded) {
+        apply(attemptId, () -> answers.applyAiRewriteFailure(attemptId, reason, refunded,
+                ResultAssembler.REWRITE_TYPES.stream().map(Enum::name).toList()));
+    }
+
     private void apply(long attemptId, java.util.function.IntSupplier write) {
         var a = attempts.lockById(attemptId).orElse(null);
         if (a == null || write.getAsInt() == 0) {

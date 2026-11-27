@@ -105,11 +105,12 @@ class ResultAssembler {
             String corrected = g == null || g.path("correctedAnswer").isNull() ? null : g.path("correctedAnswer").asText(null);
             String feedback = g == null ? null : g.path("feedback").asText(null);
             return new QuestionResult(q.getId(), correct, corrected == null ? null : mapper.createObjectNode().put("text", corrected),
-                    q.getExplanation(), feedback, null, null);
+                    q.getExplanation(), feedback, stored == null ? null : stored.getAiFailReason(),
+                    stored == null || stored.getAiFailReason() == null ? null : stored.isAiFailRefunded(), null);
         }
         boolean auto = graders.isAutoGraded(q.getType());
         return new QuestionResult(q.getId(), correct, auto ? graders.correctAnswer(q.getType(), set.inputOf(q)) : null,
                 q.getExplanation(), null, stored == null ? null : stored.getAiFailReason(),
-                stored == null || stored.getAiFailReason() == null ? null : stored.isAiFailRefunded());
+                stored == null || stored.getAiFailReason() == null ? null : stored.isAiFailRefunded(), set.choiceNotes(q));
     }
 }

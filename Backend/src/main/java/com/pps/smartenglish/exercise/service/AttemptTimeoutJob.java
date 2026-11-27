@@ -1,5 +1,6 @@
 package com.pps.smartenglish.exercise.service;
 
+import com.pps.smartenglish.exercise.config.LearningStatsProperties;
 import com.pps.smartenglish.exercise.repository.StudentAttemptRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -10,7 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Hết giờ thì máy chủ tự nộp bằng đáp án đã lưu (FR-EX-06). Tắt bằng app.exercise.timeout-jobs-enabled=false.
+ * Quá hạn giờ cộng ân hạn thì máy chủ tự nộp bằng đáp án đã lưu (FR-EX-06). Tắt bằng app.exercise.timeout-jobs-enabled=false.
  */
 @Component
 public class AttemptTimeoutJob {
@@ -20,13 +21,15 @@ public class AttemptTimeoutJob {
     private final StudentAttemptRepository attempts;
     private final SubmissionService submissions;
     private final Clock clock;
+    private final LearningStatsProperties props;
     private final boolean enabled;
 
-    AttemptTimeoutJob(StudentAttemptRepository attempts, SubmissionService submissions, Clock clock,
+    AttemptTimeoutJob(StudentAttemptRepository attempts, SubmissionService submissions, Clock clock, LearningStatsProperties props,
                       @Value("${app.exercise.timeout-jobs-enabled:true}") boolean enabled) {
         this.attempts = attempts;
         this.submissions = submissions;
         this.clock = clock;
+        this.props = props;
         this.enabled = enabled;
     }
 
@@ -39,7 +42,8 @@ public class AttemptTimeoutJob {
 
     /** Trả số lượt đã tự nộp. Lỗi của một lượt không chặn các lượt khác. */
     public int tick() {
-        Instant now = Instant.now(clock);
+        // Chờ qua ân hạn để lần nộp của học viên (kèm đáp án) tới trước, xem SubmissionService.
+        Instant now = Instant.now(clock).minusSeconds(props.submitGraceSec());
         int submitted = 0;
         for (var a : attempts.findRunningTimed()) {
             if (!a.expired(now)) {

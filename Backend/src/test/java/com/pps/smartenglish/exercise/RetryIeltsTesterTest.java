@@ -111,6 +111,8 @@ class RetryIeltsTesterTest extends ListeningTestSupport {
         }
         check(u, a, w.q()[0], Map.of("choiceId", "abc")); // chuỗi rác không phải object bị 400 và không tính lượt; object sai kiểu thì tính
         check(u, a, w.q()[0], Map.of("choiceId", "abc"));
+        check(u, a, w.q()[0], Map.of("choiceId", "abc")); // D-163: 3 lần kiểm tra mỗi câu mới khóa
+        check(u, a, w.q()[1], Map.of("choiceId", "abc"));
         getJson("/api/attempts/" + a + "/progress", u).andExpect(status().isOk());
         put("/api/attempts/" + a + "/draft", u, Map.of("answers", answers(w, true, true))).andExpect(status().isOk());
         // q0 (rác, đã khóa) giữ giá trị rác; q1 cũng khóa với rác: nộp vẫn 200, không câu nào được tính đúng

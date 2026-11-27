@@ -210,7 +210,7 @@ public class WritingService {
 
     private void requireIdle(WritingSession s) {
         if (jobs.existsScaffoldInFlight(s.getId())) {
-            throw new ApiException(HttpStatus.CONFLICT, "session_busy", "AI đang xử lý bước trước, vui lòng chờ");
+            throw new ApiException(HttpStatus.CONFLICT, "session_busy", "Cam đang xử lý bước trước, vui lòng chờ");
         }
     }
 

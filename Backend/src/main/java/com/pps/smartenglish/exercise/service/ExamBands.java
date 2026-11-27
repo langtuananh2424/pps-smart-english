@@ -6,6 +6,7 @@ import com.pps.smartenglish.exercise.domain.StudentAnswer;
 import com.pps.smartenglish.exercise.domain.StudentAttempt;
 import com.pps.smartenglish.exercise.dto.ExamBandDtos.AttemptBands;
 import com.pps.smartenglish.exercise.dto.ExamBandDtos.SkillBand;
+import com.pps.smartenglish.exercise.grading.GraderRegistry;
 import com.pps.smartenglish.exercise.repository.ExamBandRuleRepository;
 import com.pps.smartenglish.exercise.repository.QuestionRepository;
 import com.pps.smartenglish.exercise.repository.StudentAnswerRepository;
@@ -36,8 +37,10 @@ public class ExamBands {
     private final QuestionRepository questions;
     private final StudentAnswerRepository answers;
     private final StudentAttemptRepository attempts;
+    private final GraderRegistry graders;
 
-    ExamBands(ExamBandRuleRepository rules, QuestionRepository questions, StudentAnswerRepository answers, StudentAttemptRepository attempts) {
+    ExamBands(ExamBandRuleRepository rules, QuestionRepository questions, StudentAnswerRepository answers, StudentAttemptRepository attempts, GraderRegistry graders) {
+        this.graders = graders;
         this.rules = rules;
         this.questions = questions;
         this.answers = answers;
@@ -56,7 +59,7 @@ public class ExamBands {
         Map<String, Integer> total = new LinkedHashMap<>();
         boolean pending = false;
         for (Question q : questions.findActiveByBankId(attempt.getBankId())) {
-            if (q.getSkill() == null) {
+            if (q.getSkill() == null || !graders.isAutoGraded(q.getType())) { // Viết/Nói chưa vào band (D-164)
                 continue;
             }
             var a = byQuestion.get(q.getId());

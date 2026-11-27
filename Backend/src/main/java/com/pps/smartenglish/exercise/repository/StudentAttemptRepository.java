@@ -57,15 +57,27 @@ public interface StudentAttemptRepository extends JpaRepository<StudentAttempt, 
      * xong và sau khi chấm lại, không cộng dồn delta nên không trôi làm tròn.
      */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("update StudentAttempt a set a.score = (select coalesce(sum(s.credit), 0) from StudentAnswer s where s.attemptId = a.id) "
+    @Query("update StudentAttempt a set "
+            + "a.machineScore = case when a.machineScore is null then null "
+            + "else (select coalesce(sum(s.credit), 0) from StudentAnswer s where s.attemptId = a.id) end, "
+            + "a.score = coalesce((select o.score from GradeOverride o where o.id = "
+            + "(select max(x.id) from GradeOverride x where x.attemptId = a.id and x.score is not null)), "
+            + "(select coalesce(sum(s.credit), 0) from StudentAnswer s where s.attemptId = a.id)) "
             + "where a.id = :id and a.submittedAt is not null")
     int recomputeScore(@Param("id") Long id);
+
+    /** D-166: điểm giáo viên sửa thành điểm của lượt; lần sửa đầu giữ điểm máy chấm vào machine_score. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = "update student_exercise_attempts set machine_score = coalesce(machine_score, score), score = :score "
+            + "where id = :id and submitted_at is not null", nativeQuery = true)
+    int applyTeacherScore(@Param("id") Long id, @Param("score") java.math.BigDecimal score);
 
     /** Lượt có giờ đang chạy (chưa tạm dừng, chưa nộp): ứng viên của AttemptTimeoutJob. */
     @Query("select a from StudentAttempt a where a.submittedAt is null and a.timeLimitSec is not null and a.resumedAt is not null")
     List<StudentAttempt> findRunningTimed();
 
-    long countByUserIdAndBankId(Long userId, Long bankId);
+    /** D-165: số lần thi khóa chỉ tính lượt tự vào; lượt của bài giao (assignment_id) không tính. */
+    long countByUserIdAndBankIdAndAssignmentIdIsNull(Long userId, Long bankId);
 
     /** Bài được giao (FR-ASG-02): lượt đang làm dở, và đã nộp chưa. */
     Optional<StudentAttempt> findFirstByAssignmentIdAndUserIdAndSubmittedAtIsNullOrderByIdDesc(Long assignmentId, Long userId);

@@ -241,7 +241,7 @@ class ExtraPracticeApiTest extends AiTestSupport {
                 .content(json.writeValueAsString(Map.of("answers", List.of(Map.of("questionId", q0, "answer", Map.of("choiceId", 1)))))), u.accessToken())
                 .andExpect(status().isOk());
         postJson("/api/attempts/" + attempt + "/questions/" + q0 + "/check", u, Map.of("answer", Map.of("choiceId", 1))).andExpect(status().isOk())
-                .andExpect(jsonPath("$.correct").value(false)).andExpect(jsonPath("$.checksLeft").value(1));
+                .andExpect(jsonPath("$.correct").value(false)).andExpect(jsonPath("$.checksLeft").value(2));
         postJson("/api/attempts/" + attempt + "/submit", u, Map.of("answers", List.of())).andExpect(status().isOk())
                 .andExpect(jsonPath("$.maxScore").value(5)).andExpect(jsonPath("$.passPct").doesNotExist());
         // kết quả lưu như lượt thường (vào hồ sơ năng lực) nhưng Topic vẫn chưa hoàn thành và không có Ôn lại

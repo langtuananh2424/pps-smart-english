@@ -42,7 +42,7 @@ BEGIN
     -- Sáu gói nạp lượt AI: không mở nội dung nên không có product_levels. Chạy lại thì cập nhật giá mẫu.
     FOR addon IN SELECT * FROM (VALUES (10, 49000::bigint), (20, 89000::bigint), (50, 199000::bigint),
                                        (100, 369000::bigint), (200, 699000::bigint), (500, 1590000::bigint)) AS a(quota, price) LOOP
-        pname := 'Nạp thêm ' || addon.quota || ' lượt AI';
+        pname := 'Nạp thêm ' || addon.quota || ' lượt chấm';
         IF EXISTS (SELECT 1 FROM products WHERE type = 'AI_ADDON' AND name = pname) THEN
             UPDATE products SET price_vnd = addon.price, ai_quota = addon.quota, status = 'ACTIVE', updated_at = CURRENT_TIMESTAMP
             WHERE type = 'AI_ADDON' AND name = pname;

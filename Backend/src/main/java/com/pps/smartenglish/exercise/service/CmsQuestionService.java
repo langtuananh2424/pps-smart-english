@@ -13,6 +13,7 @@ import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.CreateQuestion;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.PatchQuestion;
 import com.pps.smartenglish.exercise.dto.CmsQuestionDtos.QuestionDetail;
 import com.pps.smartenglish.exercise.grading.GraderRegistry;
+import com.pps.smartenglish.exercise.repository.ExamBandRuleRepository;
 import com.pps.smartenglish.exercise.repository.GrammarElementRepository;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
 import com.pps.smartenglish.exercise.repository.QuestionChoiceRepository;
@@ -64,12 +65,14 @@ public class CmsQuestionService {
     private final QuestionGroupRepository groups;
     private final RichText rich;
     private final GroupLayoutCheck layoutCheck;
+    private final ExamBandRuleRepository bandRules;
 
     CmsQuestionService(QuestionRepository questions, QuestionBankRepository banks, QuestionChoiceRepository choices,
                        QuestionTagRepository tags, GrammarElementRepository grammar, StudentAnswerRepository answers,
                        QuestionValidators validators, QuestionDetails details, CmsWrites writes, AuditRecorder audit,
                        GraderRegistry graders, QuestionGroupRepository groups, RichText rich,
-                       GroupLayoutCheck layoutCheck) {
+                       GroupLayoutCheck layoutCheck, ExamBandRuleRepository bandRules) {
+        this.bandRules = bandRules;
         this.layoutCheck = layoutCheck;
         this.groups = groups;
         this.rich = rich;
@@ -232,11 +235,22 @@ public class CmsQuestionService {
         }
     }
 
-    /** Đề đầu vào: bắt buộc skill và chỉ dạng tự chấm (không WRITING/SPEAKING/REWRITE). Bộ khóa học: không có skill. */
+    /**
+     * Đề đầu vào: bắt buộc skill và chỉ dạng tự chấm (không WRITING/SPEAKING/REWRITE). Bộ thi khóa (D-164): skill tùy chọn,
+     * bắt buộc ở bước lưu bảng band/xuất bản (CmsExamBandService). Bộ luyện tập: không có skill.
+     */
     private void requireSkillRules(QuestionBank bank, QuestionType type, String skill) {
         if (!bank.isPlacement()) {
-            if (skill != null) {
-                throw ApiException.validation("skill", "Chỉ dùng cho đề kiểm tra đầu vào");
+            if (skill != null && !QuestionBank.EXAM.equals(bank.getMode())) {
+                throw ApiException.validation("skill", "Chỉ dùng cho đề kiểm tra đầu vào hoặc bộ thi khóa");
+            }
+            boolean auto = graders.isAutoGraded(type);
+            if (skill != null && !auto) { // D-164: Viết/Nói chưa vào band
+                throw ApiException.validation("skill", "Chỉ câu tự chấm mới có kỹ năng");
+            }
+            if (skill == null && auto && QuestionBank.EXAM.equals(bank.getMode())
+                    && !bandRules.findByBankIdOrderBySkillAscMinCorrectAsc(bank.getId()).isEmpty()) {
+                throw ApiException.validation("skill", "Bộ đã có bảng band: câu tự chấm cần chọn kỹ năng");
             }
             return;
         }

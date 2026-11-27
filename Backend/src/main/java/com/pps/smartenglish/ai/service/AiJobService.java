@@ -18,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 /** Tạo và đọc job AI; cổng duy nhất để module khác (exercise) đưa việc vào hàng đợi. */
 @Service
 public class AiJobService {
+    /** Học viên chỉ thấy lời chung; lời báo gốc ở cột error dành cho admin. */
+    static final String FAILED_MESSAGE = "Cam chưa chấm được bài này, thử lại sau nhé.";
+
 
     private final AiJobRepository jobs;
     private final AiQuotaService quota;
@@ -115,6 +118,6 @@ public class AiJobService {
         boolean failed = AiJob.FAILED.equals(j.getStatus());
         boolean show = AiJob.DONE.equals(j.getStatus()) && !gate.sealed(j);
         return new JobView(j.getId(), j.getKind().name(), j.getStatus(),
-                show ? j.getOutput() : null, failed ? j.getError() : null, failed && j.isCharged());
+                show ? j.getOutput() : null, failed ? FAILED_MESSAGE : null, failed && j.isCharged());
     }
 }

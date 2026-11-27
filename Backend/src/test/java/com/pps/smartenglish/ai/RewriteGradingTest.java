@@ -13,7 +13,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.ResultActions;
 
 /** Câu viết lại: luật miễn phí trước, phần còn lại gộp vào một job một lượt (Q-06, Q-30). */
+@org.springframework.context.annotation.Import(com.pps.smartenglish.support.EventCollectorConfig.class)
 class RewriteGradingTest extends AiTestSupport {
+
+    @org.springframework.beans.factory.annotation.Autowired
+    com.pps.smartenglish.support.EventCollectorConfig.EventCollector collector;
 
     private static final String ALTHOUGH_KEY = "{\"acceptedAnswers\":[\"Although the test was difficult, most students passed it.\"]}";
 
@@ -128,17 +132,22 @@ class RewriteGradingTest extends AiTestSupport {
         submit(u, attempt, List.of(text(b.q[0], "Although the test was difficult, most students passed it."),
                 text(b.q[1], "It rained. However, we went out."), text(b.q[2], "Exercise is said to help.")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.score").doesNotExist()).andExpect(jsonPath("$.maxScore").value(4)) // D-147: không điểm tạm
+                .andExpect(jsonPath("$.score").value(1)).andExpect(jsonPath("$.maxScore").value(4)) // D-147: câu hết lượt tính 0, điểm chốt luôn
                 .andExpect(jsonPath("$.aiQuotaRequired").value(true))
                 .andExpect(jsonPath("$.products[0].type").value("AI_ADDON"))
                 .andExpect(jsonPath("$.pendingJobs", hasSize(0)))
-                .andExpect(jsonPath("$.results[1].isCorrect").doesNotExist())
-                .andExpect(jsonPath("$.results[2].isCorrect").doesNotExist());
+                .andExpect(jsonPath("$.results[1].isCorrect").value(false))
+                .andExpect(jsonPath("$.results[1].aiFailure").value("hết lượt chấm, câu tính 0 điểm"))
+                .andExpect(jsonPath("$.results[2].isCorrect").value(false));
         assertEquals(0, count("select count(*) from ai_jobs where attempt_id = ?", attempt));
         assertEquals(1, count("select count(*) from student_exercise_attempts where id = ? and submitted_at is not null", attempt));
         assertEquals(0, balance(u));
-        // không có job nên câu chưa chấm giữ null trong DB
-        assertEquals(2, count("select count(*) from student_answers where attempt_id = ? and is_correct is null", attempt));
+        // ExerciseScored đúng một lần: XP và streak của lần nộp không bị cộng đôi
+        assertEquals(1, collector.exerciseScoredFor(attempt));
+        assertEquals(1, count("select count(*) from xp_events where user_id = ? and source = 'EXERCISE'", u.id()));
+        // không có job nên câu viết lại không được treo ở trạng thái chờ
+        assertEquals(0, count("select count(*) from student_answers where attempt_id = ? and is_correct is null", attempt));
+        assertEquals(2, count("select count(*) from student_answers where attempt_id = ? and ai_fail_reason is not null", attempt));
     }
 
     @Test
@@ -172,14 +181,16 @@ class RewriteGradingTest extends AiTestSupport {
         // thiếu một id và thừa một id lạ
         fake.override(RewriteGrades.class, new RewriteGrades(List.of(new RewriteGrades.Item(b.q[1], true, "ok", "x"),
                 new RewriteGrades.Item(987654321L, true, "ok", "x"))));
-        for (int i = 1; i <= 3; i++) {
+        for (int i = 1; i <= 6; i++) { // 3 lần thử, chấm lại tự động một lần (D-147), 3 lần thử nữa
             assertEquals(1, runner.runDueNow());
             jdbc.update("update ai_jobs set run_after = ? where attempt_id = ?", OffsetDateTime.parse("2000-01-01T00:00:00Z"), attempt);
         }
         assertEquals("FAILED", jdbc.queryForObject("select status from ai_jobs where attempt_id = ?", String.class, attempt));
         assertEquals(1, balance(u));
-        // q1, q2 giữ null (AI không chấm được); q0, q3 bỏ trống đã bị luật chấm sai từ lúc nộp
-        assertEquals(2, count("select count(*) from student_answers where attempt_id = ? and is_correct is null", attempt));
-        getJson("/api/attempts/" + attempt, u).andExpect(jsonPath("$.score").doesNotExist()).andExpect(jsonPath("$.pendingJobs", hasSize(0)));
+        // D-147: q1, q2 tính 0 kèm lý do và đã hoàn lượt; q0, q3 bỏ trống bị luật chấm sai từ lúc nộp; kết quả không còn chờ
+        assertEquals(0, count("select count(*) from student_answers where attempt_id = ? and is_correct is null", attempt));
+        assertEquals(2, count("select count(*) from student_answers where attempt_id = ? and ai_fail_reason = 'Cam chưa chấm được câu này' and ai_fail_refunded", attempt));
+        getJson("/api/attempts/" + attempt, u).andExpect(jsonPath("$.score").value(0)).andExpect(jsonPath("$.pendingJobs", hasSize(0)))
+                .andExpect(jsonPath("$.results[1].aiFailure").value("Cam chưa chấm được câu này"));
     }
 }
