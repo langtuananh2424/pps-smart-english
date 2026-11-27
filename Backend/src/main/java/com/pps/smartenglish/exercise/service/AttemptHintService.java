@@ -1,6 +1,5 @@
 package com.pps.smartenglish.exercise.service;
 
-import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.domain.QuestionHint;
 import com.pps.smartenglish.exercise.dto.BankResponse.HintView;
 import com.pps.smartenglish.exercise.repository.QuestionHintRepository;
@@ -41,7 +40,7 @@ public class AttemptHintService {
         if (a.expired(Instant.now(clock))) {
             throw new ApiException(HttpStatus.CONFLICT, "attempt_time_up", "Đã hết giờ làm bài");
         }
-        if (a.getSubmittedAt() != null || !QuestionBank.PRACTICE.equals(modes.of(a))) {
+        if (a.getSubmittedAt() != null || !modes.practiceAllowed(a)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "hints_unavailable", "Gợi ý chỉ có khi đang luyện tập");
         }
         var ids = loader.load(a).questions().stream().map(q -> q.getId()).toList();

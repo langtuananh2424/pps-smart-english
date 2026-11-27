@@ -82,7 +82,7 @@ public class BankService {
         var playback = banks.findById(bankId).orElseThrow(); // findInfo vừa tìm thấy bộ này
         // D-155: lượt Thi (đang mở, hoặc bài giao Thi) không có gợi ý; lượt Luyện tập lấy qua /attempts/{id}/hints
         var examNow = attempts.findFirstByUserIdAndBankIdAndSubmittedAtIsNullOrderByIdDesc(userId, bankId)
-                .map(a -> QuestionBank.EXAM.equals(modes.of(a))).orElseGet(() -> modes.examAssigned(userId, bankId));
+                .map(a -> !modes.practiceAllowed(a)).orElseGet(() -> modes.examAssigned(userId, bankId));
         var hintsByQuestion = examNow ? Map.<Long, List<HintView>>of() : hintsOf(bank.mode(), set.questions());
         var groupRows = groups.findByBankIdOrderBySortOrderAscIdAsc(bankId);
         // một lần gọi kho ảnh cho mọi HTML của đề (đề bài, lựa chọn, bài đọc)

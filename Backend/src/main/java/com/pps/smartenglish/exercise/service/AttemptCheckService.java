@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.pps.smartenglish.exercise.config.RetryProperties;
 import com.pps.smartenglish.exercise.domain.Question;
-import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.domain.QuestionCheck;
 import com.pps.smartenglish.exercise.domain.StudentAttempt;
 import com.pps.smartenglish.exercise.dto.CheckDtos.CheckResult;
@@ -144,7 +143,7 @@ public class AttemptCheckService {
      * kiểm tra đầu vào, hoặc Mô phỏng thi của bộ IELTS) và lượt Nghe ép (COUNT_ONLY) không có.
      */
     private boolean enabled(StudentAttempt a) {
-        return !a.isCountOnly() && QuestionBank.PRACTICE.equals(modes.of(a));
+        return !a.isCountOnly() && modes.practiceAllowed(a);
     }
 
     private CheckResult result(QuestionCheck row) {

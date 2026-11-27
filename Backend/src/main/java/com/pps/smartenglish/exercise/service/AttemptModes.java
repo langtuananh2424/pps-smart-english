@@ -30,6 +30,14 @@ public class AttemptModes {
         return assigned.isExamAssigned(userId, bankId);
     }
 
+    /**
+     * Lượt này được kiểm câu/xem gợi ý: chế độ Luyện tập, và (D-162) lượt tự học không bị bộ đang giao Thi chặn.
+     * Lượt tự học mở trước khi giao vẫn còn, chỉ mất gợi ý.
+     */
+    public boolean practiceAllowed(StudentAttempt a) {
+        return QuestionBank.PRACTICE.equals(of(a)) && !(a.getAssignmentId() == null && examAssigned(a.getUserId(), a.getBankId()));
+    }
+
     /** Chế độ hiệu lực của lượt: đã lưu, hoặc theo bộ cho lượt cũ. */
     public String of(StudentAttempt a) {
         return a.getMode() != null ? a.getMode()
