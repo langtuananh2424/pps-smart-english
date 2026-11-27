@@ -25,7 +25,7 @@ const result = {
     { questionId: 2, isCorrect: false, correctAnswer: { choiceId: 21 }, explanation: 'Xem đoạn B.' },
     { questionId: 3, isCorrect: true, correctAnswer: { choiceId: 31 } },
   ],
-  bands: { skills: { READING: { correct: 2, total: 3, band: 6.5 } }, overall: 6.5, gradingPending: false },
+  bands: { skills: { READING: { correct: 2, total: 3, percent: 66.66, band: 6.5 } }, overall: 6.5, gradingPending: false },
 }
 const hints = [{ questionId: 1, hints: [{ id: 1, content: 'Tìm từ khóa', detail: 'Chi tiết dài' }] }]
 

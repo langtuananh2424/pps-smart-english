@@ -10,7 +10,7 @@ import { examRoutes } from './routes'
 // Tester: bảng band của đề thi khóa — gắn lỗi đúng dòng khi thứ tự nhập khác thứ tự gửi, lỗi trùng, 403, mảng rỗng.
 const B = '/api/admin/cms'
 const bank = { id: 3, topicId: 2, lessonId: null, title: 'Thi khóa', status: 'DRAFT', questionCount: 1, timeLimitSec: null, mode: 'EXAM', purpose: 'COURSE' }
-type Rule = { skill: string; minCorrect: number; band: number }
+type Rule = { skill: string; minPercent: number; band: number }
 
 beforeEach(() => setAccessToken(null))
 afterEach(() => vi.unstubAllGlobals())
@@ -40,10 +40,10 @@ const save = async (u: ReturnType<typeof userEvent.setup>) => u.click(await scre
 describe('band đề thi khóa (tester)', () => {
   test('thêm mốc Nghe sau Đọc: lỗi rules[1] gắn vào dòng Đọc (thứ tự gửi), không vào dòng Nghe', async () => {
     const puts: unknown[] = []
-    setup([{ skill: 'READING', minCorrect: 5, band: 5.5 }], () => apiError(400, 'Dữ liệu không hợp lệ', { 'rules[1].band': 'Band đọc sai' }), puts)
+    setup([{ skill: 'READING', minPercent: 5, band: 5.5 }], () => apiError(400, 'Dữ liệu không hợp lệ', { 'rules[1].band': 'Band đọc sai' }), puts)
     const u = userEvent.setup()
     await u.click(await screen.findByRole('button', { name: 'Thêm mốc Nghe' }))
-    await u.type(screen.getByLabelText('Nghe dòng 1 số câu đúng'), '3')
+    await u.type(screen.getByLabelText('Nghe dòng 1 từ %'), '3')
     await u.type(screen.getByLabelText('Nghe dòng 1 band'), '4')
     await save(u)
     await screen.findByText('Band đọc sai')
@@ -52,27 +52,21 @@ describe('band đề thi khóa (tester)', () => {
     expect(within(rowOf('Nghe dòng 1 band')).queryByText('Band đọc sai')).toBeNull()
   })
 
-  test('lỗi trùng (kỹ năng, số câu đúng) gắn vào dòng trùng đầu tiên', async () => {
+  test('hai dòng cùng kỹ năng và mốc % bị chặn phía trước, không gọi PUT', async () => {
     const puts: unknown[] = []
-    setup(
-      [{ skill: 'LISTENING', minCorrect: 2, band: 3 }, { skill: 'READING', minCorrect: 5, band: 5.5 }],
-      () => apiError(400, 'Dữ liệu không hợp lệ', { rules: 'Trùng (kỹ năng, số câu đúng): READING 5' }),
-      puts,
-    )
+    setup([{ skill: 'READING', minPercent: 50, band: 5.5 }], (b) => json(200, (b as { rules: unknown[] }).rules), puts)
     const u = userEvent.setup()
     await u.click(await screen.findByRole('button', { name: 'Thêm mốc Đọc' }))
-    await u.type(screen.getByLabelText('Đọc dòng 2 số câu đúng'), '5')
+    await u.type(screen.getByLabelText('Đọc dòng 2 từ %'), '50')
     await u.type(screen.getByLabelText('Đọc dòng 2 band'), '6')
     await save(u)
-    const msg = 'Trùng (kỹ năng, số câu đúng): READING 5'
-    await screen.findByText(msg)
-    expect(screen.getAllByText(msg)).toHaveLength(1)
-    expect(within(rowOf('Đọc dòng 1 band')).getByText(msg)).toBeInTheDocument()
+    expect(await screen.findByText('Mỗi kỹ năng không được có hai dòng cùng mốc %.')).toBeInTheDocument()
+    expect(puts).toEqual([])
   })
 
   test('403 khi lưu: báo không có quyền, không báo đã lưu', async () => {
     const puts: unknown[] = []
-    setup([{ skill: 'READING', minCorrect: 5, band: 5.5 }], () => apiError(403, 'internal detail'), puts)
+    setup([{ skill: 'READING', minPercent: 5, band: 5.5 }], () => apiError(403, 'internal detail'), puts)
     const u = userEvent.setup()
     await save(u)
     const alerts = await screen.findAllByRole('alert')
@@ -97,7 +91,7 @@ describe('band đề thi khóa (tester)', () => {
     const u = userEvent.setup()
     await u.click(await screen.findByRole('button', { name: 'Thêm mốc Ngữ pháp' }))
     await save(u)
-    expect(await screen.findByText('Mỗi dòng cần nhập số câu đúng và band.')).toBeInTheDocument()
+    expect(await screen.findByText('Mỗi dòng cần nhập % tối thiểu và band.')).toBeInTheDocument()
     expect(puts).toEqual([])
   })
 
@@ -105,9 +99,9 @@ describe('band đề thi khóa (tester)', () => {
     const puts: unknown[] = []
     setup(
       [
-        { skill: 'READING', minCorrect: 1, band: 4 },
-        { skill: 'READING', minCorrect: 5, band: 5.5 },
-        { skill: 'READING', minCorrect: 9, band: 7 },
+        { skill: 'READING', minPercent: 1, band: 4 },
+        { skill: 'READING', minPercent: 5, band: 5.5 },
+        { skill: 'READING', minPercent: 9, band: 7 },
       ],
       () => apiError(400, 'Dữ liệu không hợp lệ', { 'rules[1].band': 'Band dòng giữa sai' }),
       puts,
@@ -117,7 +111,7 @@ describe('band đề thi khóa (tester)', () => {
     await screen.findByText('Band dòng giữa sai')
     expect(within(rowOf('Đọc dòng 2 band')).getByText('Band dòng giữa sai')).toBeInTheDocument()
     await u.click(screen.getByRole('button', { name: 'Xóa dòng 1 Đọc' }))
-    // Dòng "minCorrect 9" giờ đứng ở chỉ số 1; lỗi của dòng "minCorrect 5" không được hiện cạnh nó.
+    // Dòng "minPercent 9" giờ đứng ở chỉ số 1; lỗi của dòng "minPercent 5" không được hiện cạnh nó.
     const nine = screen.getAllByDisplayValue('9')[0]
     const row = nine.closest('label')!.parentElement!.parentElement!
     expect(within(row).queryByText('Band dòng giữa sai')).toBeNull()

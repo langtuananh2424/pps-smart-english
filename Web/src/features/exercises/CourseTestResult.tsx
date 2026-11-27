@@ -9,6 +9,8 @@ import { useAttemptDetail, useCourseTests, useExamStatus } from './api'
 import type { AttemptDetail, ExamBands } from './types'
 
 const band = (n: number) => n.toFixed(1)
+const pct = (n: number) => `${Number(n.toFixed(1))}%`
+const SKILLS: [string, string][] = [['LISTENING', 'Nghe'], ['READING', 'Đọc'], ['GRAMMAR', 'Ngữ pháp'], ['WRITING', 'Viết'], ['SPEAKING', 'Nói']]
 const card = 'rounded-md border-2 border-line bg-surface p-4'
 
 function Stat({ label, value, note, tone = 'bg-surface' }: { label: string; value: string; note?: string; tone?: string }) {
@@ -29,15 +31,14 @@ function correctOf(a: AttemptDetail) {
 }
 
 function SkillTable({ a, bands }: { a: AttemptDetail; bands: ExamBands | null }) {
-  const ai = bands?.gradingPending ? 'Đang chấm' : '—'
+  // D-167: mỗi kỹ năng có câu trong đề hiện % và band (nếu có bảng quy đổi); band null mà còn câu đang chấm thì "Đang chấm"
   const rows: { key: string; name: string; value: string }[] = bands
-    ? [
-        { key: 'LISTENING', name: 'Nghe', value: bands.skills.LISTENING ? `Band ${band(bands.skills.LISTENING.band)}` : '—' },
-        { key: 'READING', name: 'Đọc', value: bands.skills.READING ? `Band ${band(bands.skills.READING.band)}` : '—' },
-        ...(bands.skills.GRAMMAR ? [{ key: 'GRAMMAR', name: 'Ngữ pháp', value: `Band ${band(bands.skills.GRAMMAR.band)}` }] : []),
-        { key: 'WRITING', name: 'Viết', value: ai },
-        { key: 'SPEAKING', name: 'Nói', value: ai },
-      ]
+    ? SKILLS.flatMap(([key, name]) => {
+        const s = bands.skills[key]
+        if (!s) return []
+        const tail = s.band != null ? ` · Band ${band(s.band)}` : bands.gradingPending ? ' · Đang chấm' : ''
+        return [{ key, name, value: `${pct(s.percent)}${tail}` }]
+      })
     : (a.breakdown?.bySkill ?? []).map((m) => ({ key: m.key, name: m.label, value: `${m.correct}/${m.answered} câu đúng` }))
   if (!rows.length) return null
   return (
@@ -85,7 +86,7 @@ function ReviewList({ a, reviewRef }: { a: AttemptDetail; reviewRef: React.RefOb
   )
 }
 
-// D-118: kết quả một lượt kiểm tra trong khóa. Nghe/Đọc hiện band, Viết/Nói đang chấm.
+// D-118, D-167: kết quả một lượt kiểm tra trong khóa. Mỗi kỹ năng hiện % và band nếu có bảng quy đổi.
 export function CourseTestResult() {
   const p = useParams()
   const courseId = Number(p.courseId)
@@ -113,7 +114,7 @@ export function CourseTestResult() {
         <p className="font-semibold text-ink-secondary">Kết quả minh họa theo thang của chương trình.</p>
       </header>
       <div className="grid gap-3 md:grid-cols-3">
-        <Stat label="Band tổng" value={bands ? band(bands.overall) : a.score != null ? `${a.score}/${a.maxScore ?? '—'} điểm` : '—'} />
+        <Stat label="Band tổng" value={bands?.overall != null ? band(bands.overall) : a.score != null ? `${a.score}/${a.maxScore ?? '—'} điểm` : '—'} />
         <Stat label="Số câu đúng" value={correctOf(a)} note="Xem chi tiết theo kỹ năng" />
         <Stat label="Writing / Speaking" value={bands?.gradingPending || (a.breakdown?.ungraded ?? 0) > 0 ? 'Đang chấm' : '—'} tone="bg-[#e8f0ff]" />
       </div>
