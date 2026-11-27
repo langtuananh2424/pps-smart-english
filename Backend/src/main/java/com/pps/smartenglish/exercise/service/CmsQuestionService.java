@@ -237,7 +237,7 @@ public class CmsQuestionService {
 
     /**
      * Đề đầu vào: bắt buộc skill và chỉ dạng tự chấm (không WRITING/SPEAKING/REWRITE). Bộ thi khóa (D-164): skill tùy chọn,
-     * bắt buộc ở bước lưu bảng band/xuất bản (CmsExamBandService). Bộ luyện tập: không có skill.
+     * bắt buộc ở bước lưu bảng band/xuất bản (CmsExamBandService). Viết/Nói tự suy skill từ dạng câu (D-167). Bộ luyện tập: không có skill.
      */
     private void requireSkillRules(QuestionBank bank, QuestionType type, String skill) {
         if (!bank.isPlacement()) {
@@ -245,11 +245,11 @@ public class CmsQuestionService {
                 throw ApiException.validation("skill", "Chỉ dùng cho đề kiểm tra đầu vào hoặc bộ thi khóa");
             }
             boolean auto = graders.isAutoGraded(type);
-            if (skill != null && !auto) { // D-164: Viết/Nói chưa vào band
+            if (skill != null && !auto) { // D-167: Viết/Nói có skill suy từ dạng câu, không nhận skill gửi kèm
                 throw ApiException.validation("skill", "Chỉ câu tự chấm mới có kỹ năng");
             }
             if (skill == null && auto && QuestionBank.EXAM.equals(bank.getMode())
-                    && !bandRules.findByBankIdOrderBySkillAscMinCorrectAsc(bank.getId()).isEmpty()) {
+                    && !bandRules.findByBankIdOrderBySkillAscMinPercentAsc(bank.getId()).isEmpty()) {
                 throw ApiException.validation("skill", "Bộ đã có bảng band: câu tự chấm cần chọn kỹ năng");
             }
             return;

@@ -23,8 +23,9 @@ export interface ExerciseStats {
 
 // Band quy đổi của lượt thi khóa; null khi đề chưa có bảng quy đổi.
 export interface ExamBands {
-  skills: Record<string, { correct: number; total: number; band: number }>
-  overall: number
+  // D-167: percent theo từng kỹ năng; band null khi kỹ năng chưa có bảng quy đổi hoặc còn câu đang chấm
+  skills: Record<string, { correct: number; total: number; percent: number; band: number | null }>
+  overall: number | null
   gradingPending: boolean
 }
 export interface LastResult {

@@ -78,7 +78,7 @@ class ExamBandTest extends ApiTestBase {
     }
 
     private static Map<String, Object> rule(String skill, int min, double band) {
-        return Map.of("skill", skill, "minCorrect", min, "band", band);
+        return Map.of("skill", skill, "minPercent", min, "band", band);
     }
 
     private JsonNode examStatus(Account u, World w) throws Exception {
@@ -95,11 +95,11 @@ class ExamBandTest extends ApiTestBase {
         assertTrue(examStatus(u, w).at("/lastResult/bands").isMissingNode() || examStatus(u, w).at("/lastResult/bands").isNull(), "chưa có bảng thì không có band");
         assertEquals(a, examStatus(u, w).at("/lastResult/attemptId").asLong());
 
-        putRules(admin(), w.bank(), List.of(rule("READING", 0, 4.0), rule("READING", 2, 6.5), rule("LISTENING", 0, 4.0), rule("LISTENING", 2, 6.0)));
+        putRules(admin(), w.bank(), List.of(rule("READING", 0, 4.0), rule("READING", 100, 6.5), rule("LISTENING", 0, 4.0), rule("LISTENING", 100, 6.0)));
         var bands = examStatus(u, w).at("/lastResult/bands");
         assertEquals(6.5, bands.at("/skills/READING/band").asDouble());
         assertEquals(2, bands.at("/skills/READING/total").asInt());
-        assertEquals(4.0, bands.at("/skills/LISTENING/band").asDouble()); // 1/2 câu đúng chưa đủ mốc 2
+        assertEquals(4.0, bands.at("/skills/LISTENING/band").asDouble()); // 1/2 câu đúng = 50% chưa đủ mốc 100%
         assertEquals(5.5, bands.at("/overall").asDouble()); // (6.5 + 4.0) / 2 = 5.25 -> 5.5
         assertEquals(false, bands.at("/gradingPending").asBoolean());
     }
@@ -111,7 +111,7 @@ class ExamBandTest extends ApiTestBase {
         var dup = Map.of("rules", List.of(rule("READING", 1, 5.0), rule("READING", 1, 6.0)));
         send(put("/api/admin/cms/banks/" + w.bank() + "/band-rules").contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(dup)), admin.accessToken()).andExpect(status().isBadRequest());
-        var badSkill = Map.of("rules", List.of(rule("WRITING", 1, 5.0)));
+        var badSkill = Map.of("rules", List.of(rule("FOO", 1, 5.0)));
         send(put("/api/admin/cms/banks/" + w.bank() + "/band-rules").contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(badSkill)), admin.accessToken()).andExpect(status().isBadRequest());
         // đề đầu vào có bảng riêng; bộ không tồn tại
@@ -150,7 +150,7 @@ class ExamBandTest extends ApiTestBase {
         var before = json.readTree(send(get(url), u.accessToken()).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
         assertEquals("PLACEMENT", before.at("/band/source").asText());
 
-        putRules(admin(), w.bank(), List.of(rule("READING", 0, 5.0), rule("READING", 2, 7.0), rule("LISTENING", 0, 5.0)));
+        putRules(admin(), w.bank(), List.of(rule("READING", 0, 5.0), rule("READING", 100, 7.0), rule("LISTENING", 0, 5.0)));
         submitted(u, w, List.of(w.reading()[0], w.reading()[1]));
         var after = json.readTree(send(get(url), u.accessToken()).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
         assertEquals("EXAM", after.at("/band/source").asText());

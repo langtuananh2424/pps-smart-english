@@ -4,8 +4,8 @@ export type IeltsMode = 'PRACTICE' | 'EXAM'
 
 // FR-EXAM-03: band quy đổi của lượt đã nộp; vắng khi bộ chưa có bảng quy đổi hoặc còn câu AI chưa chốt.
 export interface AttemptBands {
-  skills: Record<string, { correct: number; total: number; band: number }>
-  overall: number
+  skills: Record<string, { correct: number; total: number; percent: number; band: number | null }>
+  overall: number | null
   gradingPending: boolean
 }
 export type IeltsResult = AttemptResult & { bands?: AttemptBands | null }

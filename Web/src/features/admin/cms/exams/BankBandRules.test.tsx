@@ -21,7 +21,7 @@ function setup(putRes: (body: unknown) => Response, puts: unknown[]) {
         puts.push(body)
         return putRes(body)
       }
-      return json(200, [{ skill: 'READING', minCorrect: 5, band: 5.5 }])
+      return json(200, [{ skill: 'READING', minPercent: 50, band: 5.5 }])
     },
     [`${B}/courses`]: () => json(200, { data: [] }),
   })
@@ -38,11 +38,43 @@ describe('bảng quy đổi band đề thi khóa', () => {
     setup((b) => json(200, (b as { rules: unknown[] }).rules), puts)
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Thêm mốc Nghe' }))
-    await user.type(screen.getByLabelText('Nghe dòng 1 số câu đúng'), '8')
+    await user.type(screen.getByLabelText('Nghe dòng 1 từ %'), '80')
     await user.type(screen.getByLabelText('Nghe dòng 1 band'), '7')
     await user.click(screen.getByRole('button', { name: 'Lưu bảng quy đổi' }))
     await screen.findByText('Đã lưu bảng quy đổi.')
-    expect(puts).toEqual([{ rules: [{ skill: 'LISTENING', minCorrect: 8, band: 7 }, { skill: 'READING', minCorrect: 5, band: 5.5 }] }])
+    expect(puts).toEqual([{ rules: [{ skill: 'LISTENING', minPercent: 80, band: 7 }, { skill: 'READING', minPercent: 50, band: 5.5 }] }])
+  })
+
+  test('thêm mốc Viết và Nói, band bước 0,5', async () => {
+    const puts: unknown[] = []
+    setup((b) => json(200, (b as { rules: unknown[] }).rules), puts)
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Thêm mốc Viết' }))
+    await user.type(screen.getByLabelText('Viết dòng 1 từ %'), '60')
+    await user.type(screen.getByLabelText('Viết dòng 1 band'), '5.5')
+    await user.click(screen.getByRole('button', { name: 'Thêm mốc Nói' }))
+    await user.type(screen.getByLabelText('Nói dòng 1 từ %'), '0')
+    await user.type(screen.getByLabelText('Nói dòng 1 band'), '3')
+    await user.click(screen.getByRole('button', { name: 'Lưu bảng quy đổi' }))
+    await screen.findByText('Đã lưu bảng quy đổi.')
+    expect(puts).toEqual([{ rules: [{ skill: 'READING', minPercent: 50, band: 5.5 }, { skill: 'WRITING', minPercent: 60, band: 5.5 }, { skill: 'SPEAKING', minPercent: 0, band: 3 }] }])
+  })
+
+  test.each([
+    ['101', '5', 'Mốc % là số nguyên từ 0 đến 100.'],
+    ['50.5', '5', 'Mốc % là số nguyên từ 0 đến 100.'],
+    ['50', '9.5', 'Band từ 0 đến 9, bước 0,5.'],
+    ['50', '5.25', 'Band từ 0 đến 9, bước 0,5.'],
+  ])('mốc %s%% band %s bị chặn phía trước: %s', async (percent, bandValue, msg) => {
+    const puts: unknown[] = []
+    setup((b) => json(200, (b as { rules: unknown[] }).rules), puts)
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Thêm mốc Nghe' }))
+    await user.type(screen.getByLabelText('Nghe dòng 1 từ %'), percent)
+    await user.type(screen.getByLabelText('Nghe dòng 1 band'), bandValue)
+    await user.click(screen.getByRole('button', { name: 'Lưu bảng quy đổi' }))
+    expect(await screen.findByText(msg)).toBeInTheDocument()
+    expect(puts).toEqual([])
   })
 
   test('lỗi 400 hiện đúng ở dòng tương ứng', async () => {

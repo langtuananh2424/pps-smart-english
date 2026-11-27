@@ -8,7 +8,11 @@ const attempt = {
   results: [{ questionId: 1, isCorrect: true }, { questionId: 2, isCorrect: false, explanation: 'Vì sao' }],
   breakdown: { correct: 8, wrong: 1, ungraded: 1, bySkill: [{ key: 'LISTENING', label: 'Nghe', answered: 5, correct: 4, accuracy: 80, ungraded: 0 }] },
 }
-const bands = { skills: { LISTENING: { correct: 4, total: 5, band: 6.5 }, READING: { correct: 4, total: 5, band: 7 } }, overall: 6.5, gradingPending: true }
+const bands = {
+  skills: { LISTENING: { correct: 4, total: 5, percent: 80, band: 6.5 }, READING: { correct: 4, total: 5, percent: 84.5, band: 7 }, WRITING: { correct: 0.6, total: 1, percent: 60, band: null }, SPEAKING: { correct: 0, total: 1, percent: 0, band: null } },
+  overall: 6.5,
+  gradingPending: true,
+}
 const bank = { id: 9, title: 'B', mode: 'EXAM', timeLimitSec: null, questions: [{ id: 2, type: 'CONNECTIVE_MCQ', prompt: 'Q', payload: {}, choices: [{ id: 22, label: 'B', content: 'However' }] }] }
 const open = (lastAttemptId: number, withBands = true, chapterAttemptId?: number, att: object = attempt) => {
   mockApi({
@@ -26,12 +30,15 @@ const open = (lastAttemptId: number, withBands = true, chapterAttemptId?: number
 beforeEach(() => setAccessToken(null))
 afterEach(() => vi.unstubAllGlobals())
 
-test('lượt gần nhất: band tổng, band từng kỹ năng, Viết/Nói đang chấm', async () => {
+test('lượt gần nhất: band tổng, % và band từng kỹ năng, Viết/Nói có % nhưng chưa band', async () => {
   open(21)
   expect(await screen.findByText('Đã nộp')).toBeInTheDocument()
-  expect(screen.getByText('Band 6.5', { selector: 'span' })).toBeInTheDocument()
-  expect(screen.getByText('Band 7.0')).toBeInTheDocument()
-  expect(screen.getAllByText('Đang chấm').length).toBeGreaterThanOrEqual(3)
+  expect(screen.getByText('6.5', { selector: 'p' })).toBeInTheDocument() // band tổng
+  expect(screen.getByText('80% · Band 6.5')).toBeInTheDocument()
+  expect(screen.getByText('84.5% · Band 7.0')).toBeInTheDocument()
+  expect(screen.getByText('60% · Đang chấm')).toBeInTheDocument()
+  expect(screen.getByText('0% · Đang chấm')).toBeInTheDocument()
+  expect(screen.getAllByText('Đang chấm').length).toBeGreaterThanOrEqual(1)
   expect(screen.queryByText('Ngữ pháp')).toBeNull()
   expect(screen.getByText('Xem chi tiết theo kỹ năng')).toBeInTheDocument()
   expect(screen.getByText('8/10')).toBeInTheDocument()
@@ -63,6 +70,6 @@ test('bands null trên đúng lượt này: vẫn ẩn band', async () => {
 test('kiểm tra chương: band lấy từ danh sách /tests', async () => {
   open(30, false, 21)
   expect(await screen.findByText('Đã nộp')).toBeInTheDocument()
-  expect(screen.getByText('Band 6.5', { selector: 'span' })).toBeInTheDocument()
-  expect(screen.getByText('Band 7.0')).toBeInTheDocument()
+  expect(screen.getByText('80% · Band 6.5')).toBeInTheDocument()
+  expect(screen.getByText('84.5% · Band 7.0')).toBeInTheDocument()
 })

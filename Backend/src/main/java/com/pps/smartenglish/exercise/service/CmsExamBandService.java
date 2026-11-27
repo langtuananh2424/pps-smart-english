@@ -20,7 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * FR-ADM-06, FR-EXAM-03, D-12: bảng quy đổi số câu đúng -> band của một đề thi khóa. Chạy cho quyền cms.content.
+ * FR-ADM-06, FR-EXAM-03, D-12: bảng quy đổi % điểm kỹ năng -> band (D-167) của một đề thi khóa. Chạy cho quyền cms.content.
  * Đề đầu vào có bảng riêng (CmsPlacementService), nên chỉ nhận bộ EXAM không phải đầu vào.
  */
 @Service
@@ -47,14 +47,14 @@ public class CmsExamBandService {
         return views(bankId);
     }
 
-    /** Thay toàn bộ bảng của đề; mỗi (kỹ năng, minCorrect) một dòng. */
+    /** Thay toàn bộ bảng của đề; mỗi (kỹ năng, minPercent) một dòng. */
     @Transactional
     public List<RuleView> replace(long bankId, List<RuleInput> input) {
         requireExamBank(bankId);
         Set<String> seen = new HashSet<>();
         for (RuleInput r : input) {
-            if (!seen.add(r.skill() + ":" + r.minCorrect())) {
-                throw ApiException.validation("rules", "Trùng (kỹ năng, số câu đúng): " + r.skill() + " " + r.minCorrect());
+            if (!seen.add(r.skill() + ":" + r.minPercent())) {
+                throw ApiException.validation("rules", "Trùng (kỹ năng, % tối thiểu): " + r.skill() + " " + r.minPercent());
             }
         }
         if (!input.isEmpty()) {
@@ -62,7 +62,7 @@ public class CmsExamBandService {
         }
         var before = views(bankId);
         rules.deleteByBank(bankId);
-        rules.saveAll(input.stream().map(r -> new ExamBandRule(bankId, r.skill(), r.minCorrect(), r.band().setScale(1, java.math.RoundingMode.HALF_UP))).toList());
+        rules.saveAll(input.stream().map(r -> new ExamBandRule(bankId, r.skill(), r.minPercent(), r.band().setScale(1, java.math.RoundingMode.HALF_UP))).toList());
         rules.flush();
         var after = views(bankId);
         audit.record("UPDATE", "EXAM_BAND_RULES", bankId, before, after);
@@ -71,7 +71,7 @@ public class CmsExamBandService {
 
     /** D-164: bộ thi khóa có bảng band thì mọi câu tự chấm còn hiệu lực phải có skill, nếu không xuất bản bị từ chối. */
     public void requireSkillsIfBanded(QuestionBank bank) {
-        if (QuestionBank.EXAM.equals(bank.getMode()) && !bank.isPlacement() && !rules.findByBankIdOrderBySkillAscMinCorrectAsc(bank.getId()).isEmpty()) {
+        if (QuestionBank.EXAM.equals(bank.getMode()) && !bank.isPlacement() && !rules.findByBankIdOrderBySkillAscMinPercentAsc(bank.getId()).isEmpty()) {
             requireSkills(bank.getId());
         }
     }
@@ -86,8 +86,8 @@ public class CmsExamBandService {
     }
 
     private List<RuleView> views(long bankId) {
-        return rules.findByBankIdOrderBySkillAscMinCorrectAsc(bankId).stream()
-                .map(r -> new RuleView(r.getSkill(), r.getMinCorrect(), r.getBand())).toList();
+        return rules.findByBankIdOrderBySkillAscMinPercentAsc(bankId).stream()
+                .map(r -> new RuleView(r.getSkill(), r.getMinPercent(), r.getBand())).toList();
     }
 
     private void requireExamBank(long bankId) {

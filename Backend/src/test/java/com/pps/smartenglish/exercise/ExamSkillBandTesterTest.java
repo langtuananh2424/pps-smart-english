@@ -62,7 +62,7 @@ class ExamSkillBandTesterTest extends ApiTestBase {
 
     private ResultActions rules(Account admin, long bank) throws Exception {
         return call(put(CMS + "/banks/" + bank + "/band-rules"), admin, Map.of("rules", List.of(
-                Map.of("skill", "READING", "minCorrect", 0, "band", 4.0), Map.of("skill", "READING", "minCorrect", 1, "band", 6.0))));
+                Map.of("skill", "READING", "minPercent", 0, "band", 4.0), Map.of("skill", "READING", "minPercent", 100, "band", 6.0))));
     }
 
     private ResultActions publish(Account admin, long bank) throws Exception {
@@ -94,7 +94,7 @@ class ExamSkillBandTesterTest extends ApiTestBase {
                 .andExpect(jsonPath("$.error.details.questionIds[1]").value(b));
     }
 
-    /** D-164 (4): Viết/Nói chưa đưa vào band, nên CMS không được gắn kỹ năng cho câu Viết ở bộ thi khóa (ExamBands sẽ đếm nó). */
+    /** D-167: kỹ năng của câu Viết suy từ dạng câu, nên CMS không nhận skill gửi kèm. */
     @Test
     void writingQuestionInExamBankCannotTakeSkill() throws Exception {
         var admin = admin();

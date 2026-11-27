@@ -65,7 +65,7 @@ class IeltsBankBandApiTest extends ApiTestBase {
         long q2 = question(b, "CONNECTIVE_MCQ");
         long a = attempt(u, b, q1, null);
         assertTrue(get200("/api/attempts/" + a, u).path("bands").isMissingNode()); // chưa có bảng quy đổi
-        jdbc.update("insert into exam_band_rules (bank_id, skill, min_correct, band) values (?, 'READING', 0, 4.0), (?, 'READING', 1, 6.5)", b, b);
+        jdbc.update("insert into exam_band_rules (bank_id, skill, min_percent, band) values (?, 'READING', 0, 4.0), (?, 'READING', 50, 6.5)", b, b);
         var bands = get200("/api/attempts/" + a, u).path("bands");
         assertEquals(6.5, bands.path("skills").path("READING").path("band").asDouble());
         assertEquals(2, bands.path("skills").path("READING").path("total").asInt());

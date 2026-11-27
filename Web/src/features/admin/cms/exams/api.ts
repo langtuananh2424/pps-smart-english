@@ -46,15 +46,10 @@ export interface BandRule {
   band: number
 }
 
-// Đề thi khóa (D-12): số câu đúng tối thiểu -> band.
-export interface CountRule {
-  skill: string
-  minCorrect: number
-  band: number
-}
-
 export const SKILLS = ['LISTENING', 'READING', 'GRAMMAR'] as const
-export const SKILL_LABEL: Record<string, string> = { LISTENING: 'Nghe', READING: 'Đọc', GRAMMAR: 'Ngữ pháp' }
+// Bảng band đề thi khóa (D-167) thêm Viết, Nói; bảng đề đầu vào chỉ ba kỹ năng đầu.
+export const BANK_SKILLS = ['LISTENING', 'READING', 'GRAMMAR', 'WRITING', 'SPEAKING'] as const
+export const SKILL_LABEL: Record<string, string> = { LISTENING: 'Nghe', READING: 'Đọc', GRAMMAR: 'Ngữ pháp', WRITING: 'Viết', SPEAKING: 'Nói' }
 export const isPlacement = (b: Bank) => b.purpose === 'PLACEMENT'
 
 const BASE = '/admin/cms'
@@ -68,7 +63,7 @@ export const usePlacementConfig = () =>
   useQuery({ queryKey: [KEY, 'config'], queryFn: () => call<{ maxRetakes: number | null }>('GET', '/placement/config') })
 export const useBandRules = () => useQuery({ queryKey: [KEY, 'rules'], queryFn: () => call<BandRule[]>('GET', '/placement/band-rules') })
 export const useBankBandRules = (id: number) =>
-  useQuery({ queryKey: [KEY, 'bank-rules', id], queryFn: () => call<CountRule[]>('GET', `/banks/${id}/band-rules`) })
+  useQuery({ queryKey: [KEY, 'bank-rules', id], queryFn: () => call<BandRule[]>('GET', `/banks/${id}/band-rules`) })
 // Một trang tối đa 100 khóa; shortcut: chưa phân trang tiếp, khi vượt 100 khóa thì thêm tìm kiếm.
 export const useCourses = () =>
   useQuery({ queryKey: [KEY, 'courses'], queryFn: () => call<{ data: Course[] }>('GET', '/courses?limit=100'), select: (d) => d.data })
@@ -95,7 +90,7 @@ export const examApi = {
   patchCourse: (id: number, b: Record<string, unknown>) => call<Course>('PATCH', `/courses/${id}`, b),
   patchTopic: (id: number, b: Record<string, unknown>) => call<Topic>('PATCH', `/topics/${id}`, b),
   putConfig: (maxRetakes: number | null) => call<{ maxRetakes: number | null }>('PUT', '/placement/config', { maxRetakes }),
-  putBankRules: (id: number, rules: CountRule[]) => call<CountRule[]>('PUT', `/banks/${id}/band-rules`, { rules }),
+  putBankRules: (id: number, rules: BandRule[]) => call<BandRule[]>('PUT', `/banks/${id}/band-rules`, { rules }),
   putRules: (rules: BandRule[]) => call<BandRule[]>('PUT', '/placement/band-rules', { rules }),
 }
 

@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface ExamBandRuleRepository extends JpaRepository<ExamBandRule, Long> {
 
-    List<ExamBandRule> findByBankIdOrderBySkillAscMinCorrectAsc(Long bankId);
+    List<ExamBandRule> findByBankIdOrderBySkillAscMinPercentAsc(Long bankId);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("delete from ExamBandRule r where r.bankId = :bankId")

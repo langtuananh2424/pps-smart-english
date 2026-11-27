@@ -10,7 +10,7 @@ import { fetchIeltsResult } from './api'
 import { buildParts } from './parts'
 import type { AttemptBands } from './types'
 
-const SKILL: Record<string, string> = { READING: 'Reading', LISTENING: 'Listening', GRAMMAR: 'Grammar' }
+const SKILL: Record<string, string> = { READING: 'Reading', LISTENING: 'Listening', GRAMMAR: 'Grammar', WRITING: 'Writing', SPEAKING: 'Speaking' }
 const band = (n: number) => n.toFixed(1)
 
 function Bands({ bands }: { bands: AttemptBands | null | undefined }) {
@@ -18,9 +18,9 @@ function Bands({ bands }: { bands: AttemptBands | null | undefined }) {
   return (
     <div className="flex flex-col items-center gap-1">
       <p className="text-sm font-extrabold uppercase text-ink-secondary">Band</p>
-      <p aria-label="Band" className="text-5xl font-black text-brand-strong">{band(bands.overall)}</p>
+      <p aria-label="Band" className="text-5xl font-black text-brand-strong">{bands.overall != null ? band(bands.overall) : '—'}</p>
       {Object.entries(bands.skills).map(([k, s]) => (
-        <p key={k} className="text-sm font-semibold text-ink-secondary">{SKILL[k] ?? k}: {s.correct}/{s.total} câu đúng · band {band(s.band)}</p>
+        <p key={k} className="text-sm font-semibold text-ink-secondary">{SKILL[k] ?? k}: {Number(s.percent.toFixed(1))}%{s.band != null && ` · band ${band(s.band)}`}</p>
       ))}
       {bands.gradingPending && <p role="status" className="text-sm font-semibold text-ink-secondary">Còn câu đang chấm, band có thể tăng.</p>}
     </div>

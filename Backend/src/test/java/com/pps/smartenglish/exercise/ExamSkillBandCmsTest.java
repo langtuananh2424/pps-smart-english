@@ -59,8 +59,8 @@ class ExamSkillBandCmsTest extends ApiTestBase {
 
     private ResultActions rules(Account admin, long bank) throws Exception {
         return call(put(CMS + "/banks/" + bank + "/band-rules"), admin, Map.of("rules", List.of(
-                Map.of("skill", "READING", "minCorrect", 0, "band", 4.0), Map.of("skill", "READING", "minCorrect", 1, "band", 6.0),
-                Map.of("skill", "LISTENING", "minCorrect", 0, "band", 4.0), Map.of("skill", "LISTENING", "minCorrect", 1, "band", 5.0))));
+                Map.of("skill", "READING", "minPercent", 0, "band", 4.0), Map.of("skill", "READING", "minPercent", 100, "band", 6.0),
+                Map.of("skill", "LISTENING", "minPercent", 0, "band", 4.0), Map.of("skill", "LISTENING", "minPercent", 100, "band", 5.0))));
     }
 
     private long choiceId(long q, String label) {
@@ -97,7 +97,7 @@ class ExamSkillBandCmsTest extends ApiTestBase {
                 Map.of("questionId", reading, "answer", Map.of("choiceId", choiceId(reading, "A"))),
                 Map.of("questionId", noSkill, "answer", Map.of("choiceId", choiceId(noSkill, "B")))))).andExpect(status().isOk());
         send(get("/api/courses/" + course + "/exam"), u.accessToken()).andExpect(status().isOk())
-                .andExpect(jsonPath("$.lastResult.bands.skills.READING.band").value(6.0)) // 1 câu đúng, đạt mốc 1
+                .andExpect(jsonPath("$.lastResult.bands.skills.READING.band").value(6.0)) // 1/1 câu đúng = 100%
                 .andExpect(jsonPath("$.lastResult.bands.skills.LISTENING.band").value(4.0));
     }
 }

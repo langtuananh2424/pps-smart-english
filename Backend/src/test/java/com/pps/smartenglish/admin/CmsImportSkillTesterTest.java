@@ -66,8 +66,8 @@ class CmsImportSkillTesterTest extends ApiTestBase {
         call(MockMvcRequestBuilders.post(CMS + "/banks/" + b + "/questions"), a, Map.of("type", "CONNECTIVE_MCQ", "prompt", "Câu gốc " + UUID.randomUUID(), "skill", "READING",
                 "choices", List.of(Map.of("label", "A", "content", "x", "isCorrect", true), Map.of("label", "B", "content", "y", "isCorrect", false))))
                 .andExpect(status().is2xxSuccessful());
-        call(put(CMS + "/banks/" + b + "/band-rules"), a, Map.of("rules", List.of(Map.of("skill", "READING", "minCorrect", 0, "band", 4.0),
-                Map.of("skill", "READING", "minCorrect", 1, "band", 6.0)))).andExpect(status().isOk());
+        call(put(CMS + "/banks/" + b + "/band-rules"), a, Map.of("rules", List.of(Map.of("skill", "READING", "minPercent", 0, "band", 4.0),
+                Map.of("skill", "READING", "minPercent", 100, "band", 6.0)))).andExpect(status().isOk());
         return b;
     }
 
