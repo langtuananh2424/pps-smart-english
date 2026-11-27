@@ -24,6 +24,10 @@ public interface SpeakingQuestionSource {
     /** Mở phiên MỚI: như find nhưng câu đã lưu trữ (D-138) bị 400 question_archived. */
     SpeakingQuestion findForNewSession(long questionId, long userId, boolean inAssignment, boolean inAttempt);
 
-    /** maxSeconds đã áp mặc định theo part (D-43). cueCard rỗng nếu không phải part 2. */
-    record SpeakingQuestion(long id, int part, String prompt, List<String> cueCard, int maxSeconds, String courseTitle, Long courseId) {}
+    /**
+     * maxSeconds đã áp mặc định theo part (D-43). cueCard rỗng nếu không phải part 2. Video phản xạ (D-158): maxRecordings > 0 là
+     * số lần ghi tối đa mỗi câu mỗi lượt (0 = không giới hạn); writingFirst = phải qua bước Viết trước (VIDEO_SHORT).
+     */
+    record SpeakingQuestion(long id, int part, String prompt, List<String> cueCard, int maxSeconds, String courseTitle, Long courseId,
+                            int maxRecordings, boolean writingFirst) {}
 }

@@ -25,6 +25,15 @@ class QuestionTypeConstraintTest extends AiTestSupport {
         }
     }
 
+    /** Mỗi giá trị enum phải qua CHECK: thêm kiểu vào QuestionType mà quên migration nới CHECK thì test này đỏ. */
+    @Test
+    void acceptsEveryQuestionType() {
+        long bank = bank(true);
+        for (var t : com.pps.smartenglish.exercise.domain.QuestionType.values()) {
+            assertDoesNotThrow(() -> insertQuestion(bank, t.name(), null), t.name());
+        }
+    }
+
     @Test
     void rejectsUnknownTypeAndSkill() {
         long bank = bank(true);

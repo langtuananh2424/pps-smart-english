@@ -17,6 +17,7 @@ public final class AssignmentDtos {
     /**
      * Giao một bộ câu hỏi (bankId) hoặc một câu Viết/Nói chấm AI (questionId), đúng một trong hai (D-130).
      * studentIds trống hoặc vắng = cả lớp.
+     * mode (D-155): PRACTICE|EXAM tùy chọn, chỉ khi giao cả bộ; vắng = theo chế độ của bộ.
      * forcedListening (FR-EX-10, D-136): ghi đè luật Nghe ép cho bài giao; chỉ với bộ ở chế độ LOCKED, trường vắng giữ luật của bộ.
      */
     public record CreateAssignment(
@@ -24,11 +25,16 @@ public final class AssignmentDtos {
             Long questionId,
             @NotNull(message = "Hạn nộp là bắt buộc") Instant dueAt,
             @Size(max = 200, message = "Tối đa 200 học viên") List<Long> studentIds,
-            @Valid RuleInput forcedListening) {}
+            @Valid RuleInput forcedListening,
+            String mode) {}
 
-    /** questionId, questionType (WRITING, SPEAKING): bài giao câu Viết/Nói, null khi giao cả bộ. myStatus chỉ điền khi người xem là học viên. */
+    /** D-155: đổi chế độ bài giao; mode null = theo chế độ của bộ. */
+    public record UpdateAssignment(String mode) {}
+
+    /** mode: chế độ hiệu lực (bài giao, không thì bộ); null với bài giao câu Viết/Nói. questionId, questionType (WRITING, SPEAKING): bài giao câu Viết/Nói, null khi giao cả bộ. myStatus chỉ điền khi người xem là học viên. */
     public record AssignmentView(Long id, Long classId, Long bankId, String bankTitle, Long questionId, String questionType, Instant dueAt,
-                                 String status, boolean wholeClass, String myStatus) {}
+                                 String status, boolean wholeClass, String myStatus,
+                                 String mode) {}
 
     /**
      * status: NOT_SUBMITTED, SUBMITTED, LATE (nộp sau hạn), OVERDUE (quá hạn chưa nộp). finalScore = điểm giáo viên sửa mới nhất, không có thì điểm AI.

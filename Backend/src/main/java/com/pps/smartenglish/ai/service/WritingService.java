@@ -42,14 +42,16 @@ public class WritingService {
     private final WritingQuestionSource questions;
     private final AssignedAiWork assigned;
     private final AttemptLinks attemptLinks;
+    private final ReflexProgress reflex;
     private final EmailVerification emailVerification;
     private final IdempotencyService idempotency;
     private final ObjectMapper mapper;
     private final Clock clock;
 
     WritingService(WritingSessionRepository sessions, AiJobRepository jobs, AiJobService aiJobs, AiQuotaService quota,
-                   AiGuard guard, WritingQuestionSource questions, AssignedAiWork assigned, AttemptLinks attemptLinks, EmailVerification emailVerification,
+                   AiGuard guard, WritingQuestionSource questions, AssignedAiWork assigned, AttemptLinks attemptLinks, ReflexProgress reflex, EmailVerification emailVerification,
                    IdempotencyService idempotency, ObjectMapper mapper, Clock clock) {
+        this.reflex = reflex;
         this.sessions = sessions;
         this.jobs = jobs;
         this.aiJobs = aiJobs;
@@ -158,6 +160,9 @@ public class WritingService {
         in.put("wordCount", WordStats.count(finalText));
         in.put("copiedWords", WordStats.copiedFromPrompt(finalText, q.task()));
         attemptLinks.requireOpenLocked(s.getAttemptId()); // trước khi trừ lượt: lượt tự nộp đồng thời thì 409, không mất lượt
+        if (s.getAttemptId() != null) {
+            reflex.requireWriteSlot(s.getAttemptId(), q.id(), q.maxSubmits()); // D-158: bước Viết của VIDEO_SHORT tối đa N lần nộp
+        }
         Long jobId;
         if (s.getAssignmentId() == null && attemptLinks.isAssigned(s.getAttemptId())) {
             // D-130: phiên trong lượt của bài giao không trừ lượt AI, vẫn qua giới hạn tần suất và hàng đợi

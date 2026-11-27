@@ -1,47 +1,33 @@
 package com.pps.smartenglish.exercise.service;
 
-import com.pps.smartenglish.catalog.domain.TopicSkill;
-import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.domain.StudentAttempt;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
-import java.util.Set;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 /**
- * D-151, FR-EX-05: chế độ của lượt. Bộ IELTS Reading/Listening (bộ khóa, mặc định PRACTICE, topic READING/LISTENING) cho học viên
- * chọn Luyện tập hoặc Mô phỏng thi khi bắt đầu; bộ khác giữ chế độ của bộ.
+ * D-155, FR-EX-05: chế độ của lượt do người soạn và giáo viên đặt, học viên không chọn. Lượt thuộc bài giao có chế độ thì theo bài giao,
+ * không thì theo question_banks.mode. Chế độ lưu trên lượt (D-151 mục 3) nên đổi bộ hay bài giao sau đó không đổi lượt đang làm.
  */
 @Component
 public class AttemptModes {
 
-    private static final Set<TopicSkill> IELTS_SKILLS = Set.of(TopicSkill.READING, TopicSkill.LISTENING);
-
     private final QuestionBankRepository banks;
+    private final AssignedBanks assigned;
 
-    AttemptModes(QuestionBankRepository banks) {
+    AttemptModes(QuestionBankRepository banks, AssignedBanks assigned) {
         this.banks = banks;
+        this.assigned = assigned;
     }
 
-    /** Bộ cho chọn chế độ: bộ khóa PRACTICE có kỹ năng IELTS. Bộ thi khóa (EXAM) và đề đầu vào không thuộc phạm vi. */
-    public boolean choosable(QuestionBank bank) {
-        return QuestionBank.COURSE.equals(bank.getPurpose()) && QuestionBank.PRACTICE.equals(bank.getMode())
-                && banks.findSkill(bank.getId()).filter(IELTS_SKILLS::contains).isPresent();
+    /** Chế độ cho lượt mới: chế độ của bài giao (nếu có) thắng chế độ của bộ. */
+    String resolve(QuestionBank bank, String assignmentMode) {
+        return assignmentMode != null ? assignmentMode : bank.getMode();
     }
 
-    /** Chế độ cho lượt mới; 400 khi giá trị lạ hoặc bộ ngoài phạm vi mà đòi chế độ khác chế độ của bộ. */
-    String resolve(QuestionBank bank, String requested) {
-        if (requested == null) {
-            return bank.getMode();
-        }
-        if (!QuestionBank.PRACTICE.equals(requested) && !QuestionBank.EXAM.equals(requested)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "attempt_mode_invalid", "Chế độ chỉ nhận PRACTICE hoặc EXAM");
-        }
-        if (!requested.equals(bank.getMode()) && !choosable(bank)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "attempt_mode_not_allowed", "Bộ này không cho chọn chế độ làm bài");
-        }
-        return requested;
+    /** Học viên là người nhận bài giao Thi trên bộ này: GET bộ không được lộ gợi ý trước khi bắt đầu lượt. */
+    public boolean examAssigned(long userId, long bankId) {
+        return assigned.isExamAssigned(userId, bankId);
     }
 
     /** Chế độ hiệu lực của lượt: đã lưu, hoặc theo bộ cho lượt cũ. */

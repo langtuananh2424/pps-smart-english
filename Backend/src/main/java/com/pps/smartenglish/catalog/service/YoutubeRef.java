@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
  * lessons.video_ref của bài YouTube lưu mã video 11 ký tự (client nhúng bằng mã đó, LessonService trả nguyên giá trị).
  * CMS nhận mã hoặc URL YouTube thông dụng và luôn chuẩn hóa về mã trước khi lưu.
  */
-final class YoutubeRef {
+public final class YoutubeRef {
 
     private static final Pattern ID = Pattern.compile("[A-Za-z0-9_-]{11}");
     private static final Set<String> HOSTS = Set.of("youtube.com", "www.youtube.com", "m.youtube.com");
@@ -20,10 +20,15 @@ final class YoutubeRef {
     private YoutubeRef() {}
 
     static String normalize(String raw) {
+        return normalize(raw, "videoRef");
+    }
+
+    /** field: tên trường báo lỗi 400, để nơi gọi khác (nhóm câu, D-156) dùng lại. */
+    public static String normalize(String raw, String field) {
         String s = raw == null ? "" : raw.strip();
         String id = ID.matcher(s).matches() ? s : fromUrl(s);
         if (id == null || !ID.matcher(id).matches()) {
-            throw ApiException.validation("videoRef", "Phải là mã video YouTube 11 ký tự hoặc URL YouTube hợp lệ");
+            throw ApiException.validation(field, "Phải là mã video YouTube 11 ký tự hoặc URL YouTube hợp lệ");
         }
         return id;
     }

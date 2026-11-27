@@ -7,6 +7,7 @@ import com.pps.smartenglish.classroom.dto.AssignmentDtos.GradeRequest;
 import com.pps.smartenglish.classroom.dto.AssignmentDtos.GradeView;
 import com.pps.smartenglish.classroom.dto.AssignmentDtos.MyResult;
 import com.pps.smartenglish.classroom.dto.AssignmentDtos.ProgressRow;
+import com.pps.smartenglish.classroom.dto.AssignmentDtos.UpdateAssignment;
 import com.pps.smartenglish.classroom.service.AssignmentProgressService;
 import com.pps.smartenglish.classroom.service.AssignmentService;
 import com.pps.smartenglish.classroom.service.AssignmentSubmissionReader;
@@ -18,6 +19,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -57,6 +59,12 @@ class AssignmentController {
     @ResponseStatus(HttpStatus.CREATED)
     AssignmentView create(Authentication auth, @PathVariable String classId, @Valid @RequestBody CreateAssignment req) {
         return assignments.create(CurrentUser.id(auth), cls(classId), req);
+    }
+
+    /** D-155: đổi chế độ Luyện tập/Thi của bài giao (mode null = theo bộ). */
+    @PatchMapping(BASE + "/{id}")
+    AssignmentView updateMode(Authentication auth, @PathVariable String classId, @PathVariable String id, @RequestBody UpdateAssignment req) {
+        return assignments.updateMode(CurrentUser.id(auth), cls(classId), asg(id), req);
     }
 
     @GetMapping(BASE)

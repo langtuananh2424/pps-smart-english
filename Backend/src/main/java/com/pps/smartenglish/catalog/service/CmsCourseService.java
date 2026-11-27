@@ -145,6 +145,9 @@ public class CmsCourseService {
             }
             course.setDeliveryMode(req.deliveryMode());
         }
+        if (req.ielts() != null) {
+            course.setIelts(req.ielts());
+        }
         if (req.sequential() != null) {
             course.setSequential(req.sequential());
         }
@@ -235,6 +238,6 @@ public class CmsCourseService {
         return new CourseView(c.getId(), c.getSlug(), c.getTitle(), c.getDescription(), c.getTargetType(), c.getStatus(),
                 c.getAiPeriod(), c.getAiPeriodQuota(), c.getExamBankId(), c.getExamUnlockPercent(), c.getExamRetakes(),
                 c.getBandFrom(), c.getBandTo(), c.isSequential(), c.getLessonCompletePercent(),
-                c.getDeliveryMode());
+                c.getDeliveryMode(), c.isIelts());
     }
 }

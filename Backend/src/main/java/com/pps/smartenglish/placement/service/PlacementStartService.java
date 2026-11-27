@@ -1,11 +1,14 @@
 package com.pps.smartenglish.placement.service;
 
 import com.pps.smartenglish.exercise.domain.Question;
+import com.pps.smartenglish.exercise.content.RichText;
 import com.pps.smartenglish.exercise.domain.QuestionBank;
+import com.pps.smartenglish.exercise.domain.QuestionChoice;
 import com.pps.smartenglish.exercise.dto.BankResponse.QuestionView;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
 import com.pps.smartenglish.exercise.service.BankService;
 import com.pps.smartenglish.exercise.service.QuestionLoader;
+import com.pps.smartenglish.exercise.service.QuestionMediaService;
 import com.pps.smartenglish.placement.domain.PlacementAttempt;
 import com.pps.smartenglish.placement.domain.PlacementConfig;
 import com.pps.smartenglish.placement.dto.PlacementDtos.QuestionOut;
@@ -20,6 +23,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -38,6 +42,8 @@ public class PlacementStartService {
     private final QuestionBankRepository banks;
     private final PlacementConfigRepository config;
     private final QuestionLoader loader;
+    private final QuestionMediaService media;
+    private final RichText rich;
     private final PlacementSubmitService submits;
     private final RateLimiter limiter;
     private final Clock clock;
@@ -45,13 +51,15 @@ public class PlacementStartService {
     private final int globalLimit;
 
     PlacementStartService(PlacementAttemptRepository attempts, QuestionBankRepository banks, PlacementConfigRepository config,
-                          QuestionLoader loader, PlacementSubmitService submits, RateLimiter limiter, Clock clock,
+                          QuestionLoader loader, QuestionMediaService media, RichText rich, PlacementSubmitService submits, RateLimiter limiter, Clock clock,
                           @Value("${app.placement.guest-ip-limit:5}") int ipLimit,
                           @Value("${app.placement.guest-global-limit:500}") int globalLimit) {
         this.attempts = attempts;
         this.banks = banks;
         this.config = config;
         this.loader = loader;
+        this.media = media;
+        this.rich = rich;
         this.submits = submits;
         this.limiter = limiter;
         this.clock = clock;
@@ -98,11 +106,15 @@ public class PlacementStartService {
 
     private Started view(PlacementAttempt a, QuestionBank bank, String guestToken, Instant now) {
         var set = loader.load(a.getBankId());
-        List<QuestionView> views = BankService.questionViews(set, Map.of(), Map.of(), a.getId());
         List<Question> qs = set.questions();
+        // D-134/D-135: HTML và ảnh của đề, nạp theo lô (một lần cho cả đề) như BankService.get
+        var html = rich.render(Stream.concat(qs.stream().map(Question::getPromptHtml),
+                set.choices().values().stream().flatMap(List::stream).map(QuestionChoice::getContentHtml)).toList());
+        var mediaByQuestion = media.forQuestions(qs.stream().map(Question::getId).toList());
+        List<QuestionView> views = BankService.questionViews(set, Map.of(), mediaByQuestion, html, a.getId());
         List<QuestionOut> out = IntStream.range(0, qs.size()).mapToObj(i -> {
             var v = views.get(i);
-            return new QuestionOut(v.id(), qs.get(i).getSkill(), v.type(), v.prompt(), v.payload(), v.choices());
+            return new QuestionOut(v.id(), qs.get(i).getSkill(), v.type(), v.prompt(), v.promptHtml(), v.payload(), v.choices(), v.media());
         }).toList();
         return new Started(a.getId(), guestToken, bank.getTitle(), a.getStartedAt(), a.getDeadlineAt(), a.getTimeLimitSec(),
                 PlacementSubmitService.remainingSec(a, now), a.getDraftAnswers(), out);

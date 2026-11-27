@@ -58,6 +58,10 @@ public class Course extends Auditable {
     @Column(nullable = false)
     private boolean sequential;
 
+    /** D-161: khóa IELTS; bộ của khóa này mới được soạn kiểu câu IELTS_*. */
+    @Column(name = "is_ielts", nullable = false)
+    private boolean ielts;
+
     /** FR-GOAL-03: dải band đầu vào <= band < đầu ra; null cả hai = không tham gia gợi ý. */
     @Column(name = "band_from")
     private BigDecimal bandFrom;
@@ -94,6 +98,8 @@ public class Course extends Auditable {
     public void setDeliveryMode(String deliveryMode) { this.deliveryMode = deliveryMode; }
     public int getLessonCompletePercent() { return lessonCompletePercent; }
     public void setLessonCompletePercent(int lessonCompletePercent) { this.lessonCompletePercent = lessonCompletePercent; }
+    public boolean isIelts() { return ielts; }
+    public void setIelts(boolean ielts) { this.ielts = ielts; }
     public boolean isSequential() { return sequential; }
     public void setSequential(boolean sequential) { this.sequential = sequential; }
 

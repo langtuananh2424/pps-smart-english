@@ -38,6 +38,9 @@ public class BankFaqService {
                 .filter(a -> QuestionBank.EXAM.equals(modes.of(a))).isPresent()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "hints_unavailable", "Cam không có khi đang mô phỏng thi");
         }
+        if (modes.examAssigned(userId, bankId)) { // D-162
+            throw new ApiException(HttpStatus.FORBIDDEN, "hints_unavailable", "Cam không có khi bộ đang được giao làm bài thi");
+        }
         return faqs.findByBankIdOrderBySortOrderAscIdAsc(bankId).stream()
                 .map(f -> new FaqItem(f.getId(), f.getQuestion(), f.getAnswer())).toList();
     }

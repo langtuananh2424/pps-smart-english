@@ -1,6 +1,7 @@
 package com.pps.smartenglish.exercise.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.pps.smartenglish.ai.config.VideoReflexProperties;
 import com.pps.smartenglish.ai.speaking.SpeakingQuestionSource;
 import com.pps.smartenglish.exercise.domain.QuestionType;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
@@ -23,8 +24,10 @@ class SpeakingQuestionProvider implements SpeakingQuestionSource {
     private final QuestionRepository questions;
     private final QuestionBankRepository banks;
     private final BankGate gate;
+    private final VideoReflexProperties reflex;
 
-    SpeakingQuestionProvider(QuestionRepository questions, QuestionBankRepository banks, BankGate gate) {
+    SpeakingQuestionProvider(QuestionRepository questions, QuestionBankRepository banks, BankGate gate, VideoReflexProperties reflex) {
+        this.reflex = reflex;
         this.questions = questions;
         this.banks = banks;
         this.gate = gate;
@@ -35,17 +38,21 @@ class SpeakingQuestionProvider implements SpeakingQuestionSource {
     public SpeakingQuestion find(long questionId, long userId, boolean inAssignment, boolean inAttempt) {
         var q = questions.findById(questionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "question_not_found", "Không tìm thấy câu hỏi"));
-        if (q.getType() != QuestionType.SPEAKING) {
+        if (!q.getType().isSpeakingLike()) {
             throw ApiException.validation("questionId", "Không phải câu hỏi nói");
         }
         gate.requireFor(q.getBankId(), userId, inAssignment, inAttempt);
         JsonNode p = q.getPayload();
-        int part = p.path("part").asInt();
-        int max = p.path("maxSeconds").isIntegralNumber() ? p.path("maxSeconds").asInt() : part == 2 ? PART2_SECONDS : SHORT_PART_SECONDS;
+        boolean video = q.getType().isVideoReflex();
+        int part = q.getType() == QuestionType.SPEAKING ? p.path("part").asInt() : 1; // LISTEN_RECORD, Video phản xạ không có part: chấm như câu ngắn part 1
+        int fallback = video ? (q.getType() == QuestionType.VIDEO_SHORT ? reflex.shortSeconds() : reflex.otherSeconds())
+                : part == 2 ? PART2_SECONDS : SHORT_PART_SECONDS;
+        int max = p.path("maxSeconds").isIntegralNumber() ? p.path("maxSeconds").asInt() : fallback;
         List<String> cue = new ArrayList<>();
         p.path("cueCard").forEach(c -> cue.add(c.asText()));
         return new SpeakingQuestion(q.getId(), part, p.path("prompt").asText(), cue, max,
-                banks.findCourseTitle(q.getBankId()).orElse(""), banks.findCourseId(q.getBankId()).orElse(null));
+                banks.findCourseTitle(q.getBankId()).orElse(""), banks.findCourseId(q.getBankId()).orElse(null),
+                video ? reflex.maxRecordings() : 0, q.getType() == QuestionType.VIDEO_SHORT);
     }
 
     @Override

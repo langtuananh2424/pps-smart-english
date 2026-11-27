@@ -5,6 +5,7 @@ import com.pps.smartenglish.ai.service.AiGuard;
 import com.pps.smartenglish.ai.service.AssignedAiWork;
 import com.pps.smartenglish.ai.service.AttemptLinks;
 import com.pps.smartenglish.ai.service.AttemptResultGate;
+import com.pps.smartenglish.ai.service.ReflexProgress;
 import com.pps.smartenglish.ai.service.AiQuotaService;
 import com.pps.smartenglish.ai.speaking.SpeakingDtos.CompleteResponse;
 import com.pps.smartenglish.ai.speaking.SpeakingDtos.QuestionView;
@@ -54,14 +55,16 @@ public class SpeakingService {
     private final AttemptLinks attemptLinks;
     private final AiGuard guard;
     private final AttemptResultGate gate;
+    private final ReflexProgress reflex;
     private final EmailVerification emailVerification;
     private final SpeakingProperties props;
     private final Clock clock;
 
     SpeakingService(SpeakingSubmissionRepository submissions, SpeakingQuestionSource questions, SpeakingEnqueuer enqueuer,
-                    ObjectStorage storage, AiQuotaService quota, AssignedAiWork assigned, AttemptLinks attemptLinks, AiGuard guard, AttemptResultGate gate, EmailVerification emailVerification, SpeakingProperties props,
+                    ObjectStorage storage, AiQuotaService quota, AssignedAiWork assigned, AttemptLinks attemptLinks, AiGuard guard, AttemptResultGate gate, ReflexProgress reflex, EmailVerification emailVerification, SpeakingProperties props,
                     Clock clock) {
         this.gate = gate;
+        this.reflex = reflex;
         this.submissions = submissions;
         this.questions = questions;
         this.enqueuer = enqueuer;
@@ -94,6 +97,9 @@ public class SpeakingService {
         var q = questions.findForNewSession(questionId, userId, assignmentId != null, attemptId != null);
         if (attemptId == null && assignmentId == null) {
             attemptLinks.requireNotInOpenAttempt(userId, questionId); // D-147: không luyện riêng câu đang nằm trong lượt mở
+        }
+        if (attemptId != null) {
+            reflex.requireSpeakable(attemptId, q); // D-158: Video phản xạ: bước Viết xong và còn lần ghi (không áp cho câu Nói thường)
         }
         if (assignmentId == null) {
             guard.rateLimit(userId);

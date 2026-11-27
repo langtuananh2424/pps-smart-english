@@ -31,8 +31,11 @@ class RetryIeltsFollowupTest extends ListeningTestSupport {
         return w;
     }
 
+    /** D-155: học viên không chọn chế độ; EXAM giả lập bài giao Thi bằng cách đặt mode của lượt (đường bài giao có test riêng). */
     private long start(Account u, World w, String mode) throws Exception {
-        return idOf(postJson("/api/banks/" + w.bank() + "/attempts", u, Map.of("mode", mode)).andExpect(status().isCreated()), "id");
+        long id = idOf(postJson("/api/banks/" + w.bank() + "/attempts", u, Map.of()).andExpect(status().isCreated()), "id");
+        jdbc.update("update student_exercise_attempts set mode = ? where id = ?", mode, id);
+        return id;
     }
 
     @Test

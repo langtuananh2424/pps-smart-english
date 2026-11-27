@@ -51,6 +51,10 @@ public class Assignment extends Auditable {
     @Column(name = "forced_listening", nullable = false, updatable = false)
     private boolean forcedListening;
 
+    /** D-155: PRACTICE|EXAM do giáo viên chọn lúc giao; null = theo chế độ của bộ. Chỉ bài giao cả bộ. */
+    @Column(length = 10)
+    private String mode;
+
     @Column(name = "reminded_at")
     private Instant remindedAt;
 
@@ -80,6 +84,8 @@ public class Assignment extends Auditable {
         return this;
     }
 
+    public String getMode() { return mode; }
+    public void setMode(String mode) { this.mode = mode; }
     public boolean isForcedListening() { return forcedListening; }
     public Long getId() { return id; }
     public Long getQuestionId() { return questionId; }

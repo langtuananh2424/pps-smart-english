@@ -7,6 +7,8 @@ import com.pps.smartenglish.media.dto.MediaDtos.MediaFile;
 import com.pps.smartenglish.media.dto.MediaDtos.UploadPermit;
 import com.pps.smartenglish.media.dto.MediaDtos.UploadRequest;
 import com.pps.smartenglish.media.service.MediaService;
+import com.pps.smartenglish.media.service.VideoMediaService;
+import com.pps.smartenglish.media.service.VideoMediaService.VideoFile;
 import com.pps.smartenglish.shared.security.CurrentUser;
 import com.pps.smartenglish.shared.web.PathId;
 import jakarta.validation.Valid;
@@ -26,10 +28,24 @@ class CmsMediaController {
 
     private final MediaService media;
     private final AudioMediaService audio;
+    private final VideoMediaService video;
 
-    CmsMediaController(MediaService media, AudioMediaService audio) {
+    CmsMediaController(MediaService media, AudioMediaService audio, VideoMediaService video) {
         this.media = media;
         this.audio = audio;
+        this.video = video;
+    }
+
+    /** D-156: video mp4 làm đề; cùng luồng với audio. */
+    @PostMapping("/video")
+    @ResponseStatus(HttpStatus.CREATED)
+    UploadPermit createVideoUpload(Authentication auth, @Valid @RequestBody UploadRequest req) {
+        return video.createUpload(CurrentUser.id(auth), req.contentType());
+    }
+
+    @PostMapping("/{id}/complete-video")
+    VideoFile completeVideo(Authentication auth, @PathVariable String id) {
+        return video.complete(CurrentUser.id(auth), PathId.parse(id, "media_not_found", "Không tìm thấy video"));
     }
 
     /** D-135: audio của part. Luồng như ảnh: xin quyền tải lên, tải thẳng lên kho, gọi complete-audio (kèm độ dài nếu biết). */

@@ -29,6 +29,9 @@ public interface SpeakingSubmissionRepository extends JpaRepository<SpeakingSubm
 
     Optional<SpeakingSubmission> findByJobId(Long jobId);
 
+    /** D-158: số lần ghi đã nộp chấm của một câu trong lượt. */
+    long countByAttemptIdAndQuestionIdAndStatusIn(Long attemptId, Long questionId, java.util.Collection<String> statuses);
+
     Optional<SpeakingSubmission> findFirstByAttemptIdAndQuestionIdOrderByIdDesc(Long attemptId, Long questionId);
 
     List<SpeakingSubmission> findByAssignmentIdAndStatusIn(Long assignmentId, java.util.Collection<String> statuses);

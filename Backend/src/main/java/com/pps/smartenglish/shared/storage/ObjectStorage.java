@@ -25,6 +25,16 @@ public interface ObjectStorage {
     /** Đọc tối đa maxBytes byte đầu (để kiểm header file). */
     byte[] readHead(String key, int maxBytes);
 
+    /** Đọc tối đa len byte từ offset (bản mặc định đọc tuần tự; kho thật dùng Range GET). */
+    default byte[] readRange(String key, long offset, int len) {
+        try (InputStream in = open(key)) {
+            in.skipNBytes(offset);
+            return in.readNBytes(len);
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+    }
+
     /** Luồng đọc object; nơi gọi phải đóng. */
     InputStream open(String key);
 

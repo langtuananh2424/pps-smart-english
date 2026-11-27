@@ -67,7 +67,7 @@ public class CmsBankService {
 
     @Transactional
     public BankView createPlacement(CreatePlacementBank req) {
-        var after = view(writes.save(banks, QuestionBank.placement(req.title().strip(), req.timeLimitSec()), CONFLICT,
+        var after = full(writes.save(banks, QuestionBank.placement(req.title().strip(), req.timeLimitSec()), CONFLICT,
                 "Không lưu được bộ câu hỏi"), 0);
         audit.record("CREATE", "BANK", after.id(), null, after);
         return after;
@@ -84,7 +84,7 @@ public class CmsBankService {
         }
         applyPlayback(bank, req.playbackMode(), req.playLimit());
         applyPassPct(bank, req.passPct());
-        var after = view(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), 0);
+        var after = full(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), 0);
         audit.record("CREATE", "BANK", after.id(), null, after);
         return after;
     }
@@ -94,13 +94,13 @@ public class CmsBankService {
     public BankDetail get(long id) {
         QuestionBank bank = find(id);
         var rows = questions.findActiveByBankId(id);
-        return new BankDetail(view(bank, rows.size()), details.of(rows), groups.ofBank(id));
+        return new BankDetail(full(bank, rows.size()), details.of(rows), groups.ofBank(id));
     }
 
     @Transactional
     public BankView patch(long id, PatchBank req) {
         QuestionBank bank = find(id);
-        var before = view(bank, questions.countByBankId(id));
+        var before = full(bank, questions.countByBankId(id));
         if (req.title() != null) {
             bank.setTitle(req.title().strip());
         }
@@ -122,7 +122,7 @@ public class CmsBankService {
         }
         applyPlayback(bank, req.playbackMode(), req.playLimit());
         applyPassPct(bank, req.passPct());
-        var after = view(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), questions.countByBankId(id));
+        var after = full(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), questions.countByBankId(id));
         audit.record("UPDATE", "BANK", id, before, after);
         return after;
     }
@@ -161,7 +161,7 @@ public class CmsBankService {
         if (questions.existsByBankId(id)) {
             throw CmsWrites.inUse();
         }
-        audit.record("DELETE", "BANK", id, view(bank, 0), null);
+        audit.record("DELETE", "BANK", id, full(bank, 0), null);
         writes.delete(banks, bank);
     }
 
@@ -176,9 +176,9 @@ public class CmsBankService {
         if (published && count == 0) {
             throw ApiException.validation("questions", "Cần ít nhất 1 câu hỏi trước khi xuất bản");
         }
-        var before = view(bank, count);
+        var before = full(bank, count);
         bank.setStatus(published ? QuestionBank.PUBLISHED : QuestionBank.DRAFT);
-        var after = view(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), count);
+        var after = full(writes.save(banks, bank, CONFLICT, "Không lưu được bộ câu hỏi"), count);
         audit.record(published ? "PUBLISH" : "UNPUBLISH", "BANK", id, before, after);
         return after;
     }
@@ -195,7 +195,9 @@ public class CmsBankService {
         }
         Map<Long, Long> counts = questions.countByBankIds(rows.stream().map(QuestionBank::getId).toList()).stream()
                 .collect(Collectors.toMap(r -> ((Number) r[0]).longValue(), r -> ((Number) r[1]).longValue()));
-        return rows.stream().map(b -> view(b, counts.getOrDefault(b.getId(), 0L))).toList();
+        var info = banks.findSkillAndIelts(rows.stream().map(QuestionBank::getId).toList()).stream()
+                .collect(Collectors.toMap(r -> ((Number) r[0]).longValue(), r -> r));
+        return rows.stream().map(b -> with(view(b, counts.getOrDefault(b.getId(), 0L)), info.get(b.getId()))).toList();
     }
 
     private void requireTopic(long topicId) {
@@ -216,8 +218,20 @@ public class CmsBankService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "bank_not_found", "Không tìm thấy bộ câu hỏi"));
     }
 
+    /** Bộ kèm kỹ năng và cờ IELTS của khóa chứa nó (D-161); đề đầu vào không thuộc khóa nên false. */
+    private BankView full(QuestionBank b, long questionCount) {
+        var info = banks.findSkillAndIelts(List.of(b.getId()));
+        return with(view(b, questionCount), info.isEmpty() ? null : info.get(0));
+    }
+
+    private static BankView with(BankView v, Object[] info) {
+        return info == null ? v : new BankView(v.id(), v.topicId(), v.lessonId(), v.title(), v.isTrial(), v.status(), v.questionCount(),
+                v.timeLimitSec(), v.mode(), v.purpose(), v.playbackMode(), v.playLimit(), v.passPct(),
+                (com.pps.smartenglish.catalog.domain.TopicSkill) info[1], Boolean.TRUE.equals(info[2]));
+    }
+
     public static BankView view(QuestionBank b, long questionCount) {
         return new BankView(b.getId(), b.getTopicId(), b.getLessonId(), b.getTitle(), b.isTrial(), b.getStatus(), questionCount,
-                b.getTimeLimitSec(), b.getMode(), b.getPurpose(), b.getPlaybackMode(), b.getPlayLimit(), b.getPassPct());
+                b.getTimeLimitSec(), b.getMode(), b.getPurpose(), b.getPlaybackMode(), b.getPlayLimit(), b.getPassPct(), null, false);
     }
 }

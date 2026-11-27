@@ -3,6 +3,7 @@ package com.pps.smartenglish.placement.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.pps.smartenglish.exercise.dto.BankResponse.ChoiceView;
+import com.pps.smartenglish.exercise.dto.QuestionMediaDtos.QuestionMediaView;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -24,7 +25,8 @@ public final class PlacementDtos {
     // ---- người làm bài ----
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record QuestionOut(Long id, String skill, String type, String prompt, JsonNode payload, List<ChoiceView> choices) {}
+    public record QuestionOut(Long id, String skill, String type, String prompt, String promptHtml, JsonNode payload,
+                              List<ChoiceView> choices, List<QuestionMediaView> media) {}
 
     /** guestToken chỉ có ở lần tạo lượt của khách và không lấy lại được (server chỉ lưu hash). */
     @JsonInclude(JsonInclude.Include.NON_NULL)

@@ -45,6 +45,7 @@ public final class CmsDtos {
             @DecimalMin("0") @DecimalMax("9") BigDecimal bandTo,
             Boolean clearBand,
             Boolean sequential,
+            Boolean ielts,
             @Min(1) @Max(100) Integer lessonCompletePercent,
             @Pattern(regexp = "SELF_PACED|CLASS_BASED", message = "Chỉ nhận SELF_PACED hoặc CLASS_BASED") String deliveryMode) {}
 
@@ -92,7 +93,7 @@ public final class CmsDtos {
     public record CourseView(Long id, String slug, String title, String description, String targetType, String status,
                              String aiPeriod, int aiPeriodQuota, Long examBankId, int examUnlockPercent, int examRetakes,
                              BigDecimal bandFrom, BigDecimal bandTo, boolean sequential,
-                             int lessonCompletePercent, String deliveryMode) {}
+                             int lessonCompletePercent, String deliveryMode, boolean ielts) {}
 
     public record LevelView(Long id, Long courseId, String code, String title, int sortOrder, String status) {}
 

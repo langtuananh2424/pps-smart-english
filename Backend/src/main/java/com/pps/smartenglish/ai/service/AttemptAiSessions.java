@@ -29,8 +29,11 @@ public class AttemptAiSessions {
     private final WritingSessionRepository writing;
     private final SpeakingSubmissionRepository speaking;
     private final AiJobRepository jobs;
+    private final AttemptCreditSink sink;
 
-    AttemptAiSessions(AttemptLinks attempts, WritingSessionRepository writing, SpeakingSubmissionRepository speaking, AiJobRepository jobs) {
+    AttemptAiSessions(AttemptLinks attempts, WritingSessionRepository writing, SpeakingSubmissionRepository speaking, AiJobRepository jobs,
+                      AttemptCreditSink sink) {
+        this.sink = sink;
         this.attempts = attempts;
         this.writing = writing;
         this.speaking = speaking;
@@ -42,6 +45,9 @@ public class AttemptAiSessions {
         attempts.requireOwned(userId, attemptId); // lượt người khác coi như không có
         Map<Long, Item> latest = new LinkedHashMap<>();
         for (var s : writing.findByAttemptIdOrderByIdAsc(attemptId)) { // id tăng dần: phiên sau ghi đè phiên trước
+            if (!sink.countsWriting(s.getQuestionId())) {
+                continue; // bước Viết của VIDEO_SHORT xem ở ReflexProgress, không lẫn với bản ghi Nói của câu
+            }
             latest.put(s.getQuestionId(), new Item(s.getQuestionId(), "WRITING", s.getId(), writingState(s)));
         }
         for (var s : speaking.findByAttemptIdOrderByIdAsc(attemptId)) {

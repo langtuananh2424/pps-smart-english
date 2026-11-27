@@ -6,6 +6,7 @@ import com.pps.smartenglish.classroom.domain.ClassMember;
 import com.pps.smartenglish.classroom.domain.ClassRoom;
 import com.pps.smartenglish.classroom.dto.AssignmentDtos.AssignmentView;
 import com.pps.smartenglish.classroom.dto.AssignmentDtos.CreateAssignment;
+import com.pps.smartenglish.classroom.dto.AssignmentDtos.UpdateAssignment;
 import com.pps.smartenglish.classroom.repository.AssignmentRepository;
 import com.pps.smartenglish.classroom.repository.AssignmentTargetRepository;
 import com.pps.smartenglish.classroom.repository.ClassMemberRepository;
@@ -115,8 +116,10 @@ public class AssignmentService {
         if (req.forcedListening() != null && question != null) {
             throw ApiException.validation("forcedListening", "Chỉ ghi đè luật Nghe ép khi giao cả bộ câu hỏi");
         }
+        String mode = checkedMode(req.mode(), question != null, info.mode());
         var entity = question == null ? new Assignment(classId, bankId, req.dueAt(), callerId)
                 : new Assignment(classId, bankId, question.getId(), question.getType().name(), req.dueAt(), callerId);
+        entity.setMode(mode);
         boolean forced = question == null && banks.findById(bankId).map(b -> QuestionBank.LOCKED.equals(b.getPlaybackMode())).orElse(false);
         if (forced) {
             entity.forcedListening(); // D-143: chốt chế độ Nghe ép tại lúc giao
@@ -132,6 +135,44 @@ public class AssignmentService {
         (chosen.isEmpty() ? active : chosen).forEach(u -> notifications.assignmentNew(u, classId, a.getId()));
         var view = views(List.of(a), 0).get(0);
         audit.record("ASSIGNMENT_CREATE", "CLASS", classId, null, view);
+        return view;
+    }
+
+    /** D-155: mode chỉ PRACTICE|EXAM, chỉ cho bài giao cả bộ, và không hạ bộ thi khóa xuống Luyện tập (sẽ mở gợi ý, kiểm câu). */
+    private static String checkedMode(String mode, boolean aiQuestion, String bankMode) {
+        if (mode == null) {
+            return null;
+        }
+        if (!QuestionBank.PRACTICE.equals(mode) && !QuestionBank.EXAM.equals(mode)) {
+            throw ApiException.validation("mode", "Chế độ chỉ nhận PRACTICE hoặc EXAM");
+        }
+        if (aiQuestion) {
+            throw ApiException.validation("mode", "Chỉ đặt chế độ khi giao cả bộ câu hỏi");
+        }
+        if (QuestionBank.PRACTICE.equals(mode) && QuestionBank.EXAM.equals(bankMode)) {
+            throw ApiException.validation("mode", "Bộ thi không giao ở chế độ Luyện tập được");
+        }
+        return mode;
+    }
+
+    /** D-155: đổi chế độ bài giao. Khóa dòng để hai request cùng bài không chồng nhau; đã có lượt của bài thì 409. */
+    @Transactional
+    public AssignmentView updateMode(long callerId, long classId, long assignmentId, UpdateAssignment req) {
+        access.requireStaff(callerId, classId);
+        require(classId, assignmentId);
+        Assignment a = assignments.lockById(assignmentId).orElseThrow(AssignmentService::notFound);
+        if (!a.isActive()) {
+            throw new ApiException(HttpStatus.CONFLICT, "assignment_cancelled", "Bài này đã được giáo viên hủy");
+        }
+        String bankMode = banks.findById(a.getBankId()).map(QuestionBank::getMode).orElse(null);
+        String mode = checkedMode(req.mode(), a.isAiQuestion(), bankMode);
+        if (assignments.hasAttempts(assignmentId)) {
+            throw new ApiException(HttpStatus.CONFLICT, "assignment_mode_locked", "Đã có học viên bắt đầu làm, không đổi chế độ được");
+        }
+        a.setMode(mode);
+        assignments.saveAndFlush(a);
+        var view = views(List.of(a), 0).get(0);
+        audit.record("ASSIGNMENT_MODE", "CLASS", classId, null, view);
         return view;
     }
 
@@ -195,7 +236,8 @@ public class AssignmentService {
     /** Bắt đầu hoặc làm tiếp bài được giao; chỉ người nhận. Trả lượt làm bài, nộp qua /api/attempts/{id}/submit như bài thường. */
     @Transactional
     public AttemptStarted start(long userId, long classId, long assignmentId) {
-        Assignment a = require(classId, assignmentId);
+        require(classId, assignmentId);
+        Assignment a = assignments.lockById(assignmentId).orElseThrow(AssignmentService::notFound); // cùng khóa với updateMode: không tạo lượt theo mode cũ
         if (!assignments.isRecipientAnyStatus(assignmentId, userId)) {
             throw notFound();
         }
@@ -205,7 +247,7 @@ public class AssignmentService {
         if (a.isAiQuestion()) {
             throw new ApiException(HttpStatus.CONFLICT, "assignment_not_attemptable", "Bài Viết/Nói làm ở màn Viết/Nói, gửi kèm assignmentId");
         }
-        return attempts.startAssigned(a.getBankId(), userId, assignmentId, a.isForcedListening());
+        return attempts.startAssigned(a.getBankId(), userId, assignmentId, a.isForcedListening(), a.getMode());
     }
 
     Assignment require(long classId, long assignmentId) {
@@ -223,13 +265,17 @@ public class AssignmentService {
         }
         List<Long> ids = rows.stream().map(Assignment::getId).toList();
         Map<Long, String> titles = new HashMap<>();
-        assignments.bankTitles(rows.stream().map(Assignment::getBankId).distinct().toList())
-                .forEach(r -> titles.put(((Number) r[0]).longValue(), (String) r[1]));
+        Map<Long, String> bankModes = new HashMap<>();
+        assignments.bankTitles(rows.stream().map(Assignment::getBankId).distinct().toList()).forEach(r -> {
+            titles.put(((Number) r[0]).longValue(), (String) r[1]);
+            bankModes.put(((Number) r[0]).longValue(), (String) r[2]);
+        });
         Set<Long> withTargets = new HashSet<>();
         targets.findByAssignmentIdIn(ids).forEach(t -> withTargets.add(t.getAssignmentId()));
         Instant now = classes.now();
         return rows.stream().map(a -> new AssignmentView(a.getId(), a.getClassId(), a.getBankId(), titles.get(a.getBankId()), a.getQuestionId(),
-                a.getQuestionType(), a.getDueAt(), a.getStatus(), !withTargets.contains(a.getId()), viewerId > 0 ? myStatus(a, viewerId, now) : null)).toList();
+                a.getQuestionType(), a.getDueAt(), a.getStatus(), !withTargets.contains(a.getId()), viewerId > 0 ? myStatus(a, viewerId, now) : null,
+                a.isAiQuestion() ? null : (a.getMode() != null ? a.getMode() : bankModes.get(a.getBankId())))).toList();
     }
 
     private String myStatus(Assignment a, long userId, Instant now) {

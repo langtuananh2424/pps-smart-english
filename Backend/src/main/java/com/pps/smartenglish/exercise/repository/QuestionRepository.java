@@ -34,6 +34,9 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     boolean existsByGroupId(Long groupId);
 
+    /** Câu còn hiệu lực của nhóm (kiểm chéo layout). */
+    List<Question> findByGroupIdAndArchivedAtIsNull(Long groupId);
+
     /** Chỉ đếm câu còn hiệu lực (chưa lưu trữ). */
     @Query("select count(q) from Question q where q.bankId = :bankId and q.archivedAt is null")
     long countByBankId(@Param("bankId") Long bankId);

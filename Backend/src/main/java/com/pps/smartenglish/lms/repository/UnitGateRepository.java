@@ -26,10 +26,21 @@ public interface UnitGateRepository extends Repository<Topic, Long> {
             """)
     List<Object[]> firstUnfinishedLesson(@Param("topicId") long topicId, @Param("userId") long userId);
 
-    /** Một dòng [tổng bộ PRACTICE/COURSE có câu hỏi, số bộ đã nộp ít nhất một lần]. */
+    /** Một dòng [tổng bộ PRACTICE/COURSE có câu hỏi, số bộ đã hoàn thành: nộp một lần, hoặc đủ lượt đạt với bộ video từ nối (D-159)]. */
     @Query(nativeQuery = true, value = """
-            SELECT COUNT(*), COUNT(CASE WHEN EXISTS (SELECT 1 FROM student_exercise_attempts a
-                    WHERE a.bank_id = b.id AND a.user_id = :userId AND a.submitted_at IS NOT NULL) THEN 1 END)
+            SELECT COUNT(*), COUNT(CASE WHEN (
+                    (NOT EXISTS (SELECT 1 FROM questions vq WHERE vq.bank_id = b.id AND vq.type = 'VIDEO_CONNECTIVE' AND vq.archived_at IS NULL)
+                     AND EXISTS (SELECT 1 FROM student_exercise_attempts a
+                                 WHERE a.bank_id = b.id AND a.user_id = :userId AND a.submitted_at IS NOT NULL))
+                    OR (EXISTS (SELECT 1 FROM questions vq WHERE vq.bank_id = b.id AND vq.type = 'VIDEO_CONNECTIVE' AND vq.archived_at IS NULL)
+                        AND (SELECT COUNT(*) FROM student_exercise_attempts a
+                             WHERE a.bank_id = b.id AND a.user_id = :userId AND a.submitted_at IS NOT NULL
+                               AND NOT EXISTS (SELECT 1 FROM questions vq WHERE vq.bank_id = b.id AND vq.type = 'VIDEO_CONNECTIVE'
+                                               AND vq.archived_at IS NULL
+                                               AND NOT EXISTS (SELECT 1 FROM attempt_video_groups v
+                                                               WHERE v.attempt_id = a.id AND v.group_id = vq.group_id AND v.passed)))
+                            >= :#{@videoPassRequirement.required()})
+                ) THEN 1 END)
             FROM question_banks b
             WHERE b.topic_id = :topicId AND b.status = 'PUBLISHED' AND b.mode = 'PRACTICE' AND b.purpose = 'COURSE'
               AND EXISTS (SELECT 1 FROM questions q WHERE q.bank_id = b.id)

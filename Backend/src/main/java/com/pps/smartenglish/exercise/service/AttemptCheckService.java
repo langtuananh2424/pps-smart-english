@@ -83,6 +83,9 @@ public class AttemptCheckService {
         var set = loader.load(a);
         var q = set.questions().stream().filter(x -> x.getId() == questionId).findFirst()
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "question_not_found", "Câu hỏi không thuộc bộ này"));
+        if (q.getType().needsVideo()) { // D-159: quiz video nộp theo nhóm, sau khi xem đủ
+            throw new ApiException(HttpStatus.CONFLICT, "video_quiz_group", "Câu này nộp theo nhóm video, không kiểm tra từng câu");
+        }
         if (!graders.isAutoGraded(q.getType())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "question_not_checkable", "Câu này chấm bằng AI, không kiểm tra từng câu");
         }

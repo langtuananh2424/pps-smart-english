@@ -20,7 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-/** Tester D-150 (thử lại kèm gợi ý) và D-151 (chế độ IELTS): phân quyền theo lượt, lộ gợi ý/đáp án, đầu vào xấu, hết giờ, giới hạn tần suất. */
+/** Tester D-150 (thử lại kèm gợi ý) và D-151/D-155 (chế độ của lượt): phân quyền theo lượt, lộ gợi ý/đáp án, đầu vào xấu, hết giờ, giới hạn tần suất. */
 @Import(MutableClockConfig.class)
 class RetryIeltsTesterTest extends ListeningTestSupport {
 
@@ -41,8 +41,11 @@ class RetryIeltsTesterTest extends ListeningTestSupport {
         return w;
     }
 
+    /** D-155: học viên không chọn chế độ; EXAM giả lập bài giao Thi bằng cách đặt mode của lượt (đường bài giao có test riêng). */
     private long start(Account u, World w, String mode) throws Exception {
-        return idOf(postJson("/api/banks/" + w.bank() + "/attempts", u, Map.of("mode", mode)).andExpect(status().isCreated()), "id");
+        long id = idOf(postJson("/api/banks/" + w.bank() + "/attempts", u, Map.of()).andExpect(status().isCreated()), "id");
+        jdbc.update("update student_exercise_attempts set mode = ? where id = ?", mode, id);
+        return id;
     }
 
     private ResultActions check(Account u, long attempt, long question, Object answer) throws Exception {
@@ -138,22 +141,18 @@ class RetryIeltsTesterTest extends ListeningTestSupport {
         check(u, a, w.q()[0], Map.of("choiceId", w.right()[0])).andExpect(status().isTooManyRequests());
     }
 
+    /** D-155: body của client cũ (mode bất kỳ, kể cả hỏng) bị bỏ qua; chế độ theo bộ. */
     @Test
-    void modeCannotTurnExamBankIntoPracticeOrBeMalformed() throws Exception {
-        var w = ielts();
-        jdbc.update("update question_banks set mode = 'EXAM' where id = ?", w.bank());
+    void legacyModeInBodyIsIgnored() throws Exception {
         var u = student(0);
-        int s = postJson("/api/banks/" + w.bank() + "/attempts", u, Map.of("mode", "PRACTICE")).andReturn().getResponse().getStatus();
-        assertNotEquals(201, s);
-        assertEquals(0, count("select count(*) from student_exercise_attempts where bank_id = ? and mode = 'PRACTICE'", w.bank()));
-
-        var p = ielts();
-        for (Object bad : List.of("exam", "", 1, Map.of("x", 1), List.of("EXAM"))) {
-            postJson("/api/banks/" + p.bank() + "/attempts", u, Map.of("mode", bad)).andExpect(status().isBadRequest());
+        for (Object bad : List.of("EXAM", "exam", "", 1, Map.of("x", 1), List.of("EXAM"))) {
+            var p = ielts();
+            idOf(postJson("/api/banks/" + p.bank() + "/attempts", u, Map.of("mode", bad)).andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.mode").value("PRACTICE")), "id");
         }
+        var p = ielts();
         send(MockMvcRequestBuilders.post("/api/banks/" + p.bank() + "/attempts").contentType(MediaType.APPLICATION_JSON).content("{bad"),
-                u.accessToken()).andExpect(status().isBadRequest());
-        assertEquals(0, count("select count(*) from student_exercise_attempts where bank_id = ?", p.bank()));
+                u.accessToken()).andExpect(status().isCreated());
     }
 
     /** Dò đáp án ở lượt Luyện tập rồi mở lượt Mô phỏng thi: phải nộp lượt cũ trước (D-147 mục 10). */
