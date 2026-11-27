@@ -8,7 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 
-/** Một dòng bảng quy đổi của đề thi khóa: số câu đúng của kỹ năng >= minCorrect thì đạt band này (lấy dòng lớn nhất thỏa). */
+/** Một dòng bảng quy đổi của đề thi khóa (D-167): % điểm của kỹ năng >= minPercent thì đạt band này (lấy dòng lớn nhất thỏa). */
 @Entity
 @Table(name = "exam_band_rules")
 public class ExamBandRule {
@@ -22,22 +22,22 @@ public class ExamBandRule {
 
     private String skill;
 
-    @Column(name = "min_correct")
-    private int minCorrect;
+    @Column(name = "min_percent")
+    private int minPercent;
 
     private BigDecimal band;
 
     protected ExamBandRule() {}
 
-    public ExamBandRule(Long bankId, String skill, int minCorrect, BigDecimal band) {
+    public ExamBandRule(Long bankId, String skill, int minPercent, BigDecimal band) {
         this.bankId = bankId;
         this.skill = skill;
-        this.minCorrect = minCorrect;
+        this.minPercent = minPercent;
         this.band = band;
     }
 
     public Long getBankId() { return bankId; }
     public String getSkill() { return skill; }
-    public int getMinCorrect() { return minCorrect; }
+    public int getMinPercent() { return minPercent; }
     public BigDecimal getBand() { return band; }
 }

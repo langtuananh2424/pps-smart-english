@@ -82,7 +82,7 @@ class ExamBandTesterTest extends ApiTestBase {
     }
 
     private static Map<String, Object> rule(String skill, int min, double band) {
-        return Map.of("skill", skill, "minCorrect", min, "band", band);
+        return Map.of("skill", skill, "minPercent", min, "band", band);
     }
 
     private JsonNode get200(String url, Account u) throws Exception {
@@ -123,13 +123,13 @@ class ExamBandTesterTest extends ApiTestBase {
         var nullItem = new HashMap<String, Object>();
         nullItem.put("rules", Arrays.asList((Object) null));
         for (Object bad : List.<Object>of(Map.of(), nullItem, Map.of("rules", List.of(rule("READING", -1, 4.0))),
-                Map.of("rules", List.of(rule("READING", 1001, 4.0))), Map.of("rules", List.of(rule("READING", 1, -0.5))),
+                Map.of("rules", List.of(rule("READING", 101, 4.0))), Map.of("rules", List.of(rule("READING", 1, -0.5))),
                 Map.of("rules", List.of(rule("reading", 1, 4.0))),
                 Map.of("rules", List.of(rule("LISTENING", 3, 4.0), rule("LISTENING", 3, 5.0))))) {
             putRules(admin, w.bank(), bad).andExpect(status().isBadRequest());
         }
         assertEquals(1, count("select count(*) from exam_band_rules where bank_id = ?", w.bank()));
-        // cùng minCorrect ở hai kỹ năng khác nhau là hợp lệ
+        // cùng minPercent ở hai kỹ năng khác nhau là hợp lệ
         putRules(admin, w.bank(), Map.of("rules", List.of(rule("LISTENING", 3, 4.0), rule("READING", 3, 5.0)))).andExpect(status().isOk());
         // mảng rỗng = xóa bảng
         putRules(admin, w.bank(), Map.of("rules", List.of())).andExpect(status().isOk());
@@ -184,7 +184,7 @@ class ExamBandTesterTest extends ApiTestBase {
         var a = enrolled(w);
         var b = enrolled(w);
         submitted(a, w, List.of(w.reading()[0], w.reading()[1]));
-        putRules(withRole("ADMIN"), w.bank(), Map.of("rules", List.of(rule("READING", 2, 7.0)))).andExpect(status().isOk());
+        putRules(withRole("ADMIN"), w.bank(), Map.of("rules", List.of(rule("READING", 100, 7.0)))).andExpect(status().isOk());
         var statsA = get200("/api/me/courses/" + w.course() + "/exercise-stats", login(a.email(), PASSWORD));
         assertEquals("EXAM", statsA.at("/band/source").asText(), statsA.toString());
         var statsB = get200("/api/me/courses/" + w.course() + "/exercise-stats", login(b.email(), PASSWORD));
