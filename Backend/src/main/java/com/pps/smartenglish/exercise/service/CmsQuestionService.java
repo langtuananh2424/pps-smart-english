@@ -172,7 +172,7 @@ public class CmsQuestionService {
                 requireUnlocked(id, q, type, newChoices, oldChoices);
                 validators.validate(type, new QuestionDraft(payload, key, newChoices), elements().keySet());
                 q.setType(type);
-                q.setPayload(LetterIds.scramble(type, payload));
+                q.setPayload(LetterIds.scramble(type, payload, q.getPayload()));
                 q.setAnswerKey(key);
                 syncChoices(id, newChoices, oldChoices);
                 if (contentChanged && type != QuestionType.WRITING) {
