@@ -47,7 +47,7 @@ export function WritingPage() {
       <section className="mx-auto mt-10 flex max-w-lg flex-col items-center gap-4 rounded-lg border border-line-subtle bg-surface p-6 text-center shadow-edge-card sm:p-8">
         <img src={cam} alt="" width={96} height={96} />
         <h1 className="text-2xl font-black leading-[30px] text-ink">Viết phát triển ý</h1>
-        <p className="font-semibold text-ink-secondary">Cam sẽ hỏi vài câu để bạn phát triển ý, rồi soạn bản nháp cho bạn chỉnh sửa. Chỉ khi bấm “Gửi chấm” mới tính một lượt chấm AI.</p>
+        <p className="font-semibold text-ink-secondary">Cam sẽ hỏi vài câu để bạn phát triển ý, rồi soạn bản nháp cho bạn chỉnh sửa. Chỉ khi bấm “Gửi chấm” mới tính một lượt chấm.</p>
         {error != null && <p role="alert" className="text-sm font-bold text-danger">{inlineMessage(error)}</p>}
         <div className="mt-2 flex flex-wrap justify-center gap-3">
           <button type="button" onClick={() => void start()} disabled={starting} className={pillPrimary}>{starting ? 'Đang tạo…' : 'Bắt đầu viết'}</button>

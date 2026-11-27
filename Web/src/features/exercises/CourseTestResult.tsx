@@ -1,6 +1,9 @@
+import { useQuery } from '@tanstack/react-query'
 import { useRef } from 'react'
 import { Link, useParams } from 'react-router'
 import { BlockError, Skeleton } from '../home/BlockState'
+import { fetchBank } from '../practice/api'
+import { describeAnswer } from '../practice/describe'
 import { btnNeutral, btnPrimary, chip, chipTone } from '../lectures/ui'
 import { useAttemptDetail, useCourseTests, useExamStatus } from './api'
 import type { AttemptDetail, ExamBands } from './types'
@@ -52,6 +55,36 @@ function SkillTable({ a, bands }: { a: AttemptDetail; bands: ExamBands | null })
   )
 }
 
+// Đáp án đúng chỉ có ở câu máy chủ cho xem; cần đề để đổi sang chữ.
+function ReviewList({ a, reviewRef }: { a: AttemptDetail; reviewRef: React.RefObject<HTMLElement | null> }) {
+  const results = a.results ?? []
+  const bank = useQuery({ queryKey: ['bank', a.bankId], queryFn: () => fetchBank(a.bankId), enabled: results.some((r) => r.correctAnswer), retry: false, staleTime: Infinity })
+  return (
+    <section ref={reviewRef} aria-label="Xem lại đáp án" className={card}>
+      <h2 className="mb-2 text-lg font-black text-ink">Xem lại đáp án</h2>
+      {results.length === 0 && <p className="text-ink-secondary">Bài này không hiện đáp án từng câu.</p>}
+      <ul>
+        {results.map((r, i) => {
+          const q = bank.data?.questions.find((x) => x.id === r.questionId)
+          const correct = q && r.correctAnswer ? describeAnswer(q, r.correctAnswer) : null
+          return (
+            <li key={r.questionId} className="flex flex-col justify-between gap-1 border-b border-line-subtle py-2 last:border-0 md:flex-row">
+              <span className="font-bold text-ink">
+                Câu {i + 1} · {r.isCorrect == null ? 'Đang chấm' : r.isCorrect ? 'Đúng' : 'Sai'}
+              </span>
+              {r.isCorrect != null && (
+                <span className="text-sm text-ink-secondary">{r.isCorrect ? 'Xem đáp án và giải thích' : 'Đối chiếu đáp án của bạn với đáp án đúng'}</span>
+              )}
+              {correct && <span className="text-sm font-bold text-success-fg md:basis-full">Đáp án đúng: {correct}</span>}
+              {r.explanation && <span className="text-sm text-ink-secondary md:basis-full">{r.explanation}</span>}
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
 // D-118: kết quả một lượt kiểm tra trong khóa. Nghe/Đọc hiện band, Viết/Nói đang chấm.
 export function CourseTestResult() {
   const p = useParams()
@@ -72,7 +105,6 @@ export function CourseTestResult() {
   // shortcut: band chỉ có ở lastResult (bài thi khóa /exam và kiểm tra chương /tests), nên chỉ hiện cho lượt gần nhất; nâng cấp: backend trả band trong GET /attempts/{id}.
   const last = [exam.data?.lastResult, ...(tests.data ?? []).map((t) => t.lastResult)].find((r) => r?.attemptId === attemptId)
   const bands = last?.bands ?? null
-  const results = a.results ?? []
   return (
     <div className="flex flex-col gap-4 lg:gap-6">
       <header className="flex flex-col gap-2">
@@ -86,24 +118,8 @@ export function CourseTestResult() {
         <Stat label="Writing / Speaking" value={bands?.gradingPending || (a.breakdown?.ungraded ?? 0) > 0 ? 'Đang chấm' : '—'} tone="bg-[#e8f0ff]" />
       </div>
       <SkillTable a={a} bands={bands} />
-      <section ref={reviewRef} aria-label="Xem lại đáp án" className={card}>
-        <h2 className="mb-2 text-lg font-black text-ink">Xem lại đáp án</h2>
-        {results.length === 0 && <p className="text-ink-secondary">Bài này không hiện đáp án từng câu.</p>}
-        <ul>
-          {results.map((r, i) => (
-            <li key={r.questionId} className="flex flex-col justify-between gap-1 border-b border-line-subtle py-2 last:border-0 md:flex-row">
-              <span className="font-bold text-ink">
-                Câu {i + 1} · {r.isCorrect == null ? 'Đang chấm' : r.isCorrect ? 'Đúng' : 'Sai'}
-              </span>
-              {r.isCorrect != null && (
-                <span className="text-sm text-ink-secondary">{r.isCorrect ? 'Xem đáp án và giải thích' : 'Đối chiếu đáp án của bạn với đáp án đúng'}</span>
-              )}
-              {r.explanation && <span className="text-sm text-ink-secondary md:basis-full">{r.explanation}</span>}
-            </li>
-          ))}
-        </ul>
-      </section>
-      <p className="text-sm font-semibold text-ink-secondary">Lượt chấm AI được trừ từ ví của khóa theo tác vụ.</p>
+      <ReviewList a={a} reviewRef={reviewRef} />
+      <p className="text-sm font-semibold text-ink-secondary">Lượt chấm được trừ từ ví của khóa theo tác vụ.</p>
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => reviewRef.current?.scrollIntoView?.({ behavior: 'smooth' })} className={`${btnPrimary} min-h-11 px-4 py-2.5 text-sm`}>
           Xem lại đáp án

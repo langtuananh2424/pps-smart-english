@@ -1,4 +1,6 @@
 // Kiểu dữ liệu khớp JSON backend: thống kê bài tập (D-62, D-63) và bài thi khóa (FR-EXAM-02).
+import type { Answer } from '../practice/types'
+
 export type BandSource = 'EXAM' | 'PLACEMENT'
 
 export interface TypeStat {
@@ -40,7 +42,7 @@ export interface AttemptDetail {
   bankId: number
   score?: number
   maxScore?: number
-  results?: { questionId: number; isCorrect: boolean | null; explanation?: string | null }[]
+  results?: { questionId: number; isCorrect: boolean | null; explanation?: string | null; correctAnswer?: Answer | null }[]
   breakdown?: { correct: number; wrong: number; ungraded: number; bySkill: Metric[] }
   forced?: { correctCount: number; totalCount: number }
 }

@@ -1,4 +1,4 @@
-import type { RouteObject } from 'react-router'
+import { Navigate, type RouteObject } from 'react-router'
 import { PublicOnly, RequireAuth } from '../auth/guards'
 import { ConfirmPage } from '../features/checkout/ConfirmPage'
 import { OrderPage } from '../features/checkout/OrderPage'
@@ -91,7 +91,8 @@ export const routes: RouteObject[] = [
               { path: '/don-hang/:code', element: <OrderPage /> },
               // Màn đích của trang chủ, chưa dựng.
               { path: '/thong-bao', element: todo('Thông báo') },
-              { path: '/tro-ly-ai', element: todo('Trợ lý AI') },
+              { path: '/tro-ly-cam', element: todo('Trợ lý Cam') },
+              { path: '/tro-ly-ai', element: <Navigate to="/tro-ly-cam" replace /> }, // link cũ
             ],
           },
         ],

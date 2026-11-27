@@ -141,7 +141,7 @@ export function PackageInfo({ product, classBased }: { product: CourseDetail['pr
     <section className={cardCls}>
       <h2 className="text-lg font-black text-ink">Thông tin gói</h2>
       <p className="text-2xl font-black text-brand-strong">{formatVnd(product.priceVnd)}</p>
-      {classBased && <p className="text-sm font-semibold text-ink-secondary">Giá và lượt AI tuần theo gói đã chọn.</p>}
+      {classBased && <p className="text-sm font-semibold text-ink-secondary">Giá và lượt chấm tuần theo gói đã chọn.</p>}
     </section>
   )
 }

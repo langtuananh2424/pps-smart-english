@@ -83,7 +83,8 @@ describe('điểm ẩn khi AI còn chấm (D-147 mục 6)', () => {
     renderAt('/lop/3/bai-giao/1')
     expect(await screen.findByText('Điểm cuối')).toBeInTheDocument()
     expect(screen.getByText('9/10')).toBeInTheDocument()
-    expect(screen.queryByText('Điểm AI ban đầu')).not.toBeInTheDocument()
+    expect(screen.queryByText('Điểm Cam chấm ban đầu')).not.toBeInTheDocument()
+    expect(screen.queryByText(/\bAI\b/)).not.toBeInTheDocument()
   })
 
   test('đang chấm: không có con số điểm nào trên màn, không có Làm lại', async () => {

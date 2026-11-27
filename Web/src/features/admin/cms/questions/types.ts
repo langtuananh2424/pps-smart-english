@@ -57,6 +57,9 @@ export const typeLabel = (t: string) => [...QUESTION_TYPES, ...PPS_TYPES, ...IEL
 export const usesChoices = (t: QuestionType) => t === 'CONNECTIVE_MCQ' || t === 'CHOICE_MULTI' || t === 'VIDEO_CONNECTIVE'
 
 export const SKILLS = ['LISTENING', 'READING', 'GRAMMAR'] as const
+// Dạng không tự chấm không gắn kỹ năng (D-164); khớp GraderRegistry.isAutoGraded ở backend.
+const NOT_AUTO_GRADED: readonly string[] = ['WRITING', 'SPEAKING', 'CONNECTIVE_REWRITE', 'GRAMMAR_REWRITE', 'LISTEN_RECORD', 'VIDEO_SHORT', 'VIDEO_CUE', 'VIDEO_DISCUSS', 'VIDEO_PICTURE']
+export const takesSkill = (t: string) => !NOT_AUTO_GRADED.includes(t)
 export const DISPLAY_SIZES = [
   ['SM', 'Nhỏ (33%)'],
   ['MD', 'Vừa (50%)'],

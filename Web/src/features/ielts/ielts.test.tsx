@@ -72,6 +72,7 @@ describe('khung thi IELTS', () => {
     let body: unknown
     mockApiBody((b) => { body = b })
     const router = renderAt('/bai-tap/7')
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
     expect(await screen.findByRole('article', { name: 'Câu 1' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/ielts/7')
     expect(screen.queryByRole('radiogroup', { name: 'Chế độ làm bài' })).not.toBeInTheDocument()
@@ -79,9 +80,17 @@ describe('khung thi IELTS', () => {
     expect(calls).toContain('/api/banks/7/attempts')
   })
 
+  test('mở trang không có lượt dở: hiện màn bắt đầu, chưa tạo lượt', async () => {
+    const calls = wire('EXAM')
+    renderAt('/ielts/7')
+    expect(await screen.findByRole('button', { name: 'Bắt đầu' })).toBeInTheDocument()
+    expect(calls).not.toContain('/api/banks/7/attempts')
+  })
+
   test('Luyện tập: tạm dừng, Cam gợi ý theo câu, popup gợi ý dài, thu gọn', async () => {
     wire('PRACTICE')
     renderAt('/ielts/7')
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
     expect(await screen.findByText('Tìm từ khóa')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Tạm dừng' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Xem chi tiết' }))
@@ -96,6 +105,7 @@ describe('khung thi IELTS', () => {
   test('bố cục ngang điện thoại: hai cột cuộn riêng, ẩn nút Xem bài đọc, thanh gọn (US-508)', async () => {
     wire('PRACTICE')
     renderAt('/ielts/7')
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
     const q = await screen.findByRole('article', { name: 'Câu 1' })
     expect(screen.getByRole('button', { name: 'Xem bài đọc' })).toHaveClass('land:hidden')
     expect(q.closest('div[class*="land:overflow-y-auto"]')).not.toBeNull()
@@ -107,6 +117,7 @@ describe('khung thi IELTS', () => {
   test('Mô phỏng thi: không tạm dừng, không gọi gợi ý', async () => {
     const calls = wire('EXAM')
     renderAt('/ielts/7')
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
     await screen.findByRole('article', { name: 'Câu 1' })
     expect(screen.queryByRole('button', { name: 'Tạm dừng' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Hỏi Cam' })).not.toBeInTheDocument()
@@ -114,24 +125,26 @@ describe('khung thi IELTS', () => {
     expect(calls).not.toContain('/api/attempts/9/hints')
   })
 
-  test('Luyện tập có thử lại: kiểm tra sai mở Cam với gợi ý câu, Mô phỏng thi không có nút Kiểm tra (D-150)', async () => {
+  test('Luyện tập có thử lại: kiểm tra sai từ lần 2 mở Cam với gợi ý câu, Mô phỏng thi không có nút Kiểm tra (D-150)', async () => {
     const calls: unknown[] = []
     wire('PRACTICE', {
-      '/api/attempts/9/progress': () => json(200, { attemptId: 9, paused: false, remainingSec: 600, mode: 'PRACTICE', retry: { maxRetries: 1, checks: [] } }),
-      '/api/attempts/9/questions/1/check': (b) => { calls.push(b); return json(200, { questionId: 1, correct: false, checksLeft: 1 }) },
+      '/api/attempts/9/progress': () => json(200, { attemptId: 9, paused: false, remainingSec: 600, mode: 'PRACTICE', retry: { maxRetries: 2, hintAfterWrong: 2, checks: [] } }),
+      '/api/attempts/9/questions/1/check': (b) => { calls.push(b); return json(200, { questionId: 1, correct: false, checksLeft: 1, wrongCount: 2 }) },
     })
     renderAt('/ielts/7')
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
     const q1 = await screen.findByRole('article', { name: 'Câu 1' })
     await userEvent.click(within(q1).getByRole('radio', { name: /Sai 1/ }))
     await userEvent.click(within(q1).getByRole('button', { name: 'Kiểm tra' }))
     expect(calls).toEqual([{ answer: { choiceId: 12 } }])
-    expect(await screen.findByText('Cần sửa, thử lại nhé')).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: 'Gợi ý của Cam' })).toHaveTextContent('Cần sửa, thử lại nhé')
     expect(screen.getByText('Tìm từ khóa')).toBeInTheDocument()
   })
 
   test('Mô phỏng thi không có nút Kiểm tra dù bộ là PRACTICE', async () => {
     wire('EXAM')
     renderAt('/ielts/7')
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
     await screen.findByRole('article', { name: 'Câu 1' })
     expect(screen.queryByRole('button', { name: 'Kiểm tra' })).not.toBeInTheDocument()
   })
@@ -139,6 +152,7 @@ describe('khung thi IELTS', () => {
   test('điều hướng câu đổi phần, đánh dấu, xem lại, xác nhận rồi nộp và xem band', async () => {
     const calls = wire('PRACTICE')
     renderAt('/ielts/7')
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
     expect(await screen.findByText('Nội dung một')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('radio', { name: /Đúng 1/ }))
     await userEvent.click(screen.getByRole('button', { name: 'Câu 3' }))

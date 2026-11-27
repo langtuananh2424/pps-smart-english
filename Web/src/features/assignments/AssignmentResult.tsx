@@ -29,12 +29,12 @@ export function AssignmentResult({ a, r }: { a: Assignment; r: MyResult }) {
         {scored && graded ? (
           <>
             <section className={`${card} bg-success-bg`}><h2 className={`${cardTitle} text-success-fg`}>Điểm cuối</h2><p className="font-semibold text-ink-secondary">{fmt(a, r.finalScore!, r.maxScore)}</p></section>
-            {r.aiScore != null && <section className={`${card} bg-muted`}><h2 className={`${cardTitle} text-ink-secondary`}>Điểm AI ban đầu</h2><p className="font-semibold text-ink-secondary">{fmt(a, r.aiScore, r.maxScore)}</p></section>}
+            {r.aiScore != null && <section className={`${card} bg-muted`}><h2 className={`${cardTitle} text-ink-secondary`}>Điểm Cam chấm ban đầu</h2><p className="font-semibold text-ink-secondary">{fmt(a, r.aiScore, r.maxScore)}</p></section>}
           </>
         ) : (
           <>
             <section className={`${card} bg-muted`}>
-              <h2 className={`${cardTitle} text-ink-secondary`}>{scored ? 'Điểm cuối' : 'Điểm AI'}</h2>
+              <h2 className={`${cardTitle} text-ink-secondary`}>{scored ? 'Điểm cuối' : 'Điểm Cam chấm'}</h2>
               <p className="font-semibold text-ink-secondary">{scored ? fmt(a, r.finalScore!, r.maxScore) : grading ? 'Đang chấm…' : 'Bài này không tính điểm.'}</p>
             </section>
             <section className={`${card} bg-success-bg`}><h2 className={`${cardTitle} text-success-fg`}>Trạng thái</h2><p className="font-semibold text-ink-secondary">{r.status === 'LATE' ? 'Nộp trễ' : 'Đã nộp'}</p></section>

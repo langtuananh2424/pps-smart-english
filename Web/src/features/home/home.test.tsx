@@ -93,8 +93,8 @@ test('có khóa: header, thẻ học tiếp, lộ trình, tuần, việc hôm na
   // thẻ AI
   expect(await screen.findByText('Luyện viết một đoạn ngắn về Environment')).toBeInTheDocument()
   expect(screen.getByText(/còn 6 lượt · \+2 lượt mua thêm/)).toBeInTheDocument()
-  expect(screen.getByRole('progressbar', { name: 'Lượt chấm AI đã dùng' })).toHaveAttribute('aria-valuenow', '4')
-  expect(screen.getByRole('link', { name: /Hỏi trợ lý AI/ })).toHaveAttribute('href', '/viet/9')
+  expect(screen.getByRole('progressbar', { name: 'Lượt chấm đã dùng' })).toHaveAttribute('aria-valuenow', '4')
+  expect(screen.getByRole('link', { name: /Hỏi Cam/ })).toHaveAttribute('href', '/viet/9')
 })
 
 test('chưa có khóa: thẻ mời, ẩn lộ trình, việc hôm nay và thẻ AI', async () => {
@@ -105,7 +105,7 @@ test('chưa có khóa: thẻ mời, ẩn lộ trình, việc hôm nay và thẻ 
   expect(screen.getByRole('link', { name: 'Kiểm tra đầu vào' })).toHaveAttribute('href', '/kiem-tra-dau-vao')
   expect(screen.queryByRole('heading', { name: /Lộ trình/ })).not.toBeInTheDocument()
   expect(screen.queryByRole('heading', { name: 'Việc hôm nay' })).not.toBeInTheDocument()
-  expect(screen.queryByRole('region', { name: 'AI gợi ý' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('region', { name: 'Cam gợi ý' })).not.toBeInTheDocument()
 })
 
 test('resume null: báo đã học xong khóa', async () => {

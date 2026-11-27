@@ -37,11 +37,11 @@ export function BlockingError({ error, onRetry }: { error: unknown; onRetry?: ()
   )
 }
 
-// Chưa có màn mua gói AI: chỉ nêu tên gói, dẫn tới đơn hàng và khóa học (D-47).
+// Chưa có màn mua gói lượt chấm: chỉ nêu tên gói, dẫn tới đơn hàng và khóa học (D-47).
 export function QuotaCard({ error }: { error: ApiError }) {
   const names = productNames(error.details)
   return (
-    <Card title="Bạn đã hết lượt chấm AI" body={names.length ? `Gói bổ sung: ${names.join(', ')}.` : 'Hãy bổ sung lượt để tiếp tục.'}>
+    <Card title="Bạn đã dùng hết lượt chấm bài kỳ này" body={`Mua thêm lượt để Cam chấm tiếp nhé.${names.length ? ` Gói bổ sung: ${names.join(', ')}.` : ''}`}>
       <Link to="/don-hang" className={pillPrimary}>Đơn hàng của tôi</Link>
       <Link to="/khoa-hoc" className={pillNeutral}>Xem khóa học</Link>
     </Card>

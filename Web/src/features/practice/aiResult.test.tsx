@@ -59,7 +59,7 @@ describe('kết quả bộ có Viết/Nói', () => {
     const pending: AttemptResult = { id: 9, bankId: 7, maxScore: 4, pendingJobs: [11, 12], passPct: 70 }
     show(pending)
     expect(await screen.findByText('Bạn đã nộp bài!')).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('Còn 2 câu Viết/Nói đang chấm')
+    expect(screen.getByRole('status')).toHaveTextContent('Cam đang chấm 2 câu')
     expect(await screen.findByText('Đang chấm 1/3')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Về danh mục/ })).toHaveAttribute('href', '/bai-tap')
     expect(screen.getByText('Có kết quả mình sẽ báo bạn nhé!')).toBeInTheDocument()
@@ -73,7 +73,7 @@ describe('kết quả bộ có Viết/Nói', () => {
     expect(within(list).getByText('Đúng')).toBeInTheDocument()
     expect(within(list).getByText('Band 6.0')).toBeInTheDocument()
     expect(within(list).getByText('0% · Không chấm được')).toBeInTheDocument()
-    expect(within(list).getByText('Bản ghi âm không rõ. Đã hoàn 1 lượt AI.')).toBeInTheDocument()
+    expect(within(list).getByText('Bản ghi âm không rõ. Đã hoàn 1 lượt chấm.')).toBeInTheDocument()
     expect(within(list).getByText('0% · Bỏ qua')).toBeInTheDocument()
     expect(screen.getByText('1 câu không chấm được, đã tính 0 điểm.')).toBeInTheDocument()
     expect(within(list).getAllByRole('button', { name: /Xem nhận xét/ })).toHaveLength(2)

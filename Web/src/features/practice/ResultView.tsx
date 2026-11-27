@@ -10,6 +10,7 @@ import { describeAnswer } from './describe'
 import { BuildDetail, IdentifyDetail } from './ResultDetails'
 import { isAnswerable } from './questions/registry'
 import { isAiType, isReflexType } from '../exercises/format'
+import { ChoiceNotes } from './ChoiceNotes'
 import { AiReview } from './AiReview'
 import { PendingCard } from './PendingCard'
 import { VideoResult } from './video/VideoResult'
@@ -67,7 +68,7 @@ export function ResultView({ bank, initial, answers, onRetry }: Props) {
   const byQuestion = new Map((r.results ?? []).map((x) => [x.questionId, x]))
   const quotaNotice = r.aiQuotaRequired && (
     <p role="alert" className="rounded-md bg-reward-bg px-4 py-2 text-sm font-bold text-reward-fg">
-      Bạn đã hết lượt chấm AI nên một số câu chưa được chấm.
+      Bạn đã dùng hết lượt chấm bài kỳ này nên một số câu chưa được chấm. Mua thêm lượt để Cam chấm tiếp nhé.
       {r.products && r.products.length > 0 && ` Gói bổ sung: ${r.products.map((p) => p.name).join(', ')}.`}
     </p>
   )
@@ -177,13 +178,14 @@ function Row({ index, question, result, mine, showMine, pending, elementName, la
             {result?.explanation && <Line label="Giải thích" text={result.explanation} />}
             {result?.feedback && <Line label="Nhận xét" text={result.feedback} />}
           </dl>
+          <ChoiceNotes notes={result?.choiceNotes} />
         </>
       )}
     </li>
   )
 }
 
-const Line = ({ label, text }: { label: string; text: string }) => (
+export const Line = ({ label, text }: { label: string; text: string }) => (
   <div className="flex gap-2">
     <dt className="shrink-0 font-extrabold text-ink-secondary">{label}:</dt>
     <dd className="text-ink">{text}</dd>

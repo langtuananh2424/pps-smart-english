@@ -3,6 +3,8 @@ export type Id = number | string
 export interface Choice { id: number; label: string; content: string; contentHtml?: string | null }
 // D-134: ảnh gắn câu; url đã ký sẵn, displaySize là cỡ theo khung.
 export interface QuestionMedia { assetId: number; url: string; width: number; height: number; role: 'INLINE' | 'DIAGRAM'; displaySize: 'SM' | 'MD' | 'LG' | 'FULL'; altText: string }
+// FR-EX-03: giải thích riêng của một phương án (chỉ có ở kết quả đã nộp và câu khóa sai).
+export interface ChoiceNote { label: string; correct: boolean; explanation: string }
 export interface Hint { id: number; content: string; detail?: string | null }
 export interface Question {
   id: number
@@ -70,15 +72,17 @@ export interface ReflexProgress {
 export interface AttemptSummary { id: number; bankId: number; startedAt: string; submittedAt: string | null; score: number | null; maxScore: number | null }
 export interface Started { id: number; bankId: number; startedAt: string; timeLimitSec: number | null; mode?: 'PRACTICE' | 'EXAM' | null }
 // D-150: kiểm tra từng câu. checksLeft = số lần kiểm tra còn lại; câu khóa khi đúng hoặc checksLeft = 0. Không có đáp án.
-export interface CheckState { questionId: number; correct: boolean; checksLeft: number }
+// D-163: correctAnswer và explanation chỉ có khi câu hết lượt thử mà vẫn sai.
+export interface CheckState { questionId: number; correct: boolean; checksLeft: number; wrongCount: number; correctAnswer?: Answer | null; explanation?: string | null; choiceNotes?: ChoiceNote[] | null }
 // mode: D-151, chế độ của lượt
-export interface Progress { attemptId: number; timeLimitSec?: number; remainingSec?: number; paused: boolean; answers?: AnswerItem[]; mode?: 'PRACTICE' | 'EXAM'; retry?: { maxRetries: number; checks: CheckState[] } }
+export interface Progress { attemptId: number; timeLimitSec?: number; remainingSec?: number; paused: boolean; answers?: AnswerItem[]; mode?: 'PRACTICE' | 'EXAM'; retry?: { maxRetries: number; hintAfterWrong: number; checks: CheckState[] } }
 
 export interface QuestionResult {
   questionId: number
   isCorrect: boolean | null
   correctAnswer?: Answer | null
   explanation?: string | null
+  choiceNotes?: ChoiceNote[] | null
   feedback?: string | null
   aiRefunded?: boolean // có aiFailure: lượt AI của câu đã được hoàn (bài giao không trừ lượt)
   aiFailure?: string | null // D-147: lý do câu Viết/Nói không chấm được (đã hoàn lượt AI, tính 0 điểm)

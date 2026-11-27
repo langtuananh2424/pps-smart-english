@@ -61,7 +61,7 @@ const DesktopHero = () => (
       <span className="text-brand">tiến bộ cùng Cam!</span>
     </h2>
     <p className="max-w-[480px] text-lg font-semibold leading-7 text-ink-secondary">
-      Bài giảng video, bài tập ngữ cảnh và Trợ lý AI chấm bài viết, tất cả trong một nơi.
+      Bài giảng video, bài tập ngữ cảnh và Trợ lý Cam chấm bài viết, tất cả trong một nơi.
     </p>
     <div className="relative h-[420px] w-[600px]" aria-hidden="true">
       <div className="absolute left-[110px] top-5 size-[380px] rounded-full bg-[radial-gradient(circle,rgba(247,103,7,0.3),rgba(255,138,61,0)_70%)]" />

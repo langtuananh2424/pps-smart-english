@@ -17,22 +17,22 @@ export function AiSuggestCard() {
 
   const topic = roadmap.data?.resume?.topicTitle
   const writing = today.data?.tasks.find((t) => t.kind === 'WRITING' && t.questionId != null)
-  const to = writing ? `/viet/${writing.questionId}` : '/tro-ly-ai'
+  const to = writing ? `/viet/${writing.questionId}` : '/tro-ly-cam'
   const q = quota.data?.courses.find((c) => c.courseId === courseId)
   const pool = quota.data?.pool ?? 0
 
   return (
-    <section aria-label="AI gợi ý" className="flex flex-col gap-3 rounded-[22px] border border-line-subtle bg-ai-bg px-6 py-[22px]">
+    <section aria-label="Cam gợi ý" className="flex flex-col gap-3 rounded-[22px] border border-line-subtle bg-ai-bg px-6 py-[22px]">
       <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-ai px-3 py-[5px] text-xs font-extrabold leading-4 text-white">
         <Icon src={aiBadge} size={12} />
-        AI gợi ý
+        Cam gợi ý
       </span>
       <h2 className="text-lg font-black leading-6 text-ai-edge">Luyện viết một đoạn ngắn{topic ? ` về ${topic}` : ''}</h2>
       <p className="text-sm font-semibold leading-5 text-ai-edge">Trợ lý hỏi sâu từng ý rồi chấm theo rubric của Phòng Đào tạo.</p>
       {q && q.quota > 0 && (
         <div>
           <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-2 text-sm font-extrabold text-ai-edge">
-            <span>Lượt chấm AI</span>
+            <span>Lượt chấm</span>
             <span>
               còn {q.remaining} lượt
               {pool > 0 && ` · +${pool} lượt mua thêm`}
@@ -40,7 +40,7 @@ export function AiSuggestCard() {
           </div>
           <div
             role="progressbar"
-            aria-label="Lượt chấm AI đã dùng"
+            aria-label="Lượt chấm đã dùng"
             aria-valuemin={0}
             aria-valuemax={q.quota}
             aria-valuenow={q.used}
@@ -55,7 +55,7 @@ export function AiSuggestCard() {
       )}
       {quota.isError && <BlockError onRetry={() => quota.refetch()} />}
       <Link to={to} className="mt-2 inline-flex min-h-12 items-center gap-2 self-start rounded-full bg-ai px-6 text-base font-extrabold text-white shadow-edge-ai">
-        Hỏi trợ lý AI
+        Hỏi Cam
         <Icon src={arrow} size={16} />
       </Link>
     </section>

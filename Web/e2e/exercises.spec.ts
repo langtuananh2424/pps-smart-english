@@ -17,7 +17,7 @@ test('chọn khóa → hệ thống bài tập: Cam, bài thi khóa khóa, bài 
 
   const list = page.getByRole('region', { name: 'Làm theo bài giảng' })
   await expect(list.getByRole('link', { name: 'Làm bài tập Bài 1' })).toHaveAttribute('href', '/bai-tap/7')
-  await expect(page.getByText('Lượt chấm AI: 3/5 tuần này')).toBeVisible()
+  await expect(page.getByText('Lượt chấm: 3/5 tuần này')).toBeVisible()
 
   await page.getByRole('button', { name: 'Ngữ pháp', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Tìm và sửa lỗi' })).toBeVisible()

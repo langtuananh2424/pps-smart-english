@@ -1,5 +1,5 @@
 import { REGISTRY } from './forms/registry'
-import { usesChoices, type BankView, type Draft, type QuestionDetail, type QuestionType } from './types'
+import { takesSkill, usesChoices, type BankView, type Draft, type QuestionDetail, type QuestionType } from './types'
 import { hydrateImages, isEmptyHtml, stripImgSrc, textToHtml, uid } from './util'
 
 export function emptyDraft(type: QuestionType = 'CONNECTIVE_MCQ'): Draft {
@@ -54,8 +54,8 @@ export function toRequest(d: Draft, bank: BankView) {
       ? d.choices.map((c) => ({ label: c.label, contentHtml: isEmptyHtml(c.contentHtml) ? undefined : stripImgSrc(c.contentHtml), isCorrect: c.isCorrect, explanation: c.explanation }))
       : [],
     grammarElementCodes: d.grammarCodes,
-    // Kỹ năng chỉ dùng cho đề kiểm tra đầu vào; bộ khóa học bị backend từ chối.
-    skill: bank.purpose === 'PLACEMENT' && d.skill ? d.skill : undefined,
+    // Kỹ năng dùng cho đề đầu vào và bộ thi khóa (D-164); bộ luyện tập bị backend từ chối.
+    skill: (bank.purpose === 'PLACEMENT' || bank.mode === 'EXAM') && takesSkill(d.type) && d.skill ? d.skill : undefined,
     transcriptExcerpt: d.transcriptExcerpt,
   }
 }

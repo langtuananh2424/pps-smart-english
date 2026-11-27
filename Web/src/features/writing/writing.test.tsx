@@ -182,7 +182,7 @@ describe('màn Viết', () => {
     })
     renderAt('/viet/8')
     await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu viết' }))
-    expect(await screen.findByRole('heading', { name: 'Bạn đã hết lượt chấm AI' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Bạn đã dùng hết lượt chấm bài kỳ này' })).toBeInTheDocument()
     expect(screen.getByText(/Nạp 20 lượt/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Đơn hàng của tôi' })).toHaveAttribute('href', '/don-hang')
   })

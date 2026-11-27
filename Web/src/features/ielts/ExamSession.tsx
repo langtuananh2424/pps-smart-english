@@ -7,7 +7,7 @@ import { isAnswered } from '../practice/questions/registry'
 import { ErrorCard } from '../practice/StatusCard'
 import type { Answer, Answers, Bank, Progress } from '../practice/types'
 import { useCountdown } from '../practice/useCountdown'
-import { useCheck } from '../practice/useCheck'
+import { useCheck, isLocked } from '../practice/useCheck'
 import { useDraft } from '../practice/useDraft'
 import { AiNav } from './AiNav'
 import { AiStage } from './AiStage'
@@ -146,7 +146,7 @@ function Session({ bank, attemptId, onDone, progress, syncedAt, ai }: Props & { 
           </div>
         )}
       </main>
-      {mode === 'PRACTICE' && <IeltsCam bankId={bank.id} attemptId={attemptId} questionId={currentId} hidden={paused} notice={retry.wrong?.questionId === currentId ? 'Cần sửa, thử lại nhé' : null} openKey={retry.wrong?.questionId === currentId ? retry.wrong.n : undefined} />}
+      {mode === 'PRACTICE' && <IeltsCam bankId={bank.id} attemptId={attemptId} questionId={currentId} hidden={paused} notice={retry.wrong?.questionId === currentId && !isLocked(retry.checks[currentId]) ? 'Cần sửa, thử lại nhé' : null} openKey={retry.wrong?.questionId === currentId ? retry.wrong.n : undefined} />}
       {stage ? (
         <AiNav tabs={stage === 'WRITING' ? ordered.map((x, i) => ({ id: x.id, label: `Task ${i + 1}` })) : undefined} currentId={currentId} onGo={go} onSubmit={() => setView('review')} submitLabel={stage === 'WRITING' ? 'Nộp bài' : 'Kết thúc'} disabled={lock} />
       ) : (
