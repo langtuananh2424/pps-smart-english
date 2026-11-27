@@ -114,7 +114,9 @@ class AttemptTimerGraceTesterTest extends ApiTestBase {
         send(MockMvcRequestBuilders.put("/api/attempts/" + id + "/draft").contentType(MediaType.APPLICATION_JSON).content(body(b)), u)
                 .andExpect(status().isConflict());
         clock.set(base.plusSeconds(66));
-        assertEquals(1, timeoutJob.tick());
+        // DB dùng chung giữa các test: job có thể nộp cả lượt hết hạn của test khác, chỉ kiểm lượt này
+        timeoutJob.tick();
+        assertEquals(1, jdbc.queryForObject("select count(*) from student_exercise_attempts where id = ? and submitted_at is not null", Integer.class, id));
         assertEquals(0, BigDecimal.ZERO.compareTo(score(id)));
     }
 
