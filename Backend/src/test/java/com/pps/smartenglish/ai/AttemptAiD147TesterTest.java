@@ -166,7 +166,7 @@ class AttemptAiD147TesterTest extends AiTestSupport {
         assertEquals(1, count("select count(*) from ai_quota_ledger where user_id = ? and reason = 'REFUND'", u.id()));
         assertEquals("0", credit(attempt, q));
         getJson("/api/attempts/" + attempt, u).andExpect(jsonPath("$.passed").value(false))
-                .andExpect(jsonPath("$.results[0].aiFailure").value("AI chấm lỗi")).andExpect(jsonPath("$.results[0].aiRefunded").value(true));
+                .andExpect(jsonPath("$.results[0].aiFailure").value("Cam chưa chấm được câu này")).andExpect(jsonPath("$.results[0].aiRefunded").value(true));
     }
 
     /** Worker chết giữa chừng (lease hết hạn, đủ số lần thử): đường claimer cũng chỉ được chấm lại một lần. */
@@ -214,7 +214,7 @@ class AttemptAiD147TesterTest extends AiTestSupport {
         assertEquals(charged + 1, balance(u));
         assertEquals("0", credit(attempt, q));
         getJson("/api/attempts/" + attempt, u).andExpect(jsonPath("$.passed").value(false))
-                .andExpect(jsonPath("$.results[0].aiFailure").value("AI chấm lỗi"));
+                .andExpect(jsonPath("$.results[0].aiFailure").value("Cam chưa chấm được câu này"));
     }
 
     /** Phiên luyện tập không gắn lượt: lỗi hẳn thì FAILED và hoàn ngay, không tự chấm lại. */

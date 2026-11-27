@@ -94,7 +94,7 @@ public class SubmissionService {
         this.clock = clock;
     }
 
-    /** Hết giờ, hoặc req null (job tự nộp): chấm theo đáp án đã lưu, bỏ qua đáp án gửi lên. */
+    /** Quá hạn giờ hơn ân hạn, hoặc req null (job tự nộp): chấm theo đáp án đã lưu, bỏ qua đáp án gửi lên. */
     @Transactional
     public AttemptResponse submit(long userId, Long attemptId, SubmitRequest req) {
         var attempt = attempts.findByIdAndUserId(attemptId, userId)
@@ -106,7 +106,7 @@ public class SubmissionService {
             assigned.requireActive(attempt.getAssignmentId()); // D-153; req null = hệ thống nộp khi hết giờ, vẫn phải chốt lượt
         }
         Instant now = Instant.now(clock);
-        if (req == null || attempt.expired(now)) {
+        if (req == null || attempt.expired(now.minusSeconds(props.submitGraceSec()))) {
             req = draftRequest(attempt);
         }
         var set = loader.load(attempt);
@@ -158,6 +158,13 @@ public class SubmissionService {
             throw alreadySubmitted();
         }
         BigDecimal sessionScore = addSessionAnswers(attemptId, aiQuestions, given, times, rows);
+        // 429/503 ném từ đây làm rollback cả lần nộp; chỉ hết lượt là không làm hỏng lần nộp
+        List<Long> pending = new ArrayList<>();
+        var quotaProducts = enqueueRewrite(userId, attemptId, banks.findCourseId(attempt.getBankId()).orElse(null), needsAi, given, pending,
+                attempt.getAssignmentId() != null);
+        if (quotaProducts != null) {
+            zeroUnchecked(rows, needsAi.keySet()); // D-147: hết lượt thì câu viết lại tính 0 ngay, không treo chờ
+        }
         answers.saveAll(rows);
         if (sessionScore.signum() > 0) {
             score = score.add(sessionScore).setScale(2, RoundingMode.HALF_UP);
@@ -165,10 +172,6 @@ public class SubmissionService {
         }
         List<AnswerGrading> ruleRows = saveRuleGradings(rows, ruleResults);
 
-        // 429/503 ném từ đây làm rollback cả lần nộp; chỉ hết lượt là không làm hỏng lần nộp
-        List<Long> pending = new ArrayList<>();
-        var quotaProducts = enqueueRewrite(userId, attemptId, banks.findCourseId(attempt.getBankId()).orElse(null), needsAi, given, pending,
-                attempt.getAssignmentId() != null);
         if (!aiQuestions.isEmpty()) { // job chấm Viết/Nói của các phiên gắn lượt cũng đang chờ: web cần biết để hỏi lại
             aiJobs.pendingIds(attemptId).stream().filter(id -> !pending.contains(id)).forEach(pending::add);
         }
@@ -199,6 +202,14 @@ public class SubmissionService {
             sum = sum.add(credit == null ? BigDecimal.ZERO : credit);
         }
         return sum;
+    }
+
+    /** Câu viết lại chưa có lượt AI: sai, credit 0 kèm lý do (điểm tổng không đổi vì câu chưa cộng gì). */
+    private static void zeroUnchecked(List<StudentAnswer> rows, Set<Long> questionIds) {
+        rows.replaceAll(r -> questionIds.contains(r.getQuestionId())
+                ? new StudentAnswer(r.getAttemptId(), r.getQuestionId(), r.getAnswer(), false, Credit.ZERO, r.getTimeSpentMs(),
+                        r.getAnswerVersion(), AttemptAiScores.REASON_QUOTA, false)
+                : r);
     }
 
     private List<AnswerGrading> saveRuleGradings(List<StudentAnswer> rows, Map<Long, RewriteRules.Result> ruleResults) {

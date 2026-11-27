@@ -203,7 +203,7 @@ describe('màn Nói', () => {
     renderAt('/noi/8')
     await userEvent.upload(await screen.findByLabelText('Chọn tệp audio'), file(5))
     await userEvent.click(await screen.findByRole('button', { name: /Nộp bản ghi/ }))
-    expect(await screen.findByText('Bạn đã hết lượt chấm AI')).toBeInTheDocument()
+    expect(await screen.findByText('Bạn đã dùng hết lượt chấm bài kỳ này')).toBeInTheDocument()
     expect(screen.getByText(/Gói 20 lượt/)).toBeInTheDocument()
   })
 

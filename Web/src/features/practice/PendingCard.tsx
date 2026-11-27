@@ -8,7 +8,7 @@ import { pillPrimary } from './questions/ui'
 interface Props {
   title: string
   pending: number
-  total: number // số câu Viết/Nói đã gửi chấm
+  total: number // số câu đã gửi chấm
   gaveUp: boolean
   onReload: () => void
   notice?: React.ReactNode
@@ -41,7 +41,7 @@ export function PendingCard({ title, pending, total, gaveUp, onReload, notice }:
             </p>
           ) : (
             <p role="status" className="max-w-[540px] text-base font-semibold text-ink-secondary">
-              Còn {pending} câu Viết/Nói đang chấm. Điểm và kết quả Đạt/Chưa đạt sẽ hiện khi chấm xong.
+              Cam đang chấm {pending} câu. Điểm và kết quả Đạt/Chưa đạt sẽ hiện khi chấm xong.
             </p>
           )}
           <div className="flex gap-2">

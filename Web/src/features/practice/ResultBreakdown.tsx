@@ -1,4 +1,4 @@
-import { labelOf } from '../exercises/format'
+import { labelOf, percent } from '../exercises/format'
 import type { Bank, Breakdown, Metric } from './types'
 
 interface Props {
@@ -7,7 +7,6 @@ interface Props {
   elementName: (code: string) => string
 }
 
-const pct = (a: number | null) => (a == null ? '—' : `${Math.round(a * 100)}%`)
 const short = (s: string) => (s.length > 60 ? `${s.slice(0, 60)}…` : s)
 
 // FR-EX-08: phân tích kết quả; vắng breakdown (đang tải/lỗi) thì không hiện gì.
@@ -38,10 +37,10 @@ export function ResultBreakdown({ breakdown: b, bank, elementName }: Props) {
                 <li key={m.key} className="flex flex-col gap-1">
                   <div className="flex justify-between text-sm font-bold text-ink">
                     <span>{name(m)}</span>
-                    <span>{pct(m.accuracy)}</span>
+                    <span>{percent(m.accuracy)}</span>
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full bg-[#f76707]" style={{ width: `${Math.round((m.accuracy ?? 0) * 100)}%` }} />
+                    <div className="h-full bg-[#f76707]" style={{ width: `${Math.round(m.accuracy ?? 0)}%` }} />
                   </div>
                 </li>
               ))}

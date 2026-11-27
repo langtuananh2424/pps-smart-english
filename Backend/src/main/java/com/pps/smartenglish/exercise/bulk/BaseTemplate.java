@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
 import java.util.regex.Pattern;
 
@@ -22,9 +23,12 @@ abstract class BaseTemplate implements ImportTemplate {
 
     static final String EXPLAIN = "Giải thích";
     static final String TAGS = "Thẻ";
+    static final String SKILL = "Kỹ năng";
     static final String PROMPT = "Đề";
 
     private static final Pattern HTML_TAG = Pattern.compile("<[A-Za-z/!?]");
+    private static final String SKILL_NOTE = "Kỹ năng (tùy chọn): LISTENING (Nghe), READING (Đọc) hoặc GRAMMAR (Ngữ pháp); chỉ cho câu tự chấm trong bộ thi khóa, bắt buộc khi bộ đã có bảng band";
+    private static final Map<String, String> SKILLS = Map.of("nghe", "LISTENING", "đọc", "READING", "ngữ pháp", "GRAMMAR");
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
     /** Nội dung riêng của dạng; prompt là câu hiển thị (có thể là lời hướng dẫn mặc định). */
@@ -65,12 +69,15 @@ abstract class BaseTemplate implements ImportTemplate {
         List<String> all = new ArrayList<>(columns);
         all.add(EXPLAIN);
         all.add(TAGS);
+        all.add(SKILL);
         return all;
     }
 
     @Override
     public final List<String> columnNotes() {
-        return notes;
+        List<String> all = new ArrayList<>(notes);
+        all.add(SKILL_NOTE);
+        return all;
     }
 
     /** Dòng mẫu chỉ ghi các cột riêng của dạng; hai cột chung để trống cho người dùng tự điền. */
@@ -78,7 +85,7 @@ abstract class BaseTemplate implements ImportTemplate {
     public final List<List<String>> samples() {
         return samples.stream().map(r -> {
             List<String> full = new ArrayList<>(r);
-            while (full.size() < columns.size() + 2) {
+            while (full.size() < columns.size() + 3) {
                 full.add("");
             }
             return full;
@@ -90,7 +97,7 @@ abstract class BaseTemplate implements ImportTemplate {
         Content c = content(row);
         boolean html = HTML_TAG.matcher(c.prompt()).find();
         return new CreateQuestion(type.name(), html ? null : c.prompt(), html ? c.prompt() : null, null, c.payload(), c.answerKey(),
-                c.choices(), row.get(EXPLAIN), null, tags(row.get(TAGS)), null, null, null);
+                c.choices(), row.get(EXPLAIN), null, tags(row.get(TAGS)), skill(row.get(SKILL)), null, null);
     }
 
     // ---- tiện ích cho lớp con ----
@@ -111,6 +118,14 @@ abstract class BaseTemplate implements ImportTemplate {
     /** Tách theo dấu phân cách, bỏ phần rỗng. */
     static List<String> split(String s, String regex) {
         return Arrays.stream(s.split(regex)).map(String::strip).filter(x -> !x.isEmpty()).toList();
+    }
+
+    /** Nhận mã (LISTENING...) hoặc nhãn tiếng Việt; giá trị lạ để DTO báo lỗi. */
+    static String skill(String cell) {
+        if (cell == null) {
+            return null;
+        }
+        return SKILLS.getOrDefault(cell.strip().toLowerCase(Locale.ROOT), cell.strip().toUpperCase(Locale.ROOT));
     }
 
     static List<String> tags(String cell) {

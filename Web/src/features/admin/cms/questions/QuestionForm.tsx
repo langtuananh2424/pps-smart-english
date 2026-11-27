@@ -8,7 +8,7 @@ import { REGISTRY } from './forms/registry'
 import { MediaPanel } from './MediaPanel'
 import { Preview } from './Preview'
 import { RichText } from './RichText'
-import { IELTS_TYPES, PPS_TYPES, QUESTION_TYPES, SKILLS, type BankView, type Draft, type GrammarElement, type GroupView, type QuestionDetail, type QuestionType } from './types'
+import { IELTS_TYPES, PPS_TYPES, QUESTION_TYPES, SKILLS, takesSkill, type BankView, type Draft, type GrammarElement, type GroupView, type QuestionDetail, type QuestionType } from './types'
 import { uploadImage } from './upload'
 import { detailsOf, errAt } from './util'
 
@@ -122,7 +122,7 @@ export function QuestionForm({ bank, question, groups, elements, nextSortOrder, 
               <Err list={errAt(errors, 'groupId')} />
             </Labeled>
           )}
-          {placement && (
+          {(placement || bank.mode === 'EXAM') && takesSkill(draft.type) && (
             <Labeled label="Kỹ năng" htmlFor="q-skill">
               <select id="q-skill" value={draft.skill} onChange={(e) => patch({ skill: e.target.value })} className={smInput}>
                 <option value="">Chọn kỹ năng</option>

@@ -132,6 +132,43 @@ class AttemptTimerTest extends ApiTestBase {
     }
 
     @Test
+    void submitWithinGraceKeepsSentAnswersButLateOneUsesDraft() throws Exception {
+        var b = bank("PRACTICE", 60);
+        var u = register(newEmail(), PASSWORD);
+        Instant base = now();
+        var answers = Map.of("answers", List.of(Map.of("questionId", b.question(), "answer", Map.of("choiceId", b.right()))));
+
+        long inGrace = startAttempt(b.id(), u.accessToken(), base);
+        clock.set(base.plusSeconds(62)); // quá hạn 2 giây, trong ân hạn mặc định 5 giây
+        send(MockMvcRequestBuilders.post("/api/attempts/" + inGrace + "/submit").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(answers)), u.accessToken())
+                .andExpect(status().isOk()).andExpect(jsonPath("$.score").value(1));
+
+        long late = startAttempt(b.id(), u.accessToken(), base.plusSeconds(1000));
+        clock.set(base.plusSeconds(1070)); // quá hạn 10 giây: đáp án gửi kèm bị bỏ, nháp rỗng
+        send(MockMvcRequestBuilders.post("/api/attempts/" + late + "/submit").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(answers)), u.accessToken())
+                .andExpect(status().isOk()).andExpect(jsonPath("$.score").value(0));
+    }
+
+    @Test
+    void timeoutJobWaitsOutGraceBeforeAutoSubmit() throws Exception {
+        var b = bank("PRACTICE", 60);
+        var u = register(newEmail(), PASSWORD);
+        Instant base = now();
+        long id = startAttempt(b.id(), u.accessToken(), base);
+
+        clock.set(base.plusSeconds(62)); // quá hạn nhưng còn trong ân hạn: job chưa nộp
+        timeoutJob.tick();
+        getAuth("/api/attempts/" + id + "/progress", u.accessToken()).andExpect(status().isOk());
+
+        clock.set(base.plusSeconds(70));
+        assertTrue(timeoutJob.tick() >= 1);
+        send(MockMvcRequestBuilders.post("/api/attempts/" + id + "/pause"), u.accessToken())
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.error.code").value("attempt_already_submitted"));
+    }
+
+    @Test
     void examBankCannotBePaused() throws Exception {
         var b = bank("EXAM", 60);
         var u = register(newEmail(), PASSWORD);

@@ -15,7 +15,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-/** FR-EX-04, D-150: kiểm tra từng câu với thử lại kèm gợi ý (mặc định 1 lần thử lại, tức 2 lần kiểm tra). */
+/** FR-EX-04, D-150: kiểm tra từng câu với thử lại kèm gợi ý (D-163: mặc định 2 lần thử lại, tức 3 lần kiểm tra). */
 class AttemptCheckApiTest extends ApiTestBase {
 
     private static final String PASSWORD = "Password123!";
@@ -49,6 +49,7 @@ class AttemptCheckApiTest extends ApiTestBase {
         long q = question(bank, "CONNECTIVE_MCQ", 1);
         long right = insert("question_choices", Map.of("question_id", q, "label", "B", "content", "Đúng", "is_correct", true));
         long wrong = insert("question_choices", Map.of("question_id", q, "label", "A", "content", "Sai", "is_correct", false));
+        jdbc.update("update questions set explanation = 'Vì B đúng' where id = ?", q);
         return new Bank(bank, q, right, wrong, question(bank, "WRITING", 2));
     }
 
@@ -73,10 +74,15 @@ class AttemptCheckApiTest extends ApiTestBase {
         var u = register(newEmail(), PASSWORD).accessToken();
         long id = start(b, u);
         check(id, b.mcq(), u, b.wrong()).andExpect(status().isOk()).andExpect(jsonPath("$.correct").value(false))
-                .andExpect(jsonPath("$.checksLeft").value(1)).andExpect(jsonPath("$.correctAnswer").doesNotExist());
-        check(id, b.mcq(), u, b.right()).andExpect(status().isOk()).andExpect(jsonPath("$.correct").value(true));
+                .andExpect(jsonPath("$.checksLeft").value(2)).andExpect(jsonPath("$.wrongCount").value(1))
+                .andExpect(jsonPath("$.correctAnswer").doesNotExist()).andExpect(jsonPath("$.explanation").doesNotExist());
+        check(id, b.mcq(), u, b.right()).andExpect(status().isOk()).andExpect(jsonPath("$.correct").value(true))
+                .andExpect(jsonPath("$.wrongCount").value(1)).andExpect(jsonPath("$.correctAnswer").doesNotExist())
+                .andExpect(jsonPath("$.explanation").doesNotExist());
 
-        send(get("/api/attempts/" + id + "/progress"), u).andExpect(jsonPath("$.retry.maxRetries").value(1))
+        send(get("/api/attempts/" + id + "/progress"), u).andExpect(jsonPath("$.retry.maxRetries").value(2))
+                .andExpect(jsonPath("$.retry.hintAfterWrong").value(2))
+                .andExpect(jsonPath("$.retry.checks[0].correctAnswer").doesNotExist())
                 .andExpect(jsonPath("$.retry.checks[0].questionId").value(b.mcq()))
                 .andExpect(jsonPath("$.retry.checks[0].correct").value(true))
                 .andExpect(jsonPath("$.answers[0].answer.choiceId").value(b.right()));
@@ -88,10 +94,17 @@ class AttemptCheckApiTest extends ApiTestBase {
         var b = bank();
         var u = register(newEmail(), PASSWORD).accessToken();
         long id = start(b, u);
-        check(id, b.mcq(), u, b.wrong()).andExpect(jsonPath("$.checksLeft").value(1));
-        check(id, b.mcq(), u, b.wrong()).andExpect(status().isOk()).andExpect(jsonPath("$.checksLeft").value(0));
+        check(id, b.mcq(), u, b.wrong()).andExpect(jsonPath("$.checksLeft").value(2));
+        check(id, b.mcq(), u, b.wrong()).andExpect(jsonPath("$.checksLeft").value(1)).andExpect(jsonPath("$.wrongCount").value(2))
+                .andExpect(jsonPath("$.correctAnswer").doesNotExist());
+        // D-163: hết lượt mà vẫn sai thì trả đáp án đúng và giải thích, cả ở check lẫn progress (tải lại trang)
+        check(id, b.mcq(), u, b.wrong()).andExpect(status().isOk()).andExpect(jsonPath("$.checksLeft").value(0))
+                .andExpect(jsonPath("$.wrongCount").value(3)).andExpect(jsonPath("$.correctAnswer.choiceId").value(b.right()))
+                .andExpect(jsonPath("$.explanation").value("Vì B đúng"));
+        send(get("/api/attempts/" + id + "/progress"), u).andExpect(jsonPath("$.retry.checks[0].correctAnswer.choiceId").value(b.right()))
+                .andExpect(jsonPath("$.retry.checks[0].explanation").value("Vì B đúng"));
         check(id, b.mcq(), u, b.right()).andExpect(status().isConflict()).andExpect(jsonPath("$.error.code").value("retry_exhausted"));
-        assertWrongCount(id, b.mcq(), 2);
+        assertWrongCount(id, b.mcq(), 3);
 
         // Câu đã khóa: nháp và nộp bài bỏ đáp án khác, điểm theo câu trả lời của lần kiểm tra cuối (sai)
         var other = List.of(Map.of("questionId", b.mcq(), "answer", Map.of("choiceId", b.right())));
@@ -124,6 +137,7 @@ class AttemptCheckApiTest extends ApiTestBase {
         var b = bank();
         var u = register(newEmail(), PASSWORD).accessToken();
         long id = start(b, u);
+        check(id, b.mcq(), u, b.wrong()).andExpect(jsonPath("$.checksLeft").value(2));
         check(id, b.mcq(), u, b.wrong()).andExpect(jsonPath("$.checksLeft").value(1));
         var pool = java.util.concurrent.Executors.newFixedThreadPool(2);
         var go = new java.util.concurrent.CountDownLatch(1);
@@ -141,7 +155,7 @@ class AttemptCheckApiTest extends ApiTestBase {
         }
         pool.shutdown();
         org.junit.jupiter.api.Assertions.assertEquals(List.of(200, 409), codes.stream().sorted().toList());
-        assertWrongCount(id, b.mcq(), 2);
+        assertWrongCount(id, b.mcq(), 3);
     }
 
     /** Bài giáo viên giao của bộ PRACTICE đi cùng đường lượt, có thử lại. */
@@ -169,8 +183,8 @@ class AttemptCheckApiTest extends ApiTestBase {
         String started = post("/api/classes/" + cls + "/assignments/" + asg + "/start", s.accessToken(), Map.of())
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         long id = json.readTree(started).get("id").asLong();
-        check(id, b.mcq(), s.accessToken(), b.wrong()).andExpect(status().isOk()).andExpect(jsonPath("$.checksLeft").value(1));
-        send(get("/api/attempts/" + id + "/progress"), s.accessToken()).andExpect(jsonPath("$.retry.maxRetries").value(1));
+        check(id, b.mcq(), s.accessToken(), b.wrong()).andExpect(status().isOk()).andExpect(jsonPath("$.checksLeft").value(2));
+        send(get("/api/attempts/" + id + "/progress"), s.accessToken()).andExpect(jsonPath("$.retry.maxRetries").value(2));
     }
 
     @Test

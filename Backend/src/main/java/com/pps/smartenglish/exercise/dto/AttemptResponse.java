@@ -34,5 +34,6 @@ public record AttemptResponse(Long id, Long bankId, Instant startedAt, Instant s
                                  @JsonInclude(JsonInclude.Include.NON_NULL) String explanation,
                                  @JsonInclude(JsonInclude.Include.NON_NULL) String feedback,
                                  @JsonInclude(JsonInclude.Include.NON_NULL) String aiFailure,
-                                 @JsonInclude(JsonInclude.Include.NON_NULL) Boolean aiRefunded) {}
+                                 @JsonInclude(JsonInclude.Include.NON_NULL) Boolean aiRefunded,
+                                 @JsonInclude(JsonInclude.Include.NON_NULL) List<ChoiceNote> choiceNotes) {}
 }

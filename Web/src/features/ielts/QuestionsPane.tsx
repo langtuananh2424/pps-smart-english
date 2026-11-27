@@ -40,7 +40,7 @@ export function QuestionsPane({ part, answers, flagged, currentId, disabled, onC
             items.filter((i) => isCheckable(i.question.type)).map((i) => (
               <div key={i.question.id} className="flex items-center gap-3">
                 <span className="text-sm font-extrabold text-ink-secondary">Câu {i.n}</span>
-                <div className="min-w-0 flex-1"><CheckBar state={retry.checks[i.question.id]} canCheck={!disabled && isAnswered(i.question.type, answers[i.question.id])} pending={retry.pending} onCheck={() => retry.onCheck(i.question.id)} /></div>
+                <div className="min-w-0 flex-1"><CheckBar state={retry.checks[i.question.id]} question={i.question} layout={layout} canCheck={!disabled && isAnswered(i.question.type, answers[i.question.id])} pending={retry.pending} onCheck={() => retry.onCheck(i.question.id)} /></div>
               </div>
             ))}
         </>
@@ -66,7 +66,7 @@ export function QuestionsPane({ part, answers, flagged, currentId, disabled, onC
             <QuestionMediaList question={q} />
             {!q.prompt && !q.promptHtml && <p className="text-sm font-semibold text-ink-secondary">{q.instruction ?? labelOf(q.type)}</p>}
             <Component question={q} layout={layout} value={answers[q.id]} onChange={(v) => onChange(q.id, v)} disabled={disabled || (checkable && isLocked(state))} />
-            {checkable && <CheckBar state={state} canCheck={!disabled && isAnswered(q.type, answers[q.id])} pending={retry.pending} onCheck={() => retry.onCheck(q.id)} />}
+            {checkable && <CheckBar state={state} question={q} layout={layout} canCheck={!disabled && isAnswered(q.type, answers[q.id])} pending={retry.pending} onCheck={() => retry.onCheck(q.id)} />}
           </article>
         )
       })}

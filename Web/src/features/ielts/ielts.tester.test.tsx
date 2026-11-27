@@ -86,11 +86,12 @@ describe('khôi phục khi tải lại và lỗi mạng', () => {
   test('câu đã khóa (hết lượt thử) giữ khóa sau khi tải lại', async () => {
     wire('PRACTICE', {
       answers: [{ questionId: 1, answer: { choiceId: 12 } }],
-      retry: { maxRetries: 1, checks: [{ questionId: 1, correct: false, checksLeft: 0 }, { questionId: 2, correct: true, checksLeft: 2 }] },
+      retry: { maxRetries: 2, hintAfterWrong: 2, checks: [{ questionId: 1, correct: false, checksLeft: 0, wrongCount: 3, correctAnswer: { choiceId: 11 }, explanation: 'Vì đáp án một' }, { questionId: 2, correct: true, checksLeft: 2, wrongCount: 0 }] },
     })
     renderAt('/ielts/7')
     const q1 = await screen.findByRole('article', { name: 'Câu 1' })
-    expect(within(q1).getByText('Cần sửa. Xem đáp án ở màn kết quả')).toBeInTheDocument()
+    expect(within(q1).getByText('Cần sửa')).toBeInTheDocument()
+    expect(within(q1).getByText('Vì đáp án một')).toBeInTheDocument()
     expect(within(q1).queryByRole('button', { name: 'Kiểm tra' })).not.toBeInTheDocument()
     expect(within(q1).getByRole('radio', { name: /Đúng 1/ })).toBeDisabled()
     const q2 = screen.getByRole('article', { name: 'Câu 2' })
@@ -99,7 +100,7 @@ describe('khôi phục khi tải lại và lỗi mạng', () => {
   })
 
   test('mất mạng khi Kiểm tra: báo lỗi, câu không bị khóa, thử lại được', async () => {
-    wire('PRACTICE', { retry: { maxRetries: 1, checks: [] } }, { '/api/attempts/9/questions/1/check': fail })
+    wire('PRACTICE', { retry: { maxRetries: 2, hintAfterWrong: 2, checks: [] } }, { '/api/attempts/9/questions/1/check': fail })
     renderAt('/ielts/7')
     const q1 = await screen.findByRole('article', { name: 'Câu 1' })
     await userEvent.click(within(q1).getByRole('radio', { name: /Sai 1/ }))
@@ -117,6 +118,7 @@ describe('khôi phục khi tải lại và lỗi mạng', () => {
   test('mất mạng khi tự bắt đầu lượt: báo lỗi, bấm Thử lại được', async () => {
     wire('PRACTICE', {}, { '/api/me/attempts?bankId=7&open=true&limit=1': () => json(200, { data: [] }), '/api/banks/7/attempts': fail })
     renderAt('/ielts/7')
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
     expect(await screen.findByRole('button', { name: /Thử lại/ })).toBeEnabled()
   })
 })

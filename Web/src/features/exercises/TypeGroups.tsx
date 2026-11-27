@@ -19,7 +19,7 @@ function TypeCard({ t, weakest }: { t: TypeStat; weakest: boolean }) {
         </span>
         <div className="hidden gap-1.5 lg:flex">
           {weakest && <span className={`${chip} bg-brand-soft font-black text-brand-strong`}>Nên luyện</span>}
-          {ai && <span className={`${chip} bg-[#eaf1f4] font-black text-[#203c4b]`}>✦ AI chấm</span>}
+          {ai && <span className={`${chip} bg-[#eaf1f4] font-black text-[#203c4b]`}>✦ Cam chấm</span>}
           <span className={`${chip} bg-muted font-black text-ink-secondary`}>{t.questionCount} câu</span>
         </div>
       </div>
@@ -87,7 +87,7 @@ export function TypeGroups({ stats, query, quota, courseId }: { stats: ExerciseS
         {q && (
           <p className="flex shrink-0 items-center gap-1.5 text-sm font-extrabold text-[#203c4b]">
             <img src={aiQuota} alt="" width={16} height={16} />
-            Lượt chấm AI: {q.remaining}/{q.quota} {quotaPeriod[q.period] ?? ''}
+            Lượt chấm: {q.remaining}/{q.quota} {quotaPeriod[q.period] ?? ''}
           </p>
         )}
       </div>
@@ -95,7 +95,7 @@ export function TypeGroups({ stats, query, quota, courseId }: { stats: ExerciseS
         <div key={g.family} className="flex flex-col gap-2.5 lg:gap-3.5">
           <h2 className="text-lg font-black leading-6 text-ink lg:text-2xl lg:leading-[30px]">
             {g.label}
-            {(g.family === 'WRITING' || g.family === 'SPEAKING') && <span className="lg:hidden"> · AI chấm</span>}
+            {(g.family === 'WRITING' || g.family === 'SPEAKING') && <span className="lg:hidden"> · Cam chấm</span>}
           </h2>
           <div className="grid gap-2.5 lg:grid-cols-3 lg:gap-4">
             {g.types.map((t) => (

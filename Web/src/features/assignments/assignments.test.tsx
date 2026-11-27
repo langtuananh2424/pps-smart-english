@@ -103,7 +103,7 @@ describe('Bài được giao', () => {
   test('câu Viết chuyển sang /viet kèm assignmentId và báo không trừ lượt AI', async () => {
     mockApi({ ...member, ...one(list[2]) })
     const router = renderAt('/lop/3/bai-giao/3')
-    expect(await screen.findByText('Bài này không trừ lượt AI tuần của bạn.')).toBeInTheDocument()
+    expect(await screen.findByText('Bài này không trừ lượt chấm tuần của bạn.')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('link', { name: 'Bắt đầu làm bài' }))
     expect(router.state.location.pathname).toBe('/viet/7')
     expect(router.state.location.search).toBe('?assignmentId=3')

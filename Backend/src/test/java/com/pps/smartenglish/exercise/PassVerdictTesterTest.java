@@ -36,15 +36,15 @@ class PassVerdictTesterTest extends ListeningTestSupport {
         return node;
     }
 
-    /** Hết lượt AI: câu AI không chấm (isCorrect null), không có job chờ; điểm chưa chốt nên không được kết luận Đạt/Chưa đạt. */
+    /** Hết lượt AI: câu viết lại tính 0 kèm lý do (D-147), không có job chờ; điểm chốt luôn nên Đạt/Chưa đạt có ngay. */
     @Test
     void quotaExhaustedAiAnswersHoldBackVerdict() throws Exception {
         var u = student(0);
         var s = submitRewrite(u, rewriteBank(4, "FREE"), 4);
         assertEquals(true, s.path("aiQuotaRequired").asBoolean(false), "điều kiện ca: hết lượt AI");
-        assertFalse(s.has("passed"), "phản hồi nộp bài không được có passed khi còn câu AI chưa chấm: " + s);
+        assertEquals(false, s.path("passed").asBoolean(true), "câu hết lượt tính 0 nên Chưa đạt: " + s);
         var g = get("/api/attempts/" + s.get("_attemptId").asLong(), u, 200);
-        assertFalse(g.has("passed"), "GET lượt không được có passed khi còn câu AI chưa chấm: " + g);
+        assertEquals(false, g.path("passed").asBoolean(true), "GET lượt phải chốt Chưa đạt: " + g);
     }
 
     /** Lượt Nghe ép có câu AI: kết quả job chấm không được lộ đúng/sai hay câu sửa (D-142: chỉ số câu đúng). */

@@ -1,5 +1,6 @@
 package com.pps.smartenglish.support;
 
+import com.pps.smartenglish.shared.event.ExerciseScored;
 import com.pps.smartenglish.shared.event.LessonCompleted;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -14,6 +15,17 @@ public class EventCollectorConfig {
     public static class EventCollector {
 
         private final List<LessonCompleted> lessons = new CopyOnWriteArrayList<>();
+
+        private final List<ExerciseScored> scored = new CopyOnWriteArrayList<>();
+
+        @EventListener
+        public void on(ExerciseScored e) {
+            scored.add(e);
+        }
+
+        public long exerciseScoredFor(long attemptId) {
+            return scored.stream().filter(e -> e.attemptId() == attemptId).count();
+        }
 
         @EventListener
         public void on(LessonCompleted e) {

@@ -2,6 +2,9 @@ package com.pps.smartenglish.exercise.service;
 
 import com.pps.smartenglish.exercise.domain.ExamBandRule;
 import com.pps.smartenglish.exercise.domain.QuestionBank;
+import com.pps.smartenglish.exercise.domain.Question;
+import com.pps.smartenglish.exercise.grading.GraderRegistry;
+import com.pps.smartenglish.exercise.repository.QuestionRepository;
 import com.pps.smartenglish.exercise.dto.ExamBandDtos.RuleInput;
 import com.pps.smartenglish.exercise.dto.ExamBandDtos.RuleView;
 import com.pps.smartenglish.exercise.repository.ExamBandRuleRepository;
@@ -10,6 +13,7 @@ import com.pps.smartenglish.shared.audit.AuditRecorder;
 import com.pps.smartenglish.shared.error.ApiException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,8 +29,13 @@ public class CmsExamBandService {
     private final QuestionBankRepository banks;
     private final ExamBandRuleRepository rules;
     private final AuditRecorder audit;
+    private final QuestionRepository questions;
+    private final GraderRegistry graders;
 
-    CmsExamBandService(QuestionBankRepository banks, ExamBandRuleRepository rules, AuditRecorder audit) {
+    CmsExamBandService(QuestionBankRepository banks, ExamBandRuleRepository rules, AuditRecorder audit,
+                       QuestionRepository questions, GraderRegistry graders) {
+        this.questions = questions;
+        this.graders = graders;
         this.banks = banks;
         this.rules = rules;
         this.audit = audit;
@@ -48,6 +57,9 @@ public class CmsExamBandService {
                 throw ApiException.validation("rules", "Trùng (kỹ năng, số câu đúng): " + r.skill() + " " + r.minCorrect());
             }
         }
+        if (!input.isEmpty()) {
+            requireSkills(bankId);
+        }
         var before = views(bankId);
         rules.deleteByBank(bankId);
         rules.saveAll(input.stream().map(r -> new ExamBandRule(bankId, r.skill(), r.minCorrect(), r.band().setScale(1, java.math.RoundingMode.HALF_UP))).toList());
@@ -55,6 +67,22 @@ public class CmsExamBandService {
         var after = views(bankId);
         audit.record("UPDATE", "EXAM_BAND_RULES", bankId, before, after);
         return after;
+    }
+
+    /** D-164: bộ thi khóa có bảng band thì mọi câu tự chấm còn hiệu lực phải có skill, nếu không xuất bản bị từ chối. */
+    public void requireSkillsIfBanded(QuestionBank bank) {
+        if (QuestionBank.EXAM.equals(bank.getMode()) && !bank.isPlacement() && !rules.findByBankIdOrderBySkillAscMinCorrectAsc(bank.getId()).isEmpty()) {
+            requireSkills(bank.getId());
+        }
+    }
+
+    private void requireSkills(long bankId) {
+        List<Long> missing = questions.findActiveByBankId(bankId).stream()
+                .filter(q -> q.getSkill() == null && graders.isAutoGraded(q.getType())).map(Question::getId).toList();
+        if (!missing.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "validation_failed", "Dữ liệu không hợp lệ",
+                    Map.of("skill", "Còn câu tự chấm chưa có kỹ năng, cần chọn kỹ năng trước khi dùng bảng band", "questionIds", missing), null);
+        }
     }
 
     private List<RuleView> views(long bankId) {

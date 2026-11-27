@@ -17,13 +17,14 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * D-145, D-147: điểm câu Viết/Nói của một lượt làm bài. Viết: credit = scorePercent / 100. Nói: credit = band tổng / bandMax.
+ * D-145, D-147: điểm câu Viết/Nói (và lỗi chấm câu viết lại) của một lượt làm bài. Viết: credit = scorePercent / 100. Nói: credit = band tổng / bandMax.
  * Câu nhiều phiên thì chỉ lấy phiên mới nhất (id lớn nhất); phiên cũ không bao giờ được tính.
  */
 @Service
 public class AttemptAiScores {
 
-    public static final String REASON_AI_FAILED = "AI chấm lỗi";
+    public static final String REASON_AI_FAILED = "Cam chưa chấm được câu này";
+    public static final String REASON_QUOTA = "hết lượt chấm, câu tính 0 điểm";
     public static final String REASON_UNCLEAR = "bản ghi âm không rõ";
     private static final BigDecimal ZERO = BigDecimal.ZERO.setScale(4);
 
@@ -96,6 +97,11 @@ public class AttemptAiScores {
                     .ifPresent(s -> sink.applyFailure(s.getAttemptId(), s.getQuestionId(), REASON_AI_FAILED, job.isCharged()));
             case SPEAKING_GRADE -> speaking.findByJobId(job.getId()).filter(s -> s.getAttemptId() != null).filter(this::latestSpeaking)
                     .ifPresent(s -> sink.applyFailure(s.getAttemptId(), s.getQuestionId(), REASON_AI_FAILED, job.isCharged()));
+            case REWRITE_GRADE -> {
+                if (job.getAttemptId() != null && job.getRegradeItemId() == null) { // job chấm lại bài cũ có đường riêng
+                    sink.applyRewriteFailure(job.getAttemptId(), REASON_AI_FAILED, job.isCharged());
+                }
+            }
             default -> { }
         }
     }

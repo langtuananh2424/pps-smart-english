@@ -145,7 +145,7 @@ public class AiQuotaService {
 
     /** 402 kèm các gói AI_ADDON mở được (system-design 6.1). */
     public ApiException exhausted() {
-        return new ApiException(HttpStatus.PAYMENT_REQUIRED, "quota_exhausted", "Bạn đã hết lượt chấm AI",
+        return new ApiException(HttpStatus.PAYMENT_REQUIRED, "quota_exhausted", "Bạn đã dùng hết lượt chấm bài kỳ này. Mua thêm lượt để Cam chấm tiếp nhé.",
                 Map.of("products", addons.addons()), null);
     }
 

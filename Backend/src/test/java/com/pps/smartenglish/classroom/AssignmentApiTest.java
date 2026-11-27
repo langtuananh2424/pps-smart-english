@@ -243,6 +243,47 @@ class AssignmentApiTest extends ApiTestBase {
         call(HttpMethod.POST, base(f), otherTeacher.accessToken(), body(f.bankA(), inHours(10), null)).andExpect(status().isNotFound());
     }
 
+    /** D-166: điểm giáo viên sửa thay điểm lượt (Đạt/Chưa tính lại), điểm máy chấm giữ ở machine_score. */
+    @Test
+    void teacherScoreReplacesAttemptScoreAndKeepsMachineScore() throws Exception {
+        var f = fixture();
+        var s = student(f);
+        jdbc.update("update question_banks set pass_pct = 50 where id = ?", f.bankA());
+        long asg = create(f, f.bankA(), inHours(48), null);
+        long attempt = start(f, asg, s);
+        submitBlank(attempt, s);
+        call(HttpMethod.GET, "/api/attempts/" + attempt, s.accessToken(), null).andExpect(jsonPath("$.passed").value(false));
+
+        String url = base(f) + "/" + asg + "/attempts/" + attempt + "/grade";
+        call(HttpMethod.PUT, url, f.teacher().accessToken(), Map.of("score", 1)).andExpect(status().isCreated());
+        call(HttpMethod.GET, "/api/attempts/" + attempt, s.accessToken(), null)
+                .andExpect(jsonPath("$.score").value(1.0)).andExpect(jsonPath("$.passed").value(true));
+        call(HttpMethod.PUT, url, f.teacher().accessToken(), Map.of("score", 0)).andExpect(status().isCreated());
+        call(HttpMethod.GET, "/api/attempts/" + attempt, s.accessToken(), null).andExpect(jsonPath("$.passed").value(false));
+        assertEquals(0, jdbc.queryForObject("select machine_score from student_exercise_attempts where id = ?", java.math.BigDecimal.class, attempt)
+                .compareTo(java.math.BigDecimal.ZERO)); // điểm máy chấm ban đầu (0) giữ nguyên qua hai lần sửa
+    }
+
+    /** D-165: lượt của bài giao bài thi khóa không tính vào số lần thi tự vào. */
+    @Test
+    void assignedExamAttemptDoesNotUseUpCourseExamAttempts() throws Exception {
+        var f = fixture();
+        var s = student(f);
+        long topic = jdbc.queryForObject("select topic_id from question_banks where id = ?", Long.class, f.bankA());
+        long exam = insert("question_banks", Map.of("topic_id", topic, "title", "Thi cuối khóa", "is_trial", false, "status", "PUBLISHED", "mode", "EXAM"));
+        insert("questions", Map.of("bank_id", exam, "type", "CONNECTIVE_MCQ", "prompt", "Câu thi"));
+        jdbc.update("update courses set exam_bank_id = ?, exam_unlock_percent = 0, exam_retakes = 0 where id = ?", exam, f.course());
+        long asg = create(f, exam, inHours(48), null);
+        submitBlank(start(f, asg, s), s);
+
+        String self = call(HttpMethod.POST, "/api/banks/" + exam + "/attempts", s.accessToken(), Map.of()).andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        assertEquals(1, count("select count(*) from student_exercise_attempts where user_id = ? and bank_id = ? and assignment_id is null", s.id(), exam));
+        call(HttpMethod.GET, "/api/courses/" + f.course() + "/exam", s.accessToken(), null)
+                .andExpect(jsonPath("$.attemptsUsed").value(1)).andExpect(jsonPath("$.attemptsAllowed").value(1));
+        assertEquals(true, json.readTree(self).has("id"));
+    }
+
     @Test
     void assignedRewriteDoesNotChargeAiQuota() throws Exception {
         var f = fixture();

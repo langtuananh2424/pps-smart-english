@@ -107,7 +107,7 @@ class AssignmentAttemptAiTest extends AiTestSupport {
         assertEquals(1, runner.runDueNow());
         assertEquals(1, runner.runDueNow());
         assertEquals(0, balance(s));
-        getJson("/api/attempts/" + attempt, s).andExpect(jsonPath("$.results[0].aiFailure").value("AI chấm lỗi"))
+        getJson("/api/attempts/" + attempt, s).andExpect(jsonPath("$.results[0].aiFailure").value("Cam chưa chấm được câu này"))
                 .andExpect(jsonPath("$.results[0].aiRefunded").value(false));
     }
 

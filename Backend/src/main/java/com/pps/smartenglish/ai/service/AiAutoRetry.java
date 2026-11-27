@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class AiAutoRetry {
 
-    private static final Set<AiJobKind> KINDS = Set.of(AiJobKind.WRITING_GRADE, AiJobKind.SPEAKING_GRADE);
+    private static final Set<AiJobKind> KINDS = Set.of(AiJobKind.WRITING_GRADE, AiJobKind.SPEAKING_GRADE, AiJobKind.REWRITE_GRADE);
 
     private final AttemptLinks attempts;
 

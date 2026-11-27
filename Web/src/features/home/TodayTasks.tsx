@@ -25,7 +25,7 @@ function Chip({ task, first }: { task: TodayTask; first: boolean }) {
     return (
       <span className={`${chipCls} inline-flex items-center gap-1.5 bg-ai-bg text-ai-edge`}>
         <Icon src={aiBadge} size={12} />
-        AI
+        Cam
       </span>
     )
   if (task.kind === 'VIDEO' && task.remainingSec && task.remainingSec > 0)

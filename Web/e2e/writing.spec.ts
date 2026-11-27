@@ -105,7 +105,7 @@ test('hết lượt chấm AI hiện thẻ kèm tên gói', async ({ page }) => 
   })
   await page.goto('/viet/8')
   await page.getByRole('button', { name: 'Bắt đầu viết' }).click()
-  await expect(page.getByRole('heading', { name: 'Bạn đã hết lượt chấm AI' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bạn đã dùng hết lượt chấm bài kỳ này' })).toBeVisible()
   await expect(page.getByText(/Nạp 20 lượt/)).toBeVisible()
   await shot(page, '6-het-luot')
 })

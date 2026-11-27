@@ -160,7 +160,7 @@ describe('ResultView', () => {
     expect(screen.queryByText('Chưa chấm')).not.toBeInTheDocument()
   })
   test('kết quả thường: breakdown về sau refetch thì hiện phân tích', async () => {
-    const m = { label: '', answered: 1, correct: 1, credit: 1, accuracy: 1, ungraded: 0, aiGraded: 0, aiAverageScore: null }
+    const m = { label: '', answered: 1, correct: 1, credit: 1, accuracy: 80, ungraded: 0, aiGraded: 0, aiAverageScore: null }
     mockApi({
       '/api/grammar-elements': () => json(200, [{ code: 'PASSIVE', name: 'Passive voice', colorHex: null }]),
       '/api/attempts/9': () =>
@@ -173,6 +173,7 @@ describe('ResultView', () => {
     expect(screen.queryByText('Phân tích kết quả')).not.toBeInTheDocument()
     expect(await screen.findByText('Phân tích kết quả')).toBeInTheDocument()
     expect(screen.getByText('Nghe')).toBeInTheDocument()
+    expect(screen.getByText('80%')).toBeInTheDocument() // máy chủ trả % nguyên, không nhân 100
     expect(screen.getByText('Passive voice')).toBeInTheDocument()
     expect(screen.getByText(/Sai 3 lần tích lũy/)).toBeInTheDocument()
     expect(screen.getByText(/Câu 1 · Câu một/)).toBeInTheDocument()

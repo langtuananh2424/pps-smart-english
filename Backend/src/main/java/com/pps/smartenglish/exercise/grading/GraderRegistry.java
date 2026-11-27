@@ -7,6 +7,8 @@ import java.math.BigDecimal;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class GraderRegistry {
+
+    private static final Logger log = LoggerFactory.getLogger(GraderRegistry.class);
 
     private final Map<QuestionType, QuestionGrader> graders = new EnumMap<>(QuestionType.class);
 
@@ -36,6 +40,7 @@ public class GraderRegistry {
         try {
             return grader.credit(input, answer == null ? MissingNode.getInstance() : answer);
         } catch (RuntimeException e) {
+            log.warn("Chấm câu {} lỗi, tính 0: {}", type, e.toString()); // không log câu trả lời của học viên
             return Credit.ZERO;
         }
     }

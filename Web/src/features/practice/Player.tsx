@@ -167,7 +167,7 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
             <QuestionStem question={question} className="text-lg font-black leading-6 text-ink md:text-2xl md:leading-[30px]" />
           )}
           {!aiQ && !inline && <Component key={question.id} layout={layout} question={question} value={answers[question.id]} onChange={onChange} disabled={paused || busy || locked} />}
-          {checkable && <CheckBar state={checkState} canCheck={!paused && !busy && isAnswered(question.type, answers[question.id])} pending={retry.pending} onCheck={() => void runCheck()} />}
+          {checkable && <CheckBar state={checkState} question={question} layout={layout} canCheck={!paused && !busy && isAnswered(question.type, answers[question.id])} pending={retry.pending} onCheck={() => void runCheck()} />}
         </article>
         )}
           </div>

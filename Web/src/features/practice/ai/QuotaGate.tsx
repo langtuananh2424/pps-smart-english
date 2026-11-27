@@ -5,7 +5,7 @@ import { useQuota } from '../../home/api'
 import { VN_TZ } from '../../home/format'
 import { pillNeutral, pillPrimary } from '../questions/ui'
 
-// Chưa có màn Ví lượt AI riêng (docs/ba/figma-missing-screens A5): tạm mở Đơn hàng. Đổi ở đây khi màn ví có route.
+// Chưa có màn Ví lượt chấm riêng (docs/ba/figma-missing-screens A5): tạm mở Đơn hàng. Đổi ở đây khi màn ví có route.
 export const WALLET_PATH = '/don-hang'
 
 // Hết lượt: máy chủ trả 402, hoặc /me/quota cho thấy pool và mọi ví khóa đều 0. Lấy lại số liệu (đổi tab về) thì bỏ cờ 402 cũ.
@@ -25,11 +25,12 @@ const day = (iso: string) => new Date(iso).toLocaleDateString('vi-VN', { weekday
 // Thẻ hết lượt (Figma 606-17745): giữ nguyên bài đã làm bên dưới; "Mua thêm lượt" mở tab mới để không mất chỗ đang làm.
 export function QuotaNotice({ gate, onSkip }: { gate: QuotaGate; onSkip: () => void }) {
   return (
-    <section role="alert" aria-label="Hết lượt AI" className="flex flex-col gap-3 rounded-lg border-[1.5px] border-line bg-surface p-4 md:p-6">
+    <section role="alert" aria-label="Hết lượt chấm" className="flex flex-col gap-3 rounded-lg border-[1.5px] border-line bg-surface p-4 md:p-6">
       <h3 className="flex items-center gap-2 text-lg font-black text-ink">
         <span aria-hidden="true" className="grid size-5 place-items-center rounded-full border-[1.5px] border-reward-fg text-xs font-black text-reward-fg">i</span>
-        Bạn đã hết lượt chấm AI của khóa này
+        Bạn đã dùng hết lượt chấm bài kỳ này
       </h3>
+      <p className="text-sm font-semibold text-ink-secondary">Mua thêm lượt để Cam chấm tiếp nhé.</p>
       <dl className="grid grid-cols-2 gap-3 rounded-md bg-muted px-3 py-2.5 text-sm">
         <div>
           <dt className="font-semibold text-ink-secondary">Lượt còn lại</dt>

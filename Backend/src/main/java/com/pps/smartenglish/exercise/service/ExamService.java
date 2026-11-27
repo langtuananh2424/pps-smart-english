@@ -84,7 +84,7 @@ public class ExamService {
             throw new ApiException(HttpStatus.CONFLICT, "exam_in_progress", "Bạn đang có một lượt thi chưa nộp",
                     Map.of("attemptId", open.get().getId()), null);
         }
-        long used = attempts.countByUserIdAndBankId(userId, bankId);
+        long used = attempts.countByUserIdAndBankIdAndAssignmentIdIsNull(userId, bankId);
         int allowed = 1 + target.retakes();
         if (used >= allowed) {
             throw new ApiException(HttpStatus.CONFLICT, "exam_attempts_exhausted", "Đã hết số lần thi",
@@ -142,7 +142,7 @@ public class ExamService {
         if (bankId == null) {
             return new ExamStatus(null, percent, required, false, NOT_CONFIGURED, 0, allowed, null, null);
         }
-        long used = attempts.countByUserIdAndBankId(userId, bankId);
+        long used = attempts.countByUserIdAndBankIdAndAssignmentIdIsNull(userId, bankId);
         Long open = openAttemptId(userId, bankId);
         String reason = !enrolled(userId, courseId) ? ENROLLMENT_REQUIRED
                 : percent < required ? PROGRESS
@@ -160,7 +160,7 @@ public class ExamService {
         List<CourseTest> out = new ArrayList<>();
         for (Topic t : chapterTopics) {
             long bankId = t.getChapterTestBankId();
-            long used = attempts.countByUserIdAndBankId(userId, bankId);
+            long used = attempts.countByUserIdAndBankIdAndAssignmentIdIsNull(userId, bankId);
             int allowed = 1 + t.getChapterTestRetakes();
             Long open = openAttemptId(userId, bankId);
             String reason = !enrolled ? ENROLLMENT_REQUIRED

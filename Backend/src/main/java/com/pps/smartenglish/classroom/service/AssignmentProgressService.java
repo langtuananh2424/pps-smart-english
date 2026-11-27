@@ -47,12 +47,15 @@ public class AssignmentProgressService {
     private final AuditRecorder audit;
     private final com.pps.smartenglish.exercise.listening.ForcedAssignmentProgress forced;
     private final com.pps.smartenglish.ai.service.AttemptResultGate gate;
+    private final com.pps.smartenglish.exercise.repository.StudentAttemptRepository attempts;
 
     AssignmentProgressService(AssignmentService assignmentService, AssignmentRepository assignments, GradeOverrideRepository overrides,
                               AiAssignmentSubmissions aiSubmissions, ClassAccess access, ClassService classes, com.pps.smartenglish.classroom.repository.ClassRepository classRepo,
                               NotificationService notifications, AuditRecorder audit,
                               com.pps.smartenglish.exercise.listening.ForcedAssignmentProgress forced,
-                              com.pps.smartenglish.ai.service.AttemptResultGate gate) {
+                              com.pps.smartenglish.ai.service.AttemptResultGate gate,
+                              com.pps.smartenglish.exercise.repository.StudentAttemptRepository attempts) {
+        this.attempts = attempts;
         this.gate = gate;
         this.forced = forced;
         this.assignmentService = assignmentService;
@@ -168,6 +171,9 @@ public class AssignmentProgressService {
             throw ApiException.validation("score", "Điểm vượt điểm tối đa của bài");
         }
         var row = overrides.saveAndFlush(GradeOverride.of(a.getQuestionType(), attemptId, req.score(), comment, callerId, classes.now()));
+        if (req.score() != null && !a.isAiQuestion()) { // D-166: điểm sửa thành điểm của lượt, Đạt/Chưa tính lại lúc đọc
+            attempts.applyTeacherScore(attemptId, req.score());
+        }
         notifications.assignmentGraded(sub.userId(), classId, assignmentId, row.getId());
         var view = view(row);
         audit.record("ASSIGNMENT_GRADE", "CLASS", classId, null, view);

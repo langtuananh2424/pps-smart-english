@@ -189,7 +189,7 @@ describe('Nói: gửi trùng, đổi câu giữa chừng, nhả tài nguyên', (
     await go(3)
     await pick()
     await userEvent.click(await screen.findByRole('button', { name: 'Gửi chấm' }))
-    await screen.findByRole('alert', { name: 'Hết lượt AI' })
+    await screen.findByRole('alert', { name: 'Hết lượt chấm' })
     expect(screen.getByText('ban-ghi.m4a')).toBeInTheDocument()
     expect(URL.revokeObjectURL).not.toHaveBeenCalled()
   })

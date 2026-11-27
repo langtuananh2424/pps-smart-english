@@ -37,7 +37,7 @@ export function ResultList({ bank, results, outcomes, ready, onReview }: Props) 
           const o = outcomes.get(q.id)
           const ai = isAiType(q.type)
           const v = ai ? aiValue(o, r, ready) : { text: r?.isCorrect === true ? 'Đúng' : r?.isCorrect === false ? 'Sai' : 'Chưa làm', muted: false }
-          const failure = ai && r?.aiFailure ? `${cap(r.aiFailure)}.${r.aiRefunded ? ' Đã hoàn 1 lượt AI.' : ''}` : null
+          const failure = ai && r?.aiFailure ? `${cap(r.aiFailure)}.${r.aiRefunded ? ' Đã hoàn 1 lượt chấm.' : ''}` : null
           return (
             <li key={q.id} className="flex items-center justify-between gap-3 border-b border-line py-3 last:border-b-0">
               <div className="min-w-0">

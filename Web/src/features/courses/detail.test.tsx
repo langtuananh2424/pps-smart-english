@@ -94,7 +94,7 @@ test('khóa có lớp, chưa mua: Cách học, lộ trình, dòng giá/lượt A
   expect(screen.getByText('Topic đầu tiên')).toBeInTheDocument()
   expect(screen.getByText('Các Topic còn lại')).toBeInTheDocument()
   expect(screen.getByText('Theo tiến độ khóa')).toBeInTheDocument()
-  expect(screen.getByText('Giá và lượt AI tuần theo gói đã chọn.')).toBeInTheDocument()
+  expect(screen.getByText('Giá và lượt chấm tuần theo gói đã chọn.')).toBeInTheDocument()
   await userEvent.click(screen.getByRole('button', { name: 'Học thử' }))
   await waitFor(() => expect(here(r)).toBe('/bai-giang/99'))
 })

@@ -32,19 +32,19 @@ describe('kết quả khi API ẩn điểm tạm', () => {
     show(r, r)
     expect(screen.queryByLabelText('Điểm')?.textContent).not.toMatch(/\/1/)
     expect(screen.queryByText(/Chưa chấm/)).not.toBeInTheDocument()
-    expect(screen.getByRole('alert')).toHaveTextContent('hết lượt chấm AI')
+    expect(screen.getByRole('alert')).toHaveTextContent('hết lượt chấm bài kỳ này')
   })
 
   test('câu chấm lỗi hiện lý do, đã hoàn lượt và tính 0', async () => {
-    const r: AttemptResult = { id: 9, bankId: 7, score: 0, maxScore: 1, pendingJobs: [], passed: false, passPct: 70, results: [{ questionId: 2, isCorrect: null, aiFailure: 'AI chấm lỗi', aiRefunded: true }] }
+    const r: AttemptResult = { id: 9, bankId: 7, score: 0, maxScore: 1, pendingJobs: [], passed: false, passPct: 70, results: [{ questionId: 2, isCorrect: null, aiFailure: 'Cam chưa chấm được câu này', aiRefunded: true }] }
     show(r, r)
-    expect(await screen.findByText('AI chấm lỗi. Đã hoàn 1 lượt AI.')).toBeInTheDocument()
+    expect(await screen.findByText('Cam chưa chấm được câu này. Đã hoàn 1 lượt chấm.')).toBeInTheDocument()
   })
 
   test('bài giao không trừ lượt nên không ghi đã hoàn lượt AI', async () => {
-    const r: AttemptResult = { id: 9, bankId: 7, score: 0, maxScore: 1, pendingJobs: [], passed: false, results: [{ questionId: 2, isCorrect: null, aiFailure: 'AI chấm lỗi', aiRefunded: false }] }
+    const r: AttemptResult = { id: 9, bankId: 7, score: 0, maxScore: 1, pendingJobs: [], passed: false, results: [{ questionId: 2, isCorrect: null, aiFailure: 'Cam chưa chấm được câu này', aiRefunded: false }] }
     show(r, r)
-    expect(await screen.findByText('AI chấm lỗi.')).toBeInTheDocument()
+    expect(await screen.findByText('Cam chưa chấm được câu này.')).toBeInTheDocument()
   })
 
   // Job cuối của lượt xong: màn kết quả tự hỏi lại GET lượt (không dựa vào sự kiện từng job) và hiện điểm.

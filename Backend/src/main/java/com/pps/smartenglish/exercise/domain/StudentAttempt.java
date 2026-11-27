@@ -45,6 +45,10 @@ public class StudentAttempt {
     @Column(name = "max_score")
     private Integer maxScore;
 
+    /** D-166: điểm máy chấm trước khi giáo viên sửa điểm lượt; null khi chưa có sửa. */
+    @Column(name = "machine_score")
+    private BigDecimal machineScore;
+
     /** Null: không giới hạn thời gian (copy từ bank lúc bắt đầu). */
     @Column(name = "time_limit_sec", updatable = false)
     private Integer timeLimitSec;
@@ -126,6 +130,7 @@ public class StudentAttempt {
     public Instant getStartedAt() { return startedAt; }
     public Instant getSubmittedAt() { return submittedAt; }
     public BigDecimal getScore() { return score; }
+    public BigDecimal getMachineScore() { return machineScore; }
     public Integer getMaxScore() { return maxScore; }
     public Integer getTimeLimitSec() { return timeLimitSec; }
     public JsonNode getDraftAnswers() { return draftAnswers; }

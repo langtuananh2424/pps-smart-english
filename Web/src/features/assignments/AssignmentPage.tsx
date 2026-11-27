@@ -27,8 +27,8 @@ function StartCard({ a }: { a: Assignment }) {
       {a.myStatus === 'OVERDUE' && <p className="font-semibold text-ink-secondary">Bạn vẫn có thể nộp. Bài sẽ được đánh dấu Nộp trễ.</p>}
       {a.questionType && (
         <div className="rounded-md bg-subtle p-3 text-sm font-semibold text-ink-secondary">
-          <strong className="block font-extrabold text-brand-strong">Lượt AI của bài được giao</strong>
-          Bài này không trừ lượt AI tuần của bạn.
+          <strong className="block font-extrabold text-brand-strong">Lượt chấm của bài được giao</strong>
+          Bài này không trừ lượt chấm tuần của bạn.
         </div>
       )}
       {error && <p role="alert" className="text-sm font-bold text-danger">{error}</p>}
