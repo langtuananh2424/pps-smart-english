@@ -72,6 +72,19 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
             + "or exists (select 1 from AssignmentTarget t where t.assignmentId = a.id and t.userId = :userId))")
     boolean isBankAssigned(@Param("bankId") Long bankId, @Param("userId") Long userId);
 
+    /** D-155, D-162: như isBankAssigned nhưng chỉ bài giao có chế độ hiệu lực Thi (của bài, hoặc của bộ khi bài không đặt) mà học viên chưa nộp. */
+    @Query("select count(a) > 0 from Assignment a where a.bankId = :bankId and a.questionId is null and a.status = 'ACTIVE' "
+            + "and (a.mode = 'EXAM' or (a.mode is null and exists (select 1 from QuestionBank b where b.id = a.bankId and b.mode = 'EXAM'))) "
+            + "and not exists (select 1 from StudentAttempt s where s.assignmentId = a.id and s.userId = :userId and s.submittedAt is not null) "
+            + "and a.classId in (select m.classId from ClassMember m where m.userId = :userId and m.status = 'ACTIVE') "
+            + "and (not exists (select 1 from AssignmentTarget t where t.assignmentId = a.id) "
+            + "or exists (select 1 from AssignmentTarget t where t.assignmentId = a.id and t.userId = :userId))")
+    boolean isExamAssigned(@Param("bankId") Long bankId, @Param("userId") Long userId);
+
+    /** D-155: đã có học viên bắt đầu lượt của bài giao này (khóa đổi chế độ). */
+    @Query("select count(s) > 0 from StudentAttempt s where s.assignmentId = :id")
+    boolean hasAttempts(@Param("id") Long id);
+
     /** Như isBankAssigned nhưng mọi trạng thái: chỉ để xem lại bộ đã giao (D-153). */
     @Query("select count(a) > 0 from Assignment a where a.bankId = :bankId and a.questionId is null "
             + "and a.classId in (select m.classId from ClassMember m where m.userId = :userId and m.status = 'ACTIVE') "
@@ -86,8 +99,8 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     @Query("update Assignment a set a.remindedAt = :now where a.id = :id and a.remindedAt is null and a.status = 'ACTIVE'")
     int claimReminder(@Param("id") Long id, @Param("now") Instant now);
 
-    /** [id, tên bộ câu hỏi]. */
-    @Query(nativeQuery = true, value = "SELECT b.id, b.title FROM question_banks b WHERE b.id IN (:ids)")
+    /** [id, tên bộ câu hỏi, chế độ của bộ]. */
+    @Query(nativeQuery = true, value = "SELECT b.id, b.title, b.mode FROM question_banks b WHERE b.id IN (:ids)")
     List<Object[]> bankTitles(@Param("ids") Collection<Long> ids);
 
     /** Người nhận của bài: danh sách riêng nếu có, không thì học viên đang học lớp. */

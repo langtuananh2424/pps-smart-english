@@ -2,7 +2,7 @@ import type { Answer, QuestionProps } from '../types'
 import { field, fieldLabel } from './ui'
 
 const textOf = (v: Answer | undefined) => String(v?.text ?? '')
-const wordCount = (s: string) => s.trim().split(/\s+/).filter(Boolean).length
+export const wordCount = (s: string) => s.trim().split(/\s+/).filter(Boolean).length
 
 export const fillTextAnswered = (v: Answer | undefined) => textOf(v).trim() !== ''
 

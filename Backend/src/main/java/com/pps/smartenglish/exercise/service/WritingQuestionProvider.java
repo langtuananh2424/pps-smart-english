@@ -1,5 +1,6 @@
 package com.pps.smartenglish.exercise.service;
 
+import com.pps.smartenglish.ai.config.VideoReflexProperties;
 import com.pps.smartenglish.ai.domain.AiTask;
 import com.pps.smartenglish.ai.service.WritingQuestionSource;
 import com.pps.smartenglish.exercise.domain.QuestionType;
@@ -17,8 +18,10 @@ class WritingQuestionProvider implements WritingQuestionSource {
     private final QuestionRepository questions;
     private final QuestionBankRepository banks;
     private final BankGate gate;
+    private final VideoReflexProperties reflex;
 
-    WritingQuestionProvider(QuestionRepository questions, QuestionBankRepository banks, BankGate gate) {
+    WritingQuestionProvider(QuestionRepository questions, QuestionBankRepository banks, BankGate gate, VideoReflexProperties reflex) {
+        this.reflex = reflex;
         this.questions = questions;
         this.banks = banks;
         this.gate = gate;
@@ -29,9 +32,7 @@ class WritingQuestionProvider implements WritingQuestionSource {
     public WritingQuestion find(long questionId, long userId, boolean inAssignment, boolean inAttempt) {
         var q = questions.findById(questionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "question_not_found", "Không tìm thấy câu hỏi"));
-        if (q.getType() != QuestionType.WRITING) {
-            throw ApiException.validation("questionId", "Không phải câu hỏi viết");
-        }
+        requireWritingLike(q);
         gate.requireFor(q.getBankId(), userId, inAssignment, inAttempt);
         return toQuestion(q);
     }
@@ -56,20 +57,28 @@ class WritingQuestionProvider implements WritingQuestionSource {
     public WritingQuestion findForStaff(long questionId) {
         var q = questions.findById(questionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "question_not_found", "Không tìm thấy câu hỏi"));
-        if (q.getType() != QuestionType.WRITING) {
+        requireWritingLike(q);
+        return toQuestion(q);
+    }
+
+    /** WRITING, hoặc VIDEO_SHORT (bước Viết trước bước Nói, D-158). */
+    private static void requireWritingLike(com.pps.smartenglish.exercise.domain.Question q) {
+        if (q.getType() != QuestionType.WRITING && q.getType() != QuestionType.VIDEO_SHORT) {
             throw ApiException.validation("questionId", "Không phải câu hỏi viết");
         }
-        return toQuestion(q);
     }
 
     private WritingQuestion toQuestion(com.pps.smartenglish.exercise.domain.Question q) {
         var payload = q.getPayload();
-        String task = payload != null && payload.path("task").isTextual() && !payload.path("task").asText().isBlank()
-                ? payload.path("task").asText() : q.getPrompt();
+        boolean video = q.getType() == QuestionType.VIDEO_SHORT;
+        String taskField = video ? "prompt" : "task"; // câu video: đề viết chính là câu hỏi ở mốc
+        String task = payload != null && payload.path(taskField).isTextual() && !payload.path(taskField).asText().isBlank()
+                ? payload.path(taskField).asText() : q.getPrompt();
         Integer required = payload != null && payload.path("requiredWords").isIntegralNumber()
                 ? payload.path("requiredWords").asInt() : null;
         var aiTask = payload != null && "TASK1".equals(payload.path("ieltsTask").asText()) ? AiTask.WRITING_TASK1 : AiTask.WRITING_TASK2;
         return new WritingQuestion(q.getId(), q.getPrompt(), task, required,
-                banks.findCourseTitle(q.getBankId()).orElse(""), payload, banks.findCourseId(q.getBankId()).orElse(null), aiTask);
+                banks.findCourseTitle(q.getBankId()).orElse(""), payload, banks.findCourseId(q.getBankId()).orElse(null), aiTask,
+                video ? reflex.maxWriteSubmits() : 0);
     }
 }

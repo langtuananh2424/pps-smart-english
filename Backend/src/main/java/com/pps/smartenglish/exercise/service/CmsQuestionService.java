@@ -22,6 +22,7 @@ import com.pps.smartenglish.exercise.repository.QuestionTagRepository;
 import com.pps.smartenglish.exercise.repository.StudentAnswerRepository;
 import com.pps.smartenglish.exercise.validation.QuestionDraft;
 import com.pps.smartenglish.exercise.validation.QuestionDraft.ChoiceDraft;
+import com.pps.smartenglish.exercise.validation.LetterIds;
 import com.pps.smartenglish.exercise.validation.QuestionValidators;
 import com.pps.smartenglish.shared.audit.AuditRecorder;
 import com.pps.smartenglish.shared.error.ApiException;
@@ -62,11 +63,14 @@ public class CmsQuestionService {
     private final GraderRegistry graders;
     private final QuestionGroupRepository groups;
     private final RichText rich;
+    private final GroupLayoutCheck layoutCheck;
 
     CmsQuestionService(QuestionRepository questions, QuestionBankRepository banks, QuestionChoiceRepository choices,
                        QuestionTagRepository tags, GrammarElementRepository grammar, StudentAnswerRepository answers,
                        QuestionValidators validators, QuestionDetails details, CmsWrites writes, AuditRecorder audit,
-                       GraderRegistry graders, QuestionGroupRepository groups, RichText rich) {
+                       GraderRegistry graders, QuestionGroupRepository groups, RichText rich,
+                       GroupLayoutCheck layoutCheck) {
+        this.layoutCheck = layoutCheck;
         this.groups = groups;
         this.rich = rich;
         this.audit = audit;
@@ -105,6 +109,7 @@ public class CmsQuestionService {
     public Prepared prepare(QuestionBank bank, CreateQuestion req, Map<String, GrammarElement> elements) {
         QuestionType type = parseType(req.type());
         requireSkillRules(bank, type, req.skill());
+        requireIeltsBank(bank, type);
         Set<Long> assets = new LinkedHashSet<>();
         Text prompt = text("promptHtml", "prompt", req.prompt(), req.promptHtml(), QUESTION_TEXT_MAX, assets);
         requireGroupInBank(req.groupId(), bank.getId());
@@ -112,6 +117,8 @@ public class CmsQuestionService {
                 drafts(req.choices(), assets));
         rich.requireReady(assets);
         validators.validate(type, draft, elements.keySet());
+        draft = new QuestionDraft(LetterIds.scramble(type, draft.payload()), draft.answerKey(), draft.choices());
+        layoutCheck.checkQuestion(type, draft.payload(), draft.answerKey(), req.groupId(), null, null);
         return new Prepared(req, type, prompt.plain(), prompt.html(), draft, tagIds(req.grammarElementCodes(), elements));
     }
 
@@ -142,7 +149,12 @@ public class CmsQuestionService {
         Question q = find(id);
         var before = one(q);
         String skill = req.skill() != null ? req.skill() : q.getSkill();
-        requireSkillRules(banks.findById(q.getBankId()).orElseThrow(), req.type() != null ? parseType(req.type()) : q.getType(), skill);
+        var bank = banks.findById(q.getBankId()).orElseThrow();
+        var newType = req.type() != null ? parseType(req.type()) : q.getType();
+        requireSkillRules(bank, newType, skill);
+        if (newType != q.getType()) {
+            requireIeltsBank(bank, newType); // câu IELTS_* đã có trong bộ thường được giữ nguyên
+        }
         q.setSkill(skill);
         Set<Long> assets = new LinkedHashSet<>();
         List<QuestionChoice> oldChoices = choices.findByQuestionIdInOrderByLabelAscIdAsc(List.of(id));
@@ -160,7 +172,7 @@ public class CmsQuestionService {
                 requireUnlocked(id, q, type, newChoices, oldChoices);
                 validators.validate(type, new QuestionDraft(payload, key, newChoices), elements().keySet());
                 q.setType(type);
-                q.setPayload(payload);
+                q.setPayload(LetterIds.scramble(type, payload, q.getPayload()));
                 q.setAnswerKey(key);
                 syncChoices(id, newChoices, oldChoices);
                 if (contentChanged && type != QuestionType.WRITING) {
@@ -196,6 +208,7 @@ public class CmsQuestionService {
         if (req.grammarElementCodes() != null) {
             replaceTags(id, tagIds(req.grammarElementCodes(), elements()));
         }
+        layoutCheck.checkQuestion(q.getType(), q.getPayload(), q.getAnswerKey(), q.getGroupId(), id, q.getSortOrder());
         var after = one(writes.save(questions, q, "conflict", "Không lưu được câu hỏi"));
         audit.record("UPDATE", "QUESTION", id, before, after);
         return after;
@@ -210,6 +223,13 @@ public class CmsQuestionService {
         tags.deleteByQuestionId(id);
         choices.flush();
         writes.delete(questions, q);
+    }
+
+    /** D-161: kiểu IELTS_* chỉ dùng trong bộ của khóa IELTS. */
+    private void requireIeltsBank(QuestionBank bank, QuestionType type) {
+        if (type.name().startsWith("IELTS_") && !banks.findIelts(bank.getId()).orElse(false)) {
+            throw ApiException.validation("type", "Kiểu câu IELTS chỉ dùng trong bộ của khóa IELTS");
+        }
     }
 
     /** Đề đầu vào: bắt buộc skill và chỉ dạng tự chấm (không WRITING/SPEAKING/REWRITE). Bộ khóa học: không có skill. */

@@ -13,8 +13,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.pps.smartenglish.placement.service.PlacementTimeoutJob;
 import com.pps.smartenglish.support.ApiTestBase;
+import com.pps.smartenglish.support.FakeStorageConfig.FakeStorage;
 import com.pps.smartenglish.support.MutableClockConfig;
 import com.pps.smartenglish.support.MutableClockConfig.MutableClock;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +26,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
+import javax.imageio.ImageIO;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,6 +48,7 @@ class PlacementTest extends ApiTestBase {
 
     @Autowired MutableClock clock;
     @Autowired PlacementTimeoutJob timeoutJob;
+    @Autowired FakeStorage storage;
 
     private Account admin;
 
@@ -245,6 +250,29 @@ class PlacementTest extends ApiTestBase {
     }
 
     // ---- luồng khách ----
+
+    /** D-134/D-135: phản hồi bắt đầu bài mang promptHtml (đã làm sạch) và ảnh của câu. */
+    @Test
+    void startReturnsPromptHtmlAndMedia() throws Exception {
+        long bank = publishedBank();
+        long q = jdbc.queryForObject("select id from questions where bank_id = ? order by sort_order, id limit 1", Long.class, bank);
+        call(patch(CMS + "/questions/" + q), admin, Map.of("promptHtml", "<p>Xem <b>hình</b><script>evil()</script></p>")).andExpect(status().isOk());
+        var png = new ByteArrayOutputStream();
+        ImageIO.write(new BufferedImage(40, 30, BufferedImage.TYPE_INT_RGB), "png", png);
+        var permit = body(call(MockMvcRequestBuilders.post(CMS + "/media/images"), admin, Map.of("contentType", "image/png")).andExpect(status().isCreated()));
+        storage.put(permit.get("fields").get("key").asText(), png.toByteArray());
+        long asset = permit.get("assetId").asLong();
+        call(MockMvcRequestBuilders.post(CMS + "/media/" + asset + "/complete"), admin, null).andExpect(status().isOk());
+        call(put(CMS + "/questions/" + q + "/media"), admin, Map.of("items", List.of(
+                Map.of("assetId", asset, "role", "DIAGRAM", "displaySize", "MD", "altText", "Hình minh họa")))).andExpect(status().isOk());
+
+        startAsGuest(newIp()).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.questions[0].promptHtml").value("<p>Xem <b>hình</b></p>"))
+                .andExpect(jsonPath("$.questions[0].media[0].assetId").value(asset))
+                .andExpect(jsonPath("$.questions[0].media[0].url").value(containsString("http://fake-storage/")))
+                .andExpect(jsonPath("$.questions[0].media[0].displaySize").value("MD"))
+                .andExpect(jsonPath("$.questions[1].promptHtml").doesNotExist());
+    }
 
     @Test
     void guestSubmitsWithoutSeeingBandThenClaimsAfterLogin() throws Exception {

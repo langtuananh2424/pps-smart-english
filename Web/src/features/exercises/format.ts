@@ -16,6 +16,32 @@ export const typeLabel: Record<string, string> = {
   FILL_TEXT: 'Điền từ',
   WORD_BANK: 'Chọn từ trong hộp',
   MATCH_OPTIONS: 'Chọn mục từ đáp án chung',
+  LETTER_ORDER: 'Sắp xếp chữ cái thành từ',
+  DICTATION: 'Chép chính tả',
+  LISTEN_FORM: 'Nghe và điền phiếu',
+  LISTEN_RECORD: 'Nghe và nộp bản ghi',
+  VIDEO_CONNECTIVE: 'Xem video và chọn từ nối',
+  VIDEO_SHORT: 'Video phản xạ · Câu ngắn',
+  VIDEO_CUE: 'Video phản xạ · Cue card',
+  VIDEO_DISCUSS: 'Video phản xạ · Thảo luận',
+  VIDEO_PICTURE: 'Video phản xạ · Tả tranh',
+  IELTS_TFNG: 'True / False / Not Given',
+  IELTS_YNNG: 'Yes / No / Not Given',
+  IELTS_MATCH_INFO: 'Nối thông tin với đoạn',
+  IELTS_MATCH_HEADINGS: 'Nối tiêu đề với đoạn',
+  IELTS_MATCH_FEATURES: 'Nối đặc điểm',
+  IELTS_MATCH_ENDINGS: 'Nối nửa câu',
+  IELTS_MATCHING: 'Nối đáp án',
+  IELTS_SENTENCE: 'Hoàn thành câu',
+  IELTS_SUMMARY: 'Hoàn thành đoạn tóm tắt',
+  IELTS_SUMMARY_BANK: 'Điền tóm tắt từ hộp từ',
+  IELTS_NOTE: 'Hoàn thành ghi chú',
+  IELTS_TABLE: 'Hoàn thành bảng',
+  IELTS_FLOWCHART: 'Hoàn thành sơ đồ khối',
+  IELTS_FORM: 'Hoàn thành phiếu',
+  IELTS_DIAGRAM: 'Gắn nhãn sơ đồ',
+  IELTS_MAP: 'Gắn nhãn bản đồ',
+  IELTS_SHORT: 'Trả lời ngắn',
   WRITING: 'Viết tự luận',
   SPEAKING: 'Luyện nói',
 }
@@ -29,7 +55,9 @@ export const familyOf = (type: string): Family | null =>
   type.startsWith('CONNECTIVE_') ? 'CONNECTIVE' : type.startsWith('GRAMMAR_') ? 'GRAMMAR' : type === 'WRITING' || type === 'SPEAKING' ? type : null
 
 // Viết/Nói do AI chấm: không có độ chính xác đúng/sai.
-export const isAiType = (type: string) => type === 'WRITING' || type === 'SPEAKING'
+// Video phản xạ (D-158): câu nói theo mốc video của nhóm, chấm như Nói gắn lượt.
+export const isReflexType = (type: string) => type === 'VIDEO_SHORT' || type === 'VIDEO_CUE' || type === 'VIDEO_DISCUSS' || type === 'VIDEO_PICTURE'
+export const isAiType = (type: string) => type === 'WRITING' || type === 'SPEAKING' || type === 'LISTEN_RECORD' || isReflexType(type)
 
 export const percent = (n: number | null | undefined) => (n == null ? '—' : `${Math.round(n)}%`)
 

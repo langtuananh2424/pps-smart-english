@@ -2,6 +2,10 @@
 export interface YtPlayer {
   getCurrentTime(): number
   getDuration(): number
+  // Chỉ video làm đề khóa tua (practice/video) dùng ba hàm này; player bài giảng không gọi.
+  seekTo(seconds: number, allowSeekAhead: boolean): void
+  playVideo(): void
+  pauseVideo(): void
   destroy(): void
 }
 export interface YtEvent {

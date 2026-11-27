@@ -125,6 +125,15 @@ class S3ObjectStorage implements ObjectStorage, ApplicationRunner {
     }
 
     @Override
+    public byte[] readRange(String key, long offset, int len) {
+        try (InputStream in = client.getObject(r -> r.bucket(bucket).key(key).range("bytes=" + offset + "-" + (offset + len - 1)))) {
+            return in.readNBytes(len);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Override
     public InputStream open(String key) {
         return client.getObject(r -> r.bucket(bucket).key(key));
     }

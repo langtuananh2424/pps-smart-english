@@ -53,7 +53,9 @@ public class AttemptAiScores {
     public Map<Long, Linked> latestByQuestion(long attemptId) {
         Map<Long, Linked> out = new HashMap<>();
         for (var s : writing.findByAttemptIdOrderByIdAsc(attemptId)) { // id tăng dần: phiên sau ghi đè phiên trước
-            out.put(s.getQuestionId(), writingLinked(s));
+            if (sink.countsWriting(s.getQuestionId())) {
+                out.put(s.getQuestionId(), writingLinked(s));
+            }
         }
         for (var s : speaking.findByAttemptIdOrderByIdAsc(attemptId)) {
             out.put(s.getQuestionId(), speakingLinked(s));
@@ -64,7 +66,7 @@ public class AttemptAiScores {
     /** Chạy trong transaction hoàn tất job chấm viết; bỏ qua nếu phiên không gắn lượt hoặc không còn là phiên mới nhất. */
     @Transactional(propagation = Propagation.MANDATORY)
     public void onWritingGraded(long sessionId, JsonNode output) {
-        writing.findById(sessionId).filter(s -> s.getAttemptId() != null).filter(this::latestWriting)
+        writing.findById(sessionId).filter(s -> s.getAttemptId() != null).filter(s -> sink.countsWriting(s.getQuestionId())).filter(this::latestWriting)
                 .ifPresent(s -> sink.applyCredit(s.getAttemptId(), s.getQuestionId(), percentToCredit(output.path("scorePercent").asInt(0))));
     }
 
@@ -90,7 +92,7 @@ public class AttemptAiScores {
     @Transactional(propagation = Propagation.MANDATORY)
     public void onGradeFailed(AiJob job) {
         switch (job.getKind()) {
-            case WRITING_GRADE -> java.util.Optional.ofNullable(job.getSessionId()).flatMap(writing::findById).filter(s -> s.getAttemptId() != null).filter(this::latestWriting)
+            case WRITING_GRADE -> java.util.Optional.ofNullable(job.getSessionId()).flatMap(writing::findById).filter(s -> s.getAttemptId() != null).filter(s -> sink.countsWriting(s.getQuestionId())).filter(this::latestWriting)
                     .ifPresent(s -> sink.applyFailure(s.getAttemptId(), s.getQuestionId(), REASON_AI_FAILED, job.isCharged()));
             case SPEAKING_GRADE -> speaking.findByJobId(job.getId()).filter(s -> s.getAttemptId() != null).filter(this::latestSpeaking)
                     .ifPresent(s -> sink.applyFailure(s.getAttemptId(), s.getQuestionId(), REASON_AI_FAILED, job.isCharged()));

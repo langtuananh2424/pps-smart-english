@@ -8,7 +8,7 @@ import { REGISTRY } from './forms/registry'
 import { MediaPanel } from './MediaPanel'
 import { Preview } from './Preview'
 import { RichText } from './RichText'
-import { QUESTION_TYPES, SKILLS, type BankView, type Draft, type GrammarElement, type GroupView, type QuestionDetail, type QuestionType } from './types'
+import { IELTS_TYPES, PPS_TYPES, QUESTION_TYPES, SKILLS, type BankView, type Draft, type GrammarElement, type GroupView, type QuestionDetail, type QuestionType } from './types'
 import { uploadImage } from './upload'
 import { detailsOf, errAt } from './util'
 
@@ -30,6 +30,7 @@ export function QuestionForm({ bank, question, groups, elements, nextSortOrder, 
   const savedId = useRef<number | null>(question?.id ?? null)
   const patch = (p: Partial<Draft>) => setDraft((d) => ({ ...d, ...p }))
   const { Editor } = REGISTRY[draft.type]
+  const layout = groups.find((g) => g.id === draft.groupId)?.layout ?? null
 
   const save = useCmsWrite(async () => {
     const bad = draft.media.find((m) => !m.altText.trim())
@@ -78,10 +79,19 @@ export function QuestionForm({ bank, question, groups, elements, nextSortOrder, 
         <Section title={question ? 'Sửa câu hỏi' : 'Câu hỏi mới'}>
           <Labeled label="Dạng câu" htmlFor="q-type">
             <select id="q-type" value={draft.type} onChange={(e) => changeType(e.target.value as QuestionType)} className={smInput}>
-              {QUESTION_TYPES.map(([c, l]) => (
-                <option key={c} value={c}>
-                  {l}
-                </option>
+              {[
+                [null, QUESTION_TYPES],
+                ['Luyện tập PPS', PPS_TYPES],
+                // D-161: nhóm IELTS chỉ ở bộ của khóa IELTS; câu IELTS_* đã có trong bộ thường vẫn hiện để giữ giá trị.
+                ...(bank.ielts || draft.type.startsWith('IELTS_') ? [['IELTS', IELTS_TYPES]] : []),
+              ].map(([name, list]) => (
+                <optgroup key={String(name)} label={name ? String(name) : 'Dạng chung'}>
+                  {(list as readonly (readonly [string, string])[]).map(([c, l]) => (
+                    <option key={c} value={c}>
+                      {l}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
             <Err list={errAt(errors, 'type')} />
@@ -126,7 +136,7 @@ export function QuestionForm({ bank, question, groups, elements, nextSortOrder, 
         </Section>
 
         <Section title="Đáp án">
-          <Editor draft={draft} patch={patch} errors={errors} elements={elements} />
+          <Editor draft={draft} patch={patch} errors={errors} elements={elements} layout={layout} />
           <Err list={errAt(errors, 'payload', 'answerKey')} />
         </Section>
 
@@ -178,7 +188,7 @@ export function QuestionForm({ bank, question, groups, elements, nextSortOrder, 
           )}
         </div>
       </form>
-      <Preview draft={draft} elements={elements} />
+      <Preview draft={draft} elements={elements} layout={layout} />
     </>
   )
 }

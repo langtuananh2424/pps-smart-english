@@ -63,16 +63,15 @@ public class AttemptService {
         this.clock = clock;
     }
 
-    public AttemptStarted start(Long bankId, long userId) {
-        return start(bankId, userId, null);
-    }
-
     @Transactional
-    public AttemptStarted start(Long bankId, long userId, String requestedMode) {
+    public AttemptStarted start(Long bankId, long userId) {
         exam.guardStart(userId, bankId); // trước gate để người chưa mua nhận exam_requires_enrollment thay vì bank_locked
         var bank = gate.require(bankId, userId);
+        if (modes.examAssigned(userId, bankId)) { // D-162
+            throw new ApiException(HttpStatus.CONFLICT, "bank_assigned_as_exam", "Bộ này đang được giao làm bài thi, hãy làm bài được giao trước");
+        }
         requireNoOpenAttempt(userId, bankId);
-        var mode = modes.resolve(banks.findById(bankId).orElseThrow(), requestedMode); // gate vừa tìm thấy bộ
+        var mode = modes.resolve(banks.findById(bankId).orElseThrow(), null); // gate vừa tìm thấy bộ; tự học theo chế độ của bộ
         var a = attempts.save(forced.applySelfStudy(new StudentAttempt(userId, bankId, Instant.now(clock), bank.timeLimitSec()).withMode(mode)));
         return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec(), a.getMode());
     }
@@ -94,7 +93,7 @@ public class AttemptService {
      * (BankGate mở riêng bộ này, FR-ASG-01) và các luật thi lại của bài thi thường. Mỗi bài giao chỉ nộp một lần.
      */
     @Transactional
-    public AttemptStarted startAssigned(Long bankId, long userId, long assignmentId, boolean forcedAssignment) {
+    public AttemptStarted startAssigned(Long bankId, long userId, long assignmentId, boolean forcedAssignment, String assignmentMode) {
         // D-143: bài giao Nghe ép (chốt lúc giao) làm lại không giới hạn; bài giao thường vẫn nộp một lần (FR-ASG-02)
         if (attempts.existsByAssignmentIdAndUserIdAndSubmittedAtIsNotNull(assignmentId, userId) && !forcedAssignment) {
             throw new ApiException(HttpStatus.CONFLICT, "assignment_submitted", "Bạn đã nộp bài được giao này");
@@ -107,7 +106,8 @@ public class AttemptService {
         }
         var bank = gate.require(bankId, userId);
         requireNoOpenAttempt(userId, bankId); // D-147: còn lượt tự học (hoặc bài giao khác) mở trên bộ này thì 409
-        var a = attempts.save(forced.applyAssigned(new StudentAttempt(userId, bankId, Instant.now(clock), bank.timeLimitSec(), assignmentId),
+        var mode = modes.resolve(banks.findById(bankId).orElseThrow(), assignmentMode); // D-155: bài giao có chế độ thì theo bài giao
+        var a = attempts.save(forced.applyAssigned(new StudentAttempt(userId, bankId, Instant.now(clock), bank.timeLimitSec(), assignmentId).withMode(mode),
                 assignmentId, forcedAssignment));
         return new AttemptStarted(a.getId(), a.getBankId(), a.getStartedAt(), a.getTimeLimitSec(), a.getMode());
     }

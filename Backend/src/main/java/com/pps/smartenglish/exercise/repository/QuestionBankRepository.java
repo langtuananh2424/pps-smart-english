@@ -45,6 +45,20 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long
     @Query("select t.skill from QuestionBank b, Topic t where b.id = :id and t.id = b.topicId")
     Optional<com.pps.smartenglish.catalog.domain.TopicSkill> findSkill(@Param("id") Long id);
 
+    /** D-161: bộ thuộc khóa IELTS; rỗng khi bộ không nằm trong khóa (đề đầu vào). */
+    @Query("""
+            select c.ielts from QuestionBank b, Topic t, CourseLevel lv, Course c
+            where b.id = :id and t.id = b.topicId and lv.id = t.levelId and c.id = lv.courseId
+            """)
+    Optional<Boolean> findIelts(@Param("id") Long id);
+
+    /** D-161: [bankId, skill, ielts] cho CMS, một truy vấn cho cả danh sách. */
+    @Query("""
+            select b.id, t.skill, c.ielts from QuestionBank b, Topic t, CourseLevel lv, Course c
+            where b.id in :ids and t.id = b.topicId and lv.id = t.levelId and c.id = lv.courseId
+            """)
+    List<Object[]> findSkillAndIelts(@Param("ids") java.util.Collection<Long> ids);
+
     /** Tên khóa học chứa bộ câu hỏi, đưa vào prompt chấm viết để model chấm theo mục tiêu của khóa. */
     @Query("""
             select c.title from QuestionBank b, Topic t, CourseLevel lv, Course c

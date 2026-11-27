@@ -18,13 +18,13 @@ export const ScoringSelect = ({ id, value, onChange }: { id: string; value?: str
 
 // Trắc nghiệm một đáp án (radio) hoặc nhiều đáp án (checkbox); đáp án nằm ở choices.
 export function ChoiceEditor({ draft, patch, errors }: EditorProps) {
-  const multi = draft.type === 'CHOICE_MULTI'
+  const multi = draft.type === 'CHOICE_MULTI' || draft.payload.multiple === true // multiple: VIDEO_CONNECTIVE (D-159)
   const rows = draft.choices
   const set = (i: number, p: Partial<ChoiceDraft>) =>
     patch({ choices: rows.map((c, j) => (j === i ? { ...c, ...p } : !multi && p.isCorrect ? { ...c, isCorrect: false } : c)) })
   return (
     <div className="flex flex-col gap-3">
-      {multi && <ScoringSelect id="scoring" value={draft.payload.scoring} onChange={(scoring) => patch({ payload: { ...draft.payload, scoring } })} />}
+      {draft.type === 'CHOICE_MULTI' && <ScoringSelect id="scoring" value={draft.payload.scoring} onChange={(scoring) => patch({ payload: { ...draft.payload, scoring } })} />}
       <span className={labelCls}>Lựa chọn · tích vào đáp án đúng</span>
       {rows.map((c, i) => (
         <div key={c.uid} className="flex flex-col gap-2 rounded-sm border border-line-subtle p-3">

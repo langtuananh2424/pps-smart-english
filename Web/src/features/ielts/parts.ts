@@ -1,8 +1,21 @@
 import type { Bank, Question } from '../practice/types'
+import { isAiType } from '../exercises/format'
 import type { Part } from './types'
 
-// D-151: bộ IELTS Reading/Listening mở khung thi; bộ thi khóa (mode EXAM) và bộ khác đi đường cũ.
-export const isIeltsBank = (b: Pick<Bank, 'skill' | 'mode'>) => b.mode === 'PRACTICE' && (b.skill === 'READING' || b.skill === 'LISTENING')
+// D-161: bộ thuộc khóa có cờ "Khóa IELTS" mở khung thi (kỹ năng theo topic); bộ khác dùng Player thường.
+// Điều kiện nhận biết bộ IELTS nằm MỘT chỗ này.
+export const isIeltsBank = (b: Pick<Bank, 'skill'> & { ielts?: boolean }) =>
+  b.ielts === true && (b.skill === 'READING' || b.skill === 'LISTENING' || b.skill === 'WRITING' || b.skill === 'SPEAKING')
+
+// Khung Viết/Nói (FR-EX-05): suy từ loại câu, không đọc lại kỹ năng. null = khung đọc/nghe.
+export const aiStageOf = (b: Pick<Bank, 'questions'>): 'WRITING' | 'SPEAKING' | null => {
+  const ts = b.questions.map((q) => q.type)
+  if (ts.length && ts.every((t) => t === 'WRITING')) return 'WRITING'
+  return ts.length && ts.every((t) => isAiType(t)) ? 'SPEAKING' : null
+}
+
+// Khung Viết/Nói: mỗi câu là một task/câu độc lập, không chia theo nhóm.
+export const flatParts = (bank: Bank): { parts: Part[]; ordered: Question[] } => ({ parts: [{ key: 'all', questions: bank.questions, first: 0 }], ordered: bank.questions })
 
 // Chia câu theo nhóm (đoạn đọc/audio) theo sortOrder; câu không thuộc nhóm nào gom thành một phần cuối.
 export function buildParts(bank: Bank): { parts: Part[]; ordered: Question[] } {

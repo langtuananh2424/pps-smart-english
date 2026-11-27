@@ -26,7 +26,7 @@ public interface UnitProgressRepository extends Repository<Topic, Long> {
     List<Long> orderedTopicIds(@Param("courseId") long courseId);
 
     /**
-     * Topic CHƯA xong của học viên (D-122): còn bài giảng chưa hoàn thành, hoặc còn bộ bài tập (có câu hỏi) chưa nộp lần nào,
+     * Topic CHƯA xong của học viên (D-122): còn bài giảng chưa hoàn thành, hoặc còn bộ bài tập (có câu hỏi) chưa nộp lần nào (bộ video từ nối: chưa đủ lượt đạt, D-159),
      * hoặc chưa nộp kiểm tra chương. Kiểm tra chương chỉ cần nộp, không cần đạt.
      */
     @Query(nativeQuery = true, value = """
@@ -38,8 +38,19 @@ public interface UnitProgressRepository extends Repository<Topic, Long> {
                 OR EXISTS (SELECT 1 FROM question_banks b WHERE b.topic_id = t.id AND b.status = 'PUBLISHED'
                            AND b.mode = 'PRACTICE' AND b.purpose = 'COURSE'
                            AND EXISTS (SELECT 1 FROM questions q WHERE q.bank_id = b.id)
-                           AND NOT EXISTS (SELECT 1 FROM student_exercise_attempts a
-                                           WHERE a.bank_id = b.id AND a.user_id = :userId AND a.submitted_at IS NOT NULL))
+                           AND NOT (
+                    (NOT EXISTS (SELECT 1 FROM questions vq WHERE vq.bank_id = b.id AND vq.type = 'VIDEO_CONNECTIVE' AND vq.archived_at IS NULL)
+                     AND EXISTS (SELECT 1 FROM student_exercise_attempts a
+                                 WHERE a.bank_id = b.id AND a.user_id = :userId AND a.submitted_at IS NOT NULL))
+                    OR (EXISTS (SELECT 1 FROM questions vq WHERE vq.bank_id = b.id AND vq.type = 'VIDEO_CONNECTIVE' AND vq.archived_at IS NULL)
+                        AND (SELECT COUNT(*) FROM student_exercise_attempts a
+                             WHERE a.bank_id = b.id AND a.user_id = :userId AND a.submitted_at IS NOT NULL
+                               AND NOT EXISTS (SELECT 1 FROM questions vq WHERE vq.bank_id = b.id AND vq.type = 'VIDEO_CONNECTIVE'
+                                               AND vq.archived_at IS NULL
+                                               AND NOT EXISTS (SELECT 1 FROM attempt_video_groups v
+                                                               WHERE v.attempt_id = a.id AND v.group_id = vq.group_id AND v.passed)))
+                            >= :#{@videoPassRequirement.required()})
+                ))
                 OR (t.chapter_test_bank_id IS NOT NULL
                     AND NOT EXISTS (SELECT 1 FROM student_exercise_attempts a
                                     WHERE a.bank_id = t.chapter_test_bank_id AND a.user_id = :userId AND a.submitted_at IS NOT NULL)))

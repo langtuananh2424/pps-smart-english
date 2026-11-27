@@ -1,8 +1,13 @@
 import { api, postJson } from '../../lib/api'
 import type { Completed, SpeakingQuestion, SubmissionView, UploadPermit } from './types'
 
-export const fetchQuestion = (id: number, assignmentId?: number) =>
-  api<SpeakingQuestion>(`/speaking/questions/${id}${assignmentId ? `?assignmentId=${assignmentId}` : ''}`)
+// attemptId (D-148): xem đề Nói trong lượt thi của bộ khóa, server kiểm quyền theo lượt.
+export const fetchQuestion = (id: number, assignmentId?: number, attemptId?: number) => {
+  const qs = new URLSearchParams()
+  if (assignmentId) qs.set('assignmentId', String(assignmentId))
+  if (attemptId) qs.set('attemptId', String(attemptId))
+  return api<SpeakingQuestion>(`/speaking/questions/${id}${qs.size ? `?${qs}` : ''}`)
+}
 // assignmentId (D-130): chỉ lượt của bài giao đó, không bao giờ rơi về lượt tự luyện cùng câu.
 export const latestSubmission = async (questionId: number, assignmentId?: number) =>
   (await api<{ data: SubmissionView[] }>(`/me/speaking?questionId=${questionId}&limit=1${assignmentId ? `&assignmentId=${assignmentId}` : ''}`)).data[0] ?? null

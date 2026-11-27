@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { btnPrimary, Section, WriteError } from '../../ui'
 import { send, useCmsWrite } from './api'
 import { Err, Labeled, smBtn, smInput } from './fields'
+import { toLayoutBody } from './layout/layoutModel'
+import { LayoutSection } from './layout/LayoutSection'
 import { RichText } from './RichText'
-import type { GroupView } from './types'
-import { uploadAudio } from './upload'
+import type { GroupView, Obj } from './types'
+import { uploadAudio, uploadVideo } from './upload'
 import { detailsOf, errAt } from './util'
 
 interface Props {
@@ -24,10 +26,19 @@ export function GroupForm({ bankId, group, nextSortOrder, onSaved, onDeleted }: 
   const [audioId, setAudioId] = useState<number | null>(group?.audioAssetId ?? null)
   const [audioErr, setAudioErr] = useState('')
   const [uploading, setUploading] = useState(false)
+  // D-156: video là file mp4 đã tải lên hoặc link YouTube, tối đa một trong hai.
+  const [videoId, setVideoId] = useState<number | null>(group?.videoAssetId ?? null)
+  const [youtube, setYoutube] = useState(group?.videoYoutubeId ?? '')
+  // D-159: video YouTube cần thời lượng (giây) nếu nhóm có câu Video từ nối; video file đọc thời lượng từ mp4 lúc tải lên.
+  const [duration, setDuration] = useState(group?.videoDurationSec != null ? String(group.videoDurationSec) : '')
+  const [videoPct, setVideoPct] = useState<number | null>(null)
+  const [videoErr, setVideoErr] = useState('')
+  // D-154: null = không có bố cục; gửi null khi sửa nghĩa là gỡ.
+  const [layout, setLayout] = useState<Obj | null>(group?.layout ?? null)
 
   const save = useCmsWrite(() => {
     // Sửa: chuỗi rỗng = xóa trường; audioAssetId null = gỡ audio. Tạo: bỏ trường rỗng.
-    const body = { title, instruction, passageHtml: passage, transcriptHtml: transcript, audioAssetId: audioId }
+    const body = { title, instruction, passageHtml: passage, transcriptHtml: transcript, audioAssetId: audioId, videoAssetId: videoId, videoYoutube: youtube.trim(), videoDurationSec: youtube.trim() && duration ? Number(duration) : null, layout: toLayoutBody(layout) }
     return group ? send<GroupView>('PATCH', `/groups/${group.id}`, body) : send<GroupView>('POST', `/banks/${bankId}/groups`, { ...body, sortOrder: nextSortOrder })
   })
   const remove = useCmsWrite(() => send<void>('DELETE', `/groups/${group!.id}`))
@@ -43,6 +54,20 @@ export function GroupForm({ bankId, group, nextSortOrder, onSaved, onDeleted }: 
       setAudioErr(e instanceof Error ? e.message : 'Tải audio thất bại.')
     } finally {
       setUploading(false)
+    }
+  }
+
+  const pickVideo = async (f?: File) => {
+    if (!f) return
+    setVideoErr('')
+    setVideoPct(0)
+    try {
+      setVideoId((await uploadVideo(f, setVideoPct)).id)
+      setYoutube('')
+    } catch (e) {
+      setVideoErr(e instanceof Error ? e.message : 'Tải video thất bại.')
+    } finally {
+      setVideoPct(null)
     }
   }
 
@@ -85,14 +110,51 @@ export function GroupForm({ bankId, group, nextSortOrder, onSaved, onDeleted }: 
           </div>
           <Err list={[...(audioErr ? [audioErr] : []), ...errAt(errors, 'audioAssetId')]} />
         </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-extrabold text-ink">Video của nhóm</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className={`${smBtn} cursor-pointer`}>
+              {videoPct !== null ? `Đang tải ${videoPct}%` : videoId ? 'Đổi video' : 'Tải video MP4 lên'}
+              <input type="file" hidden accept="video/mp4" aria-label="Tệp video" disabled={videoPct !== null} onChange={(e) => { void pickVideo(e.target.files?.[0]); e.target.value = '' }} />
+            </label>
+            {videoId !== null && (
+              <>
+                <span className="font-bold text-ink-secondary">Đã gắn video.</span>
+                <button type="button" className={smBtn} onClick={() => setVideoId(null)}>
+                  Gỡ video
+                </button>
+              </>
+            )}
+          </div>
+          <input
+            aria-label="Link YouTube"
+            placeholder="Hoặc dán link YouTube"
+            value={youtube}
+            onChange={(e) => { setYoutube(e.target.value); if (e.target.value.trim()) setVideoId(null) }}
+            className={smInput}
+          />
+          {youtube.trim() && (
+            <input
+              aria-label="Thời lượng video YouTube (giây)"
+              placeholder="Thời lượng video (giây), bắt buộc với Video từ nối"
+              type="number"
+              min={1}
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              className={smInput}
+            />
+          )}
+          <Err list={[...(videoErr ? [videoErr] : []), ...errAt(errors, 'videoAssetId'), ...errAt(errors, 'videoYoutube'), ...errAt(errors, 'videoDurationSec')]} />
+        </div>
         <RichText label="Script của part (chỉ dùng cho Nghe ép)" value={transcript} onChange={setTranscript} />
         <Err list={errAt(errors, 'transcriptHtml')} />
+        <LayoutSection value={layout} onChange={setLayout} errors={errors} />
       </Section>
       {save.isError && <WriteError error={save.error} />}
       {remove.isError && <WriteError error={remove.error} />}
       {save.isSuccess && !save.isPending && <p role="status" className="font-bold text-success-fg">Đã lưu.</p>}
       <div className="flex flex-wrap gap-2">
-        <button type="submit" className={btnPrimary} disabled={save.isPending || uploading}>
+        <button type="submit" className={btnPrimary} disabled={save.isPending || uploading || videoPct !== null}>
           Lưu nhóm
         </button>
         {group && (

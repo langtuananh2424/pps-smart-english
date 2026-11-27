@@ -7,11 +7,21 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 /** app.media.* (D-134, D-138): mọi con số là cấu hình, chỉnh bằng biến môi trường, không sửa code. */
 @ConfigurationProperties(prefix = "app.media")
 public record MediaProperties(@DefaultValue Image image,
+                              @DefaultValue Video video,
                               @DefaultValue("20") int maxPerQuestion,
                               @DefaultValue("120m") Duration urlTtl,
                               @DefaultValue("15m") Duration uploadTtl,
                               @DefaultValue("24h") Duration expireAfter,
                               @DefaultValue("true") boolean cleanupEnabled) {
+
+    /** D-156: video làm đề tải thẳng lên kho, chỉ mp4; maxBytes mặc định 100 MB. */
+    public record Video(@DefaultValue("104857600") long maxBytes) {
+        public Video {
+            if (maxBytes <= 0) {
+                throw new IllegalArgumentException("app.media.video.max-bytes phải dương");
+            }
+        }
+    }
 
     /** targetBytes: vượt thì hạ chất lượng xuống fallbackQuality. maxPixels chống ảnh bom nén. */
     public record Image(@DefaultValue("10485760") long maxUploadBytes,

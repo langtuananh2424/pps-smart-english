@@ -161,6 +161,14 @@ app:
       pauses-per-min-max: "1=8,2=7,4=6,6=5,8=4,12=3,16=2"
       speech-ratio-min: "0.85=8,0.75=7,0.65=6,0.55=5,0.45=4,0.35=3,0.25=2"
 
+  # Video phản xạ (D-158): mặc định theo mẫu Figma 10.28–10.31, mọi con số chỉnh được
+  video-reflex:
+    max-recordings: 3
+    max-write-submits: 3
+    write-pass-pct: 70
+    short-seconds: 30
+    other-seconds: 60
+
   regrade:
     # chấm lại bài cũ khi Admin sửa đáp án; false để tắt worker (test gọi RegradeRunner.tick() trực tiếp)
     enabled: ${REGRADE_ENABLED:true}
@@ -176,6 +184,14 @@ app:
     max-entry-bytes: 20971520
     min-inflate-ratio: 0.01
     max-hash-fill: 2000
+  # video từ nối (D-159): mọi con số là cấu hình, đây là giá trị mặc định
+  video-quiz:
+    tolerance-sec: 10        # dung sai khi cộng phần đã xem (chống tua)
+    watch-pct: 100           # % video phải xem đủ mới mở quiz
+    max-submits: 2           # số lần nộp quiz mỗi nhóm mỗi lượt
+    passes-required: 1       # số lượt đạt để bộ hoàn thành
+    max-duration-sec: 14400  # thời lượng video YouTube tối đa CMS được nhập
+    reports-per-minute: 60   # giới hạn báo tiến độ xem mỗi học viên
 
 logging:
   structured:

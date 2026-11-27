@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 class ImageConverterTest {
 
     private static MediaProperties props(long maxPixels, long targetBytes) {
-        return new MediaProperties(new MediaProperties.Image(10_485_760, 1600, 80, 70, targetBytes, maxPixels), 20,
+        return new MediaProperties(new MediaProperties.Image(10_485_760, 1600, 80, 70, targetBytes, maxPixels), new MediaProperties.Video(104_857_600), 20,
                 Duration.ofMinutes(120), Duration.ofMinutes(15), Duration.ofHours(24), false);
     }
 

@@ -66,12 +66,14 @@ public class SubmissionService {
     private final LearningStatsProperties props;
     private final AttemptCheckService checkService;
     private final AssignedBanks assigned;
+    private final VideoQuizService videoQuiz;
 
     SubmissionService(StudentAttemptRepository attempts, StudentAnswerRepository answers, AnswerGradingRepository gradings,
                       QuestionLoader loader, GraderRegistry graders, RewriteRules rewriteRules, RewriteJobInput rewriteInput,
                       ResultAssembler assembler, AiJobService aiJobs, AttemptAiScores aiScores, AddonCatalog addons, QuestionBankRepository banks, ObjectMapper mapper, Clock clock,
                       ApplicationEventPublisher events, LearningStatsProperties props, AttemptCheckService checkService,
-                      AssignedBanks assigned) {
+                      AssignedBanks assigned, VideoQuizService videoQuiz) {
+        this.videoQuiz = videoQuiz;
         this.assigned = assigned;
         this.props = props;
         this.checkService = checkService;
@@ -109,6 +111,7 @@ public class SubmissionService {
         }
         var set = loader.load(attempt);
         req = checkService.pinLocked(attemptId, req, set.questions()); // D-150: câu đã khóa dùng câu trả lời của lần kiểm tra cuối
+        req = videoQuiz.pinAnswers(attemptId, req, set.questions()); // D-159: câu video chỉ lấy đáp án quiz đã chốt
         Map<Long, JsonNode> given = indexAnswers(req.answers(), set.questions());
         Map<Long, Integer> times = validTimes(req.answers());
 

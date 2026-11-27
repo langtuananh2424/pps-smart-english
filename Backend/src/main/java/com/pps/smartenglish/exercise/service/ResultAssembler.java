@@ -28,15 +28,18 @@ class ResultAssembler {
     static final Set<QuestionType> REWRITE_TYPES = Set.of(QuestionType.CONNECTIVE_REWRITE, QuestionType.GRAMMAR_REWRITE);
 
     /** D-145: điểm từ phiên Viết/Nói gắn lượt, về sau lúc nộp. */
-    static final Set<QuestionType> AI_SESSION_TYPES = Set.of(QuestionType.WRITING, QuestionType.SPEAKING);
+    static final Set<QuestionType> AI_SESSION_TYPES = java.util.Arrays.stream(QuestionType.values())
+            .filter(t -> t == QuestionType.WRITING || t.isSpeakingLike()).collect(Collectors.toCollection(() -> java.util.EnumSet.noneOf(QuestionType.class)));
 
     private final GraderRegistry graders;
     private final ObjectMapper mapper;
     private final ResultShapers shapers;
 
     private final QuestionBankRepository banks;
+    private final VideoQuizService videoQuiz;
 
-    ResultAssembler(GraderRegistry graders, ObjectMapper mapper, ResultShapers shapers, QuestionBankRepository banks) {
+    ResultAssembler(GraderRegistry graders, ObjectMapper mapper, ResultShapers shapers, QuestionBankRepository banks, VideoQuizService videoQuiz) {
+        this.videoQuiz = videoQuiz;
         this.banks = banks;
         this.shapers = shapers;
         this.graders = graders;
@@ -58,7 +61,7 @@ class ResultAssembler {
         boolean awaiting = awaitsAi(answers, set);
         var full = new AttemptResponse(attempt.getId(), attempt.getBankId(), attempt.getStartedAt(), submittedAt, score, maxScore,
                 results, pendingJobs, quotaProducts == null ? null : Boolean.TRUE, quotaProducts, null, null,
-                passed(passPct, score, maxScore, awaiting), passPct, null);
+                passedOf(attempt, passPct, score, maxScore, awaiting, set), passPct, null);
         var shaped = shapers.shape(full, attempt, set, answers); // Nghe ép: ẩn đáp án theo result_mode
         if (awaiting || !pendingJobs.isEmpty()) {
             // D-147: còn câu AI chưa chốt thì không có điểm tạm, đáp án hay đạt/chưa; chỉ trạng thái đang chấm
@@ -78,6 +81,12 @@ class ResultAssembler {
             var type = byId.get(a.getQuestionId()).getType();
             return REWRITE_TYPES.contains(type) ? a.getCorrect() == null : AI_SESSION_TYPES.contains(type) && a.getCredit() == null;
         });
+    }
+
+    /** D-159: bộ có câu video thì lượt đạt khi mọi quiz video đúng trong số lần nộp; bộ khác giữ luật ngưỡng %. */
+    private Boolean passedOf(StudentAttempt attempt, Integer passPct, BigDecimal score, int maxScore, boolean awaiting, QuestionSet set) {
+        Boolean video = passPct == null ? null : videoQuiz.attemptPassed(attempt.getId(), set.questions());
+        return video != null ? video : passed(passPct, score, maxScore, awaiting);
     }
 
     /** Đạt khi score/maxScore >= ngưỡng, so sánh không làm tròn; null khi chưa chốt điểm (còn câu AI) hoặc maxScore = 0. */

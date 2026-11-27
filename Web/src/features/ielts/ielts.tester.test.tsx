@@ -10,7 +10,7 @@ const mcq = (id: number, groupId: number) => ({
   choices: [{ id: id * 10 + 1, label: 'A', content: `Đúng ${id}` }, { id: id * 10 + 2, label: 'B', content: `Sai ${id}` }],
 })
 const listening = (): Bank => ({
-  id: 7, title: 'Listening 1', lessonId: null, isTrial: false, mode: 'PRACTICE', timeLimitSec: 600, skill: 'LISTENING',
+  id: 7, title: 'Listening 1', lessonId: null, isTrial: false, mode: 'PRACTICE', timeLimitSec: 600, skill: 'LISTENING', ielts: true,
   playbackMode: 'FREE', playLimit: null,
   questions: [mcq(1, 1), mcq(2, 1)],
   groups: [{ id: 1, title: 'Part 1', instruction: null, passageHtml: null, sortOrder: 0, hasAudio: true, audioDurationMs: 60_000 }],
@@ -114,12 +114,10 @@ describe('khôi phục khi tải lại và lỗi mạng', () => {
     expect(await screen.findByRole('button', { name: /Thử lại/ })).toBeInTheDocument()
   })
 
-  test('mất mạng khi Bắt đầu: báo lỗi tại màn bắt đầu, bấm lại được', async () => {
+  test('mất mạng khi tự bắt đầu lượt: báo lỗi, bấm Thử lại được', async () => {
     wire('PRACTICE', {}, { '/api/me/attempts?bankId=7&open=true&limit=1': () => json(200, { data: [] }), '/api/banks/7/attempts': fail })
     renderAt('/ielts/7')
-    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
-    expect(await screen.findByRole('alert')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Bắt đầu' })).toBeEnabled()
+    expect(await screen.findByRole('button', { name: /Thử lại/ })).toBeEnabled()
   })
 })
 

@@ -1,5 +1,6 @@
 package com.pps.smartenglish.exercise.domain;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.pps.smartenglish.shared.domain.Auditable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -7,6 +8,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /** D-133: bài đọc hoặc phần nghe dùng chung cho nhiều câu của một bộ. passageHtml đã được làm sạch (RichText). */
 @Entity
@@ -33,9 +36,24 @@ public class QuestionGroup extends Auditable {
     @Column(name = "audio_asset_id")
     private Long audioAssetId;
 
+    /** D-156: video làm đề, tối đa một trong hai (CHECK ở DB): file mp4 (media_assets kind VIDEO) hoặc mã YouTube. */
+    @Column(name = "video_asset_id")
+    private Long videoAssetId;
+
+    @Column(name = "video_youtube_id")
+    private String videoYoutubeId;
+
+    /** D-159: thời lượng video YouTube (giây) do CMS nhập; video file dùng media_assets.duration_ms. */
+    @Column(name = "video_duration_sec")
+    private Integer videoDurationSec;
+
     /** Script của part (đã làm sạch), dùng cho Nghe ép; không trả cho học viên trừ ScriptService. */
     @Column(name = "transcript_html")
     private String transcriptHtml;
+
+    /** D-154, D-157: bố cục dùng chung của dạng câu (bảng, ghi chú, sơ đồ, phiếu, danh sách lựa chọn...), đã làm sạch; xem LayoutValidator. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    private JsonNode layout;
 
     protected QuestionGroup() {}
 
@@ -54,8 +72,16 @@ public class QuestionGroup extends Auditable {
     public String getInstruction() { return instruction; }
     public String getPassageHtml() { return passageHtml; }
 
+    public JsonNode getLayout() { return layout; }
+    public void setLayout(JsonNode layout) { this.layout = layout; }
     public Long getAudioAssetId() { return audioAssetId; }
     public String getTranscriptHtml() { return transcriptHtml; }
+    public Long getVideoAssetId() { return videoAssetId; }
+    public String getVideoYoutubeId() { return videoYoutubeId; }
+    public void setVideoAssetId(Long videoAssetId) { this.videoAssetId = videoAssetId; }
+    public void setVideoYoutubeId(String videoYoutubeId) { this.videoYoutubeId = videoYoutubeId; }
+    public Integer getVideoDurationSec() { return videoDurationSec; }
+    public void setVideoDurationSec(Integer videoDurationSec) { this.videoDurationSec = videoDurationSec; }
     public void setAudioAssetId(Long audioAssetId) { this.audioAssetId = audioAssetId; }
     public void setTranscriptHtml(String transcriptHtml) { this.transcriptHtml = transcriptHtml; }
     public void setSortOrder(int sortOrder) { this.sortOrder = sortOrder; }

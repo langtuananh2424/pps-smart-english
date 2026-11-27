@@ -1,12 +1,15 @@
+import { describeNewType } from './describeNew'
 import { tfLabel } from './questions/TrueFalse'
-import type { Answer, Id, Question } from './types'
+import type { Answer, GroupLayout, Id, Question } from './types'
 
 const same = (a: Id, b: Id) => String(a) === String(b)
 type Block = { id: Id; text: string }
 
 // Đổi đáp án (của học viên hoặc đáp án đúng) thành chữ để hiện ở màn kết quả; null = không có gì để hiện.
-export function describeAnswer(q: Question, a: Answer | null | undefined, elementName: (code: string) => string = (c) => c): string | null {
+export function describeAnswer(q: Question, a: Answer | null | undefined, elementName: (code: string) => string = (c) => c, layout?: GroupLayout | null): string | null {
   if (!a) return null
+  const added = describeNewType(q, a, layout)
+  if (added !== undefined) return added
   const p = q.payload ?? {}
   switch (q.type) {
     case 'CONNECTIVE_MCQ': {
@@ -41,6 +44,7 @@ export function describeAnswer(q: Question, a: Answer | null | undefined, elemen
       return ((a.order ?? []) as Id[]).map((id) => blocks.find((b) => same(b.id, id))?.text ?? id).join(' ')
     }
     case 'CHOICE_MULTI':
+    case 'VIDEO_CONNECTIVE':
       return (
         ((a.choiceIds ?? []) as number[])
           .map((id) => q.choices?.find((x) => x.id === id))

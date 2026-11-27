@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 
-/** D-151, FR-EX-05, FR-AI-06: chế độ Luyện tập/Mô phỏng thi chọn lúc bắt đầu lượt của bộ IELTS Reading/Listening. */
+/** D-155 (thay D-151 mục 1-2), FR-EX-05, FR-AI-06: chế độ lượt theo bộ, học viên không chọn; hành vi của lượt EXAM/PRACTICE giữ như D-151. */
 class IeltsAttemptModeApiTest extends ApiTestBase {
 
     private static final String PASSWORD = "Password123!";
@@ -48,25 +48,23 @@ class IeltsAttemptModeApiTest extends ApiTestBase {
         send("POST".equals(method) ? org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(url) : get(url), u.accessToken()).andExpect(status().is(expected));
     }
 
+    private JsonNode progress(Account u, long attempt) throws Exception {
+        return json.readTree(send(get("/api/attempts/" + attempt + "/progress"), u.accessToken()).andReturn().getResponse().getContentAsString());
+    }
+
     @Test
     void examAttemptHasNoPauseAndNoHints_practiceHas() throws Exception {
         var u = register(newEmail(), PASSWORD);
-        long b = bank("READING", "PRACTICE");
-        var bankJson = json.readTree(send(get("/api/banks/" + b), u.accessToken()).andReturn().getResponse().getContentAsString());
-        assertTrue(bankJson.path("questions").get(0).path("hints").isMissingNode()
-                || bankJson.path("questions").get(0).path("hints").isEmpty()); // bộ chọn được chế độ không trả gợi ý ở bank
-
-        var exam = start(u, b, "{\"mode\":\"EXAM\"}", 201);
-        assertEquals("EXAM", exam.path("mode").asText());
+        long examBank = bank("READING", "PRACTICE");
+        long practiceBank = bank("READING", "PRACTICE");
+        var exam = start(u, examBank, null, 201);
         long examId = exam.path("id").asLong();
+        jdbc.update("update student_exercise_attempts set mode = 'EXAM' where id = ?", examId); // như bài giao Thi
+        assertEquals("EXAM", progress(u, examId).path("mode").asText());
         expectStatus(u, "POST", "/api/attempts/" + examId + "/pause", 409);
         expectStatus(u, "GET", "/api/attempts/" + examId + "/hints", 403);
-        assertEquals("EXAM", json.readTree(send(get("/api/attempts/" + examId + "/progress"), u.accessToken()).andReturn()
-                .getResponse().getContentAsString()).path("mode").asText());
-        jdbc.update("update student_exercise_attempts set submitted_at = now() where id = ?", examId);
 
-        var practice = start(u, b, "{\"mode\":\"PRACTICE\"}", 201);
-        long id = practice.path("id").asLong();
+        long id = start(u, practiceBank, null, 201).path("id").asLong();
         expectStatus(u, "GET", "/api/attempts/" + id + "/hints", 200);
         expectStatus(u, "POST", "/api/attempts/" + id + "/pause", 200);
     }
@@ -74,33 +72,32 @@ class IeltsAttemptModeApiTest extends ApiTestBase {
     @Test
     void retryCheckFollowsAttemptMode() throws Exception {
         var u = register(newEmail(), PASSWORD);
-        long b = bank("READING", "PRACTICE");
-        long q = jdbc.queryForObject("select id from questions where bank_id = ?", Long.class, b);
-        long choice = insert("question_choices", Map.of("question_id", q, "label", "A", "content", "x", "is_correct", true));
-        String url = "/api/attempts/%d/questions/" + q + "/check";
-        var body = json.writeValueAsString(Map.of("answer", Map.of("choiceId", choice)));
-        var exam = start(u, b, "{\"mode\":\"EXAM\"}", 201).path("id").asLong();
-        send(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(url.formatted(exam)).contentType(MediaType.APPLICATION_JSON)
-                .content(body), u.accessToken()).andExpect(status().isConflict());
-        assertTrue(json.readTree(send(get("/api/attempts/" + exam + "/progress"), u.accessToken()).andReturn().getResponse().getContentAsString())
-                .path("retry").isMissingNode());
-        jdbc.update("update student_exercise_attempts set submitted_at = now() where id = ?", exam);
-        var practice = start(u, b, "{\"mode\":\"PRACTICE\"}", 201).path("id").asLong();
-        send(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(url.formatted(practice)).contentType(MediaType.APPLICATION_JSON)
-                .content(body), u.accessToken()).andExpect(status().isOk());
+        String url = "/api/attempts/%d/questions/%d/check";
+        var examBank = bank("READING", "PRACTICE");
+        var practiceBank = bank("READING", "PRACTICE");
+        var exam = start(u, examBank, null, 201).path("id").asLong();
+        jdbc.update("update student_exercise_attempts set mode = 'EXAM' where id = ?", exam); // như bài giao Thi
+        var practice = start(u, practiceBank, null, 201).path("id").asLong();
+        long eq = jdbc.queryForObject("select id from questions where bank_id = ?", Long.class, examBank);
+        long pq = jdbc.queryForObject("select id from questions where bank_id = ?", Long.class, practiceBank);
+        long ec = insert("question_choices", Map.of("question_id", eq, "label", "A", "content", "x", "is_correct", true));
+        long pc = insert("question_choices", Map.of("question_id", pq, "label", "A", "content", "x", "is_correct", true));
+        send(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(url.formatted(exam, eq)).contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("answer", Map.of("choiceId", ec)))), u.accessToken()).andExpect(status().isConflict());
+        assertTrue(progress(u, exam).path("retry").isMissingNode());
+        send(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(url.formatted(practice, pq)).contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("answer", Map.of("choiceId", pc)))), u.accessToken()).andExpect(status().isOk());
     }
 
     @Test
-    void defaultsToBankModeAndRejectsBadModes() throws Exception {
+    void modeInBodyIsIgnoredAndStartIsImmediate() throws Exception {
         var u = register(newEmail(), PASSWORD);
-        long ielts = bank("LISTENING", "PRACTICE");
-        assertEquals("PRACTICE", start(u, ielts, null, 201).path("mode").asText()); // không body: theo bộ
-        start(u, ielts, "{\"mode\":\"EXAM\"}", 409); // D-147: đã có lượt mở, tính chung hai chế độ
-        long other = bank(null, "PRACTICE"); // ngoài phạm vi: mode khác bank.mode bị từ chối
-        assertEquals("attempt_mode_not_allowed", start(u, other, "{\"mode\":\"EXAM\"}", 400).path("error").path("code").asText());
-        assertEquals("PRACTICE", start(u, other, "{\"mode\":\"PRACTICE\"}", 201).path("mode").asText());
-        long v = bank("READING", "PRACTICE");
-        assertEquals("attempt_mode_invalid", start(u, v, "{\"mode\":\"X\"}", 400).path("error").path("code").asText());
+        long practiceBank = bank("READING", "PRACTICE");
+        // client cũ vẫn gửi mode: bỏ qua, chế độ theo bộ; kể cả giá trị lạ
+        assertEquals("PRACTICE", start(u, practiceBank, "{\"mode\":\"EXAM\"}", 201).path("mode").asText());
+        start(u, practiceBank, "{\"mode\":\"X\"}", 409); // đã có lượt mở (D-147)
+        long other = bank(null, "PRACTICE"); // mọi bộ theo cùng quy tắc, không riêng IELTS
+        assertEquals("PRACTICE", start(u, other, "{\"mode\":\"EXAM\"}", 201).path("mode").asText());
     }
 
     @Test
@@ -109,7 +106,6 @@ class IeltsAttemptModeApiTest extends ApiTestBase {
         long b = bank("READING", "PRACTICE");
         long a = insert("student_exercise_attempts", Map.of("user_id", u.id(), "bank_id", b, "started_at", java.time.OffsetDateTime.now(), "time_limit_sec", 600));
         expectStatus(u, "POST", "/api/attempts/" + a + "/pause", 200);
-        assertEquals("PRACTICE", json.readTree(send(get("/api/attempts/" + a + "/progress"), u.accessToken()).andReturn()
-                .getResponse().getContentAsString()).path("mode").asText());
+        assertEquals("PRACTICE", progress(u, a).path("mode").asText());
     }
 }

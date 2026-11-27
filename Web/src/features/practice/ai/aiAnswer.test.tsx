@@ -44,7 +44,7 @@ describe('câu Viết/Nói trong khung làm bài', () => {
       '/api/writing/sessions': rec('create', () => json(201, { sessionId: posts.length + 100, question: { id: 2, prompt: 'x' } })),
       '/api/writing/sessions/101/submit': rec('submit', () => json(202, { jobId: 5, status: 'QUEUED', quotaRemaining: 2 })),
       '/api/writing/sessions/102/submit': rec('submit', () => json(202, { jobId: 6, status: 'QUEUED', quotaRemaining: 1 })),
-      '/api/speaking/questions/3': () => json(200, { id: 3, part: 1, prompt: 'Nói đi', cueCard: [], maxSeconds: 180 }),
+      '/api/speaking/questions/3?attemptId=9': () => json(200, { id: 3, part: 1, prompt: 'Nói đi', cueCard: [], maxSeconds: 180 }),
       '/api/speaking/submissions': rec('speak', () => json(201, { submissionId: 31, url: 'http://minio/u', fields: {}, maxBytes: 9, contentType: 'audio/wav', maxSeconds: 180, expiresAt: 'x' })),
       '/api/speaking/submissions/31/complete': rec('complete', () => json(200, { submissionId: 31, status: 'GRADING', jobId: 8, quotaRemaining: 2 })),
       ...over,

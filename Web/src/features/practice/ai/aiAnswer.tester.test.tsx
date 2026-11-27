@@ -38,7 +38,7 @@ function wire(over: Record<string, H> = {}, aiSessions: unknown[] = []) {
     '/api/me/quota': () => json(200, quota),
     '/api/writing/sessions': rec('create', () => json(201, { sessionId: ++nextSession, question: { id: 2, prompt: 'x' } })),
     ...submits,
-    '/api/speaking/questions/3': () => json(200, { id: 3, part: 1, prompt: 'Nói đi', cueCard: [], maxSeconds: 180 }),
+    '/api/speaking/questions/3?attemptId=9': () => json(200, { id: 3, part: 1, prompt: 'Nói đi', cueCard: [], maxSeconds: 180 }),
     '/api/speaking/submissions': rec('speak', () => json(201, { submissionId: 31, url: 'http://minio/u', fields: {}, maxBytes: 9, contentType: 'audio/wav', maxSeconds: 180, expiresAt: 'x' })),
     '/api/speaking/submissions/31/complete': rec('complete', () => json(200, { submissionId: 31, status: 'GRADING', jobId: 8, quotaRemaining: 2 })),
     ...over,

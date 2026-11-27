@@ -1,5 +1,7 @@
 package com.pps.smartenglish.exercise.service;
 
+import com.pps.smartenglish.catalog.service.YoutubeRef;
+import com.pps.smartenglish.exercise.content.LayoutRenderer;
 import com.pps.smartenglish.exercise.content.RichText;
 import com.pps.smartenglish.exercise.domain.QuestionGroup;
 import com.pps.smartenglish.exercise.dto.QuestionGroupDtos.CreateGroup;
@@ -9,6 +11,8 @@ import com.pps.smartenglish.exercise.listening.AudioMediaService;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
 import com.pps.smartenglish.exercise.repository.QuestionGroupRepository;
 import com.pps.smartenglish.exercise.repository.QuestionRepository;
+import com.pps.smartenglish.exercise.validation.LayoutValidator;
+import com.pps.smartenglish.media.service.VideoMediaService;
 import com.pps.smartenglish.shared.audit.AuditRecorder;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.persistence.CmsWrites;
@@ -31,10 +35,22 @@ public class CmsGroupService {
     private final CmsWrites writes;
     private final AuditRecorder audit;
     private final AudioMediaService audio;
+    private final VideoMediaService video;
+    private final LayoutValidator layoutValidator;
+    private final GroupLayoutCheck layoutCheck;
+    private final LayoutRenderer layoutRenderer;
+    private final com.pps.smartenglish.exercise.config.VideoQuizProperties videoProps;
 
     CmsGroupService(QuestionGroupRepository groups, QuestionBankRepository banks, QuestionRepository questions, RichText rich,
-                    CmsWrites writes, AuditRecorder audit, AudioMediaService audio) {
+                    CmsWrites writes, AuditRecorder audit, AudioMediaService audio, VideoMediaService video,
+                    LayoutValidator layoutValidator, GroupLayoutCheck layoutCheck, LayoutRenderer layoutRenderer,
+                    com.pps.smartenglish.exercise.config.VideoQuizProperties videoProps) {
+        this.videoProps = videoProps;
+        this.layoutValidator = layoutValidator;
+        this.layoutCheck = layoutCheck;
+        this.layoutRenderer = layoutRenderer;
         this.audio = audio;
+        this.video = video;
         this.groups = groups;
         this.banks = banks;
         this.questions = questions;
@@ -52,6 +68,11 @@ public class CmsGroupService {
                 blankToNull(req.instruction()), passage(req.passageHtml()));
         group.setAudioAssetId(audioId(req.audioAssetId()));
         group.setTranscriptHtml(passage(req.transcriptHtml()));
+        group.setVideoAssetId(videoId(req.videoAssetId()));
+        group.setVideoYoutubeId(youtubeId(req.videoYoutube()));
+        group.setVideoDurationSec(group.getVideoYoutubeId() == null ? null : durationSec(req.videoDurationSec()));
+        requireOneVideo(group);
+        group.setLayout(layoutOf(req.layout()));
         var after = view(writes.save(groups, group, "conflict", "Không lưu được nhóm câu hỏi"));
         audit.record("CREATE", AUDIT_TYPE, after.id(), null, after);
         return after;
@@ -71,10 +92,30 @@ public class CmsGroupService {
             g.setPassageHtml(passage(req.passageHtml()));
         }
         if (req.audioAssetId() != null) {
-            g.setAudioAssetId(req.audioAssetId().isNull() ? null : audioId(longOf(req.audioAssetId())));
+            g.setAudioAssetId(req.audioAssetId().isNull() ? null : audioId(longOf(req.audioAssetId(), "audioAssetId")));
         }
         if (req.transcriptHtml() != null) {
             g.setTranscriptHtml(passage(req.transcriptHtml()));
+        }
+        if (req.videoAssetId() != null) {
+            g.setVideoAssetId(req.videoAssetId().isNull() ? null : videoId(longOf(req.videoAssetId(), "videoAssetId")));
+        }
+        if (req.videoYoutube() != null) {
+            g.setVideoYoutubeId(req.videoYoutube().isNull() ? null : youtubeId(req.videoYoutube().asText()));
+        }
+        if (req.videoDurationSec() != null) {
+            g.setVideoDurationSec(req.videoDurationSec().isNull() ? null : durationSec(longOf(req.videoDurationSec(), "videoDurationSec").intValue()));
+        }
+        if (g.getVideoYoutubeId() == null) {
+            g.setVideoDurationSec(null); // chỉ video YouTube có thời lượng nhập tay
+        }
+        requireOneVideo(g);
+        if (req.layout() != null) {
+            g.setLayout(layoutOf(req.layout()));
+        }
+        if (req.layout() != null || req.audioAssetId() != null || req.videoAssetId() != null || req.videoYoutube() != null
+                || req.videoDurationSec() != null) {
+            layoutCheck.checkGroup(g); // câu đang dùng nhóm vẫn phải khớp layout và audio mới
         }
         if (req.sortOrder() != null) {
             g.setSortOrder(req.sortOrder());
@@ -101,6 +142,11 @@ public class CmsGroupService {
         return views(groups.findByBankIdOrderBySortOrderAscIdAsc(bankId));
     }
 
+    /** null hoặc JSON null = không có layout; còn lại phải qua LayoutValidator. */
+    private com.fasterxml.jackson.databind.JsonNode layoutOf(com.fasterxml.jackson.databind.JsonNode raw) {
+        return raw == null || raw.isNull() ? null : layoutValidator.validate(raw);
+    }
+
     /** Rỗng sau khi làm sạch (không chữ, không ảnh) = không có bài đọc. */
     private String passage(String html) {
         if (html == null) {
@@ -116,9 +162,34 @@ public class CmsGroupService {
         return id == null ? null : audio.requireAudio(id).getId();
     }
 
-    private static Long longOf(com.fasterxml.jackson.databind.JsonNode n) {
+    /** Video phải READY và đúng loại; null = không có video file. */
+    private Long videoId(Long id) {
+        return id == null ? null : video.requireVideo(id).getId();
+    }
+
+    /** Link/mã YouTube chuẩn hóa về mã 11 ký tự; rỗng = không có. */
+    private static String youtubeId(String raw) {
+        return raw == null || raw.isBlank() ? null : YoutubeRef.normalize(raw, "videoYoutube");
+    }
+
+    /** Thời lượng YouTube (giây) trong 1..maxDurationSec; null = chưa nhập. */
+    private Integer durationSec(Integer sec) {
+        if (sec != null && (sec < 1 || sec > videoProps.maxDurationSec())) {
+            throw ApiException.validation("videoDurationSec", "Phải từ 1 đến " + videoProps.maxDurationSec() + " giây");
+        }
+        return sec;
+    }
+
+    /** Tối đa một nguồn video; kiểm trên trạng thái cuối nên đổi nguồn trong một PATCH vẫn được. */
+    private static void requireOneVideo(QuestionGroup g) {
+        if (g.getVideoAssetId() != null && g.getVideoYoutubeId() != null) {
+            throw ApiException.validation("videoAssetId", "Chỉ chọn file tải lên hoặc link YouTube, không chọn cả hai");
+        }
+    }
+
+    private static Long longOf(com.fasterxml.jackson.databind.JsonNode n, String field) {
         if (!n.isIntegralNumber() || n.asLong() <= 0) {
-            throw ApiException.validation("audioAssetId", "Phải là số nguyên dương hoặc null");
+            throw ApiException.validation(field, "Phải là số nguyên dương hoặc null");
         }
         return n.asLong();
     }
@@ -129,11 +200,13 @@ public class CmsGroupService {
 
     private List<GroupView> views(List<QuestionGroup> rows) {
         Map<String, String> html = rich.render(rows.stream().flatMap(g -> java.util.stream.Stream.of(g.getPassageHtml(), g.getTranscriptHtml())).toList());
+        var layouts = layoutRenderer.render(rows);
         var durations = audio.durations(rows.stream().map(QuestionGroup::getAudioAssetId).filter(java.util.Objects::nonNull).toList());
         return rows.stream().map(g -> new GroupView(g.getId(), g.getBankId(), g.getSortOrder(), g.getTitle(), g.getInstruction(),
                 g.getPassageHtml() == null ? null : html.get(g.getPassageHtml()), g.getAudioAssetId(),
                 g.getAudioAssetId() == null ? null : durations.getOrDefault(g.getAudioAssetId(), java.util.Optional.empty()).orElse(null),
-                g.getTranscriptHtml() == null ? null : html.get(g.getTranscriptHtml()))).toList();
+                g.getTranscriptHtml() == null ? null : html.get(g.getTranscriptHtml()), g.getVideoAssetId(), g.getVideoYoutubeId(),
+                g.getVideoDurationSec(), layouts.get(g.getId()))).toList();
     }
 
     private QuestionGroup find(long id) {

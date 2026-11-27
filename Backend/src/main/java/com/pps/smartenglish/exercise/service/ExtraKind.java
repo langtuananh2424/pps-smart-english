@@ -5,7 +5,7 @@ import com.pps.smartenglish.shared.error.ApiException;
 import java.util.Arrays;
 import java.util.List;
 
-/** D-152: dạng bài để lọc Luyện thêm. Dạng viết lại (AI chấm theo bộ) không nằm trong Luyện thêm. */
+/** D-152: dạng bài để lọc Luyện thêm. Dạng viết lại (AI chấm theo bộ) và dạng phụ thuộc nhóm (D-154) không nằm trong Luyện thêm. */
 enum ExtraKind {
     AUTO, WRITING, SPEAKING;
 
@@ -15,7 +15,7 @@ enum ExtraKind {
 
     /** Dạng câu được dùng: loại câu viết lại. */
     static boolean usable(QuestionType t) {
-        return !ResultAssembler.REWRITE_TYPES.contains(t);
+        return !ResultAssembler.REWRITE_TYPES.contains(t) && !t.groupBound();
     }
 
     List<String> types() {

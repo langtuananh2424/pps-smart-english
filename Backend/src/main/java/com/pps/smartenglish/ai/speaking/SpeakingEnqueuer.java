@@ -7,6 +7,7 @@ import com.pps.smartenglish.ai.domain.AiTask;
 import com.pps.smartenglish.ai.service.AiJobService;
 import com.pps.smartenglish.ai.service.AiQuotaService;
 import com.pps.smartenglish.ai.service.AttemptLinks;
+import com.pps.smartenglish.ai.service.ReflexProgress;
 import com.pps.smartenglish.ai.speaking.SpeakingQuestionSource.SpeakingQuestion;
 import com.pps.smartenglish.shared.error.ApiException;
 import java.math.BigDecimal;
@@ -26,11 +27,13 @@ class SpeakingEnqueuer {
     private final AiQuotaService quota;
     private final SpeakingSubmissionRepository submissions;
     private final AttemptLinks attemptLinks;
+    private final ReflexProgress reflex;
     private final ObjectMapper mapper;
     private final Clock clock;
 
-    SpeakingEnqueuer(AiJobService aiJobs, AiQuotaService quota, SpeakingSubmissionRepository submissions, AttemptLinks attemptLinks, ObjectMapper mapper, Clock clock) {
+    SpeakingEnqueuer(AiJobService aiJobs, AiQuotaService quota, SpeakingSubmissionRepository submissions, AttemptLinks attemptLinks, ReflexProgress reflex, ObjectMapper mapper, Clock clock) {
         this.attemptLinks = attemptLinks;
+        this.reflex = reflex;
         this.aiJobs = aiJobs;
         this.quota = quota;
         this.submissions = submissions;
@@ -42,6 +45,9 @@ class SpeakingEnqueuer {
     @Transactional
     public long enqueue(SpeakingSubmission s, SpeakingQuestion q, long sizeBytes, double durationSec) {
         attemptLinks.requireOpenLocked(s.getAttemptId()); // D-147: trước khi trừ lượt, cùng transaction
+        if (s.getAttemptId() != null) {
+            reflex.requireRecordingSlot(s.getAttemptId(), q); // D-158: kiểm sau khi khóa lượt nên hai lần ghi đồng thời không cùng vượt giới hạn
+        }
         ObjectNode in = mapper.createObjectNode();
         in.put("submissionId", s.getId());
         in.put("objectKey", s.getObjectKey());

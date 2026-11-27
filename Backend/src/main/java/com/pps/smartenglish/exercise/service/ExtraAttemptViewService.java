@@ -55,6 +55,6 @@ public class ExtraAttemptViewService {
                 set.choices().values().stream().flatMap(List::stream).map(QuestionChoice::getContentHtml)).toList());
         var views = BankService.questionViews(set, hintMap, media.forQuestions(ids), html, a.getId());
         return new BankResponse(a.getBankId(), "Luyện thêm", null, false, QuestionBank.PRACTICE, null, views, List.of(),
-                QuestionBank.FREE, null, null);
+                QuestionBank.FREE, null, null, false);
     }
 }

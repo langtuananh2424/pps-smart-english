@@ -16,6 +16,7 @@ public class MediaAsset extends Auditable {
 
     public static final String IMAGE = "IMAGE";
     public static final String AUDIO = "AUDIO";
+    public static final String VIDEO = "VIDEO";
     public static final String PENDING = "PENDING";
     public static final String READY = "READY";
 
@@ -76,6 +77,17 @@ public class MediaAsset extends Auditable {
         a.maxBytes = maxBytes;
         a.uploadExpiresAt = expiresAt;
         return a;
+    }
+
+    /** Video tải thẳng vào khóa cuối như audio. */
+    public static MediaAsset pendingVideo(long uploadedBy, String key, long maxBytes, Instant expiresAt) {
+        var a = pendingAudio(uploadedBy, key, maxBytes, expiresAt);
+        a.kind = VIDEO;
+        return a;
+    }
+
+    public void readyVideo(String mime, long sizeBytes, int durationMs) {
+        readyAudio(mime, sizeBytes, durationMs);
     }
 
     public void readyAudio(String mime, long sizeBytes, Integer durationMs) {

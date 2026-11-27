@@ -39,6 +39,24 @@ beforeEach(() => setAccessToken(null))
 afterEach(() => vi.unstubAllGlobals())
 vi.spyOn(window, 'confirm').mockReturnValue(true)
 
+describe('nhóm dạng IELTS theo cờ khóa (D-161)', () => {
+  const open = async (over: object) => {
+    mockApi({ [`${C}/banks/5`]: () => json(200, detail(over)), [`${C}/grammar-elements`]: () => json(200, []) })
+    renderAt('/ngan-hang/5')
+    await userEvent.click(await screen.findByRole('button', { name: '+ Thêm câu' }))
+    return screen.getByLabelText('Dạng câu')
+  }
+  test('bộ khóa IELTS có nhóm IELTS', async () => {
+    const sel = await open({ ielts: true, skill: 'READING' })
+    expect(within(sel).getByRole('group', { name: 'IELTS' })).toBeInTheDocument()
+  })
+  test('bộ thường ẩn nhóm IELTS', async () => {
+    const sel = await open({ ielts: false })
+    expect(within(sel).queryByRole('group', { name: 'IELTS' })).toBeNull()
+    expect(within(sel).getByRole('group', { name: 'Luyện tập PPS' })).toBeInTheDocument()
+  })
+})
+
 describe('màn soạn bộ câu hỏi', () => {
   test('hiện cảnh báo chấm lại, không hiện luật Nghe ép khi bộ không phải LOCKED', async () => {
     const calls = mockApi({ [`${C}/banks/5`]: () => json(200, detail()), [`${C}/grammar-elements`]: () => json(200, []) })

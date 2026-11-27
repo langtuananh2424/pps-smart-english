@@ -29,6 +29,12 @@ class AssignmentAccess implements AssignedBanks, AssignedAiWork {
 
     @Override
     @Transactional(readOnly = true)
+    public boolean isExamAssigned(long userId, long bankId) {
+        return assignments.isExamAssigned(bankId, userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public boolean isAssignedAnyStatus(long userId, long bankId) {
         return assignments.isBankAssignedAnyStatus(bankId, userId);
     }

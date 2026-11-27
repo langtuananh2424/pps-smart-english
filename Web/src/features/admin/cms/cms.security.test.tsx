@@ -10,7 +10,7 @@ const NO_PERM = 'Bạn không có quyền thực hiện thao tác này.'
 
 const course = {
   id: 7, slug: 'ielts', title: 'IELTS cơ bản', description: null, targetType: null, status: 'DRAFT',
-  sequential: true, lessonCompletePercent: 80, examUnlockPercent: 70, examRetakes: 2, deliveryMode: 'CLASS_BASED',
+  sequential: true, ielts: false, lessonCompletePercent: 80, examUnlockPercent: 70, examRetakes: 2, deliveryMode: 'CLASS_BASED',
 }
 const lesson = { id: 30, topicId: 20, type: 'CONNECTIVE_VIDEO', title: 'Bài 1', durationSec: 120, sortOrder: 0, status: 'DRAFT', videoSource: 'YOUTUBE', videoRef: 'dQw4w9WgXcQ' }
 const topic = { id: 20, levelId: 10, title: 'Chào hỏi', sortOrder: 0, isFreeTrial: false, skill: 'LISTENING', status: 'DRAFT' }
@@ -463,9 +463,17 @@ describe('cấu hình học tuần tự và kiểm tra', () => {
     expect(writes(calls)[0].body).toMatchObject({ deliveryMode: 'SELF_PACED' })
   })
 
+  test('bật Khóa IELTS gửi ielts true', async () => {
+    const calls = await open({ 'PATCH /api/admin/cms/courses/7': () => json(200, { ...course, ielts: true }) })
+    await userEvent.click(screen.getByRole('switch', { name: 'Khóa IELTS' }))
+    await save()
+    await waitFor(() => expect(writes(calls)).toHaveLength(1))
+    expect(writes(calls)[0].body).toEqual({ ielts: true })
+  })
+
   test('tắt học tuần tự gửi sequential false', async () => {
     const calls = await open({ 'PATCH /api/admin/cms/courses/7': () => json(200, course) })
-    await userEvent.click(screen.getByRole('switch'))
+    await userEvent.click(screen.getByRole('switch', { name: 'Học tuần tự' }))
     await save()
     await waitFor(() => expect(writes(calls)).toHaveLength(1))
     expect(writes(calls)[0].body).toMatchObject({ sequential: false })

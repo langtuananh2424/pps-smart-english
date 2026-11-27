@@ -12,6 +12,9 @@ export interface UploadedImage {
   width: number
   height: number
 }
+export interface UploadedVideo {
+  id: number
+}
 export interface UploadedAudio {
   id: number
   durationMs: number | null
@@ -40,4 +43,22 @@ export async function uploadImage(file: File): Promise<UploadedImage> {
 export async function uploadAudio(file: File): Promise<UploadedAudio> {
   const p = await toStorage('audio', file)
   return api<UploadedAudio>(`/admin/cms/media/${p.assetId}/complete-audio`, { method: 'POST' })
+}
+
+// D-156: video lớn nên dùng XHR để báo tiến trình (fetch không có upload progress). Cùng presigned POST như audio.
+export async function uploadVideo(file: File, onProgress: (pct: number) => void): Promise<UploadedVideo> {
+  const permit = await postJson<Permit>('/admin/cms/media/video', { contentType: file.type })
+  if (file.size > permit.maxBytes) throw fail(`Tệp vượt quá ${Math.floor(permit.maxBytes / 1024 / 1024)} MB.`)
+  const form = new FormData()
+  for (const [k, v] of Object.entries(permit.fields)) form.append(k, v)
+  form.append('file', file)
+  await new Promise<void>((resolve, reject) => {
+    const x = new XMLHttpRequest()
+    x.open('POST', permit.url)
+    x.upload.onprogress = (e) => e.lengthComputable && onProgress(Math.round((e.loaded / e.total) * 100))
+    x.onload = () => (x.status >= 200 && x.status < 300 ? resolve() : reject(fail('Tải video lên thất bại, vui lòng thử lại.')))
+    x.onerror = () => reject(fail('Tải video lên thất bại, vui lòng thử lại.'))
+    x.send(form)
+  })
+  return api<UploadedVideo>(`/admin/cms/media/${permit.assetId}/complete-video`, { method: 'POST' })
 }

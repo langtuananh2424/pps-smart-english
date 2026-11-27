@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { rendererOf } from '../../../practice/questions/registry'
+import type { GroupLayout } from '../../../practice/types'
 import { SIZE_PCT, typeLabel, type Draft, type GrammarElement, type Obj } from './types'
 
 const box = 'rounded-sm border border-line bg-surface px-2.5 py-1.5 font-bold text-ink'
@@ -13,7 +15,7 @@ function WithBlanks({ text, render }: { text: string; render: (id: string) => Re
   )
 }
 
-function Body({ d, elements }: { d: Draft; elements: GrammarElement[] }) {
+function Body({ d, elements, layout }: { d: Draft; elements: GrammarElement[]; layout?: GroupLayout | null }) {
   const p: Obj = d.payload
   const list = (xs?: { id: string; text: string }[]) => xs ?? []
   switch (d.type) {
@@ -115,11 +117,17 @@ function Body({ d, elements }: { d: Draft; elements: GrammarElement[] }) {
           {p.cueCard && <ul className="list-disc pl-5 font-semibold text-ink">{p.cueCard.map((c: string) => <li key={c}>{c}</li>)}</ul>}
         </>
       )
+    default: {
+      // Kiểu mới (IELTS_*, LETTER_ORDER...): dùng đúng renderer của học viên, khóa thao tác.
+      const { Component } = rendererOf(d.type)
+      const choices = d.choices.map((c, i) => ({ id: i, label: c.label, content: c.contentHtml.replace(/<[^>]+>/g, ''), contentHtml: c.contentHtml }))
+      return <Component question={{ id: 0, type: d.type, prompt: '', payload: p, choices }} value={undefined} onChange={() => {}} disabled layout={layout} />
+    }
   }
 }
 
 // Xem trước đúng những gì học viên thấy (không có đáp án), cập nhật theo biểu mẫu.
-export function Preview({ draft, elements }: { draft: Draft; elements: GrammarElement[] }) {
+export function Preview({ draft, elements, layout }: { draft: Draft; elements: GrammarElement[]; layout?: Obj | null }) {
   return (
     <aside aria-label="Xem trước" className="flex flex-col gap-3 rounded-lg border border-line-brand bg-subtle p-4">
       <h2 className="text-lg font-black text-ink">Xem trước</h2>
@@ -129,7 +137,7 @@ export function Preview({ draft, elements }: { draft: Draft; elements: GrammarEl
       {draft.media.map((m) => (
         <img key={m.assetId} src={m.url} alt={m.altText} style={{ width: `${SIZE_PCT[m.displaySize] ?? 50}%` }} />
       ))}
-      <Body d={draft} elements={elements} />
+      <Body d={draft} elements={elements} layout={layout as GroupLayout | null | undefined} />
     </aside>
   )
 }

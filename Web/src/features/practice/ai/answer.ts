@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { AiSession, Question } from '../types'
 
 // Nút "Gửi chấm" nằm ở thanh dưới của Player nhưng bài làm nằm trong thẻ câu: thẻ báo lên Player qua đây.
-export interface SendAction { enabled: boolean; run: () => void }
+export interface SendAction { enabled: boolean; run: () => void; label?: string }
 
 export interface AnswerProps {
   question: Question
@@ -22,9 +22,9 @@ export const writingKey = (attemptId: number, questionId: number) => `ai:writing
 export const isSent = (s?: AiSession) => s?.status === 'GRADING' || s?.status === 'GRADED'
 
 // enabled = null: câu không còn gì để gửi (đã gửi chấm). Gỡ nút khi rời câu.
-export function usePublishSend(onSend: (a: SendAction | null) => void, enabled: boolean | null, run: () => void) {
+export function usePublishSend(onSend: (a: SendAction | null) => void, enabled: boolean | null, run: () => void, label?: string) {
   const latest = useRef(run)
   latest.current = run
-  useEffect(() => onSend(enabled == null ? null : { enabled, run: () => latest.current() }), [enabled, onSend])
+  useEffect(() => onSend(enabled == null ? null : { enabled, run: () => latest.current(), label }), [enabled, onSend, label])
   useEffect(() => () => onSend(null), [onSend])
 }

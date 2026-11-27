@@ -1,6 +1,8 @@
 package com.pps.smartenglish.exercise.service;
 
 import com.pps.smartenglish.ai.service.AttemptCreditSink;
+import com.pps.smartenglish.exercise.domain.QuestionType;
+import com.pps.smartenglish.exercise.repository.QuestionRepository;
 import com.pps.smartenglish.exercise.repository.StudentAnswerRepository;
 import com.pps.smartenglish.exercise.repository.StudentAttemptRepository;
 import com.pps.smartenglish.shared.event.ExerciseScored;
@@ -20,11 +22,18 @@ class AiCreditApplier implements AttemptCreditSink {
     private final StudentAttemptRepository attempts;
     private final StudentAnswerRepository answers;
     private final ApplicationEventPublisher events;
+    private final QuestionRepository questions;
 
-    AiCreditApplier(StudentAttemptRepository attempts, StudentAnswerRepository answers, ApplicationEventPublisher events) {
+    AiCreditApplier(StudentAttemptRepository attempts, StudentAnswerRepository answers, ApplicationEventPublisher events, QuestionRepository questions) {
+        this.questions = questions;
         this.attempts = attempts;
         this.answers = answers;
         this.events = events;
+    }
+
+    @Override
+    public boolean countsWriting(long questionId) {
+        return questions.findById(questionId).map(q -> q.getType() != QuestionType.VIDEO_SHORT).orElse(true);
     }
 
     @Override

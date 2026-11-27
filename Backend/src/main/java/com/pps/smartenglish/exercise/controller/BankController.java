@@ -47,12 +47,10 @@ class BankController {
 
     @PostMapping("/{id}/attempts")
     @ResponseStatus(HttpStatus.CREATED)
-    AttemptStarted start(@PathVariable String id, Authentication auth, @RequestBody(required = false) StartRequest req) {
-        return attempts.start(bankId(id), CurrentUser.id(auth), req == null ? null : req.mode());
+    AttemptStarted start(@PathVariable String id, Authentication auth) {
+        // D-155: học viên không chọn chế độ; body (mode của client cũ) bị bỏ qua để không làm vỡ client
+        return attempts.start(bankId(id), CurrentUser.id(auth));
     }
-
-    /** D-151: mode tùy chọn (PRACTICE|EXAM), chỉ có nghĩa với bộ IELTS Reading/Listening. */
-    record StartRequest(String mode) {}
 
     private static Long bankId(String raw) {
         return PathId.parse(raw, "bank_not_found", "Không tìm thấy bộ câu hỏi");

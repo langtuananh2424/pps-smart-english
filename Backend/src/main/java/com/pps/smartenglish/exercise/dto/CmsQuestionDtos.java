@@ -86,7 +86,7 @@ public final class CmsQuestionDtos {
 
     public record BankView(Long id, Long topicId, Long lessonId, String title, boolean isTrial, String status, long questionCount,
                            Integer timeLimitSec, String mode, String purpose, String playbackMode, Integer playLimit,
-                           int passPct) {}
+                           int passPct, com.pps.smartenglish.catalog.domain.TopicSkill skill, boolean ielts) {}
 
     public record ChoiceView(Long id, String label, String content, String contentHtml, boolean isCorrect, String explanation) {}
 

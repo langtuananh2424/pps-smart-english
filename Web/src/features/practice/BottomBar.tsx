@@ -53,7 +53,7 @@ export function BottomBar({ count, index, answered, onGo, onSubmit, disabled, su
         )}
         {send && (
           <button type="button" disabled={disabled || !send.enabled} onClick={send.run} className={pillPrimary}>
-            Gửi chấm
+            {send.label ?? 'Gửi chấm'}
           </button>
         )}
       </div>

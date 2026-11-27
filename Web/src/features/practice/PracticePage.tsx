@@ -58,7 +58,7 @@ function Runner({ bank, reloadBank, openAttemptId, courseId }: { bank: Bank; rel
 
   // Khóa/hết lượt thi là lỗi chặn; lỗi khác (mạng, 429) chỉ báo ngay trên nút Bắt đầu.
   if (startError instanceof ApiError && startError.status === 403) return <ErrorCard error={startError} />
-  if (startError instanceof ApiError && startError.code === 'exam_attempts_exhausted') return <ErrorCard error={startError} />
+  if (startError instanceof ApiError && (startError.code === 'exam_attempts_exhausted' || startError.code === 'bank_assigned_as_exam')) return <ErrorCard error={startError} />
   if (done) return <ResultView bank={bank} initial={done.result} answers={done.answers} onRetry={() => { setDone(null); setAttemptId(null) }} />
   if (attemptId != null) return <Player key={attemptId} bank={bank} attemptId={attemptId} onDone={(result, answers) =>
     // Nghe ép có kết quả riêng (D-142): không chuyển sang màn kiểm tra khóa.

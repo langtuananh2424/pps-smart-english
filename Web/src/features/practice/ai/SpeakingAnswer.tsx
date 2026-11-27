@@ -16,7 +16,7 @@ const limit = (s: number) => (s % 60 === 0 ? `${s / 60} phút` : `${s} giây`)
 
 // Câu Nói trong lượt (D-66, D-85, D-145): ghi âm hoặc tải tệp ngay trong thẻ câu, "Gửi chấm" tải lên rồi nộp. Không hiện điểm.
 export function SpeakingAnswer({ question, attemptId, session, loaded, disabled, onRef, onSend, onSkip, track }: AnswerProps) {
-  const sq = useQuery({ queryKey: ['speaking', 'question', question.id], queryFn: () => fetchQuestion(question.id), retry: false })
+  const sq = useQuery({ queryKey: ['speaking', 'question', question.id, attemptId], queryFn: () => fetchQuestion(question.id, undefined, attemptId), retry: false })
   const gate = useQuotaGate()
   const [editing, setEditing] = useState(false) // đang nói lại câu đã gửi
   const [redo, setRedo] = useState(false)
@@ -26,7 +26,8 @@ export function SpeakingAnswer({ question, attemptId, session, loaded, disabled,
   const url = a.audio?.url ?? (sent ? saved.data?.audioUrl : null)
   const idle = !a.audio && !a.converting && !a.rec.recording
 
-  usePublishSend(onSend, sent ? null : loaded && !!sq.data && !!a.audio && a.progress == null && !gate.exhausted, () => void a.send())
+  const fileOnly = question.type === 'LISTEN_RECORD' // D-154 mục 4: chỉ tải tệp, không ghi trực tiếp
+  usePublishSend(onSend, sent ? null : loaded && !!sq.data && !!a.audio && a.progress == null && !gate.exhausted, () => void a.send(), fileOnly ? 'Nộp bản ghi' : undefined)
 
   const player = url && <audio aria-label="Nghe lại bản ghi" controls src={url} className="w-full" />
   const file = a.audio?.name && <p className="text-sm font-extrabold text-ink">{a.audio.name}</p>
@@ -70,7 +71,7 @@ export function SpeakingAnswer({ question, attemptId, session, loaded, disabled,
           {idle && !sent && (
             <>
               <div className="flex flex-wrap gap-3">
-                {canRecord() && <button type="button" disabled={!ready || gate.exhausted} onClick={() => void a.rec.start()} className={`${pillPrimary} ${small}`}>Bắt đầu ghi âm</button>}
+                {canRecord() && !fileOnly && <button type="button" disabled={!ready || gate.exhausted} onClick={() => void a.rec.start()} className={`${pillPrimary} ${small}`}>Bắt đầu ghi âm</button>}
                 <label className={`${pillNeutral} ${small} cursor-pointer focus-within:outline focus-within:outline-2 focus-within:outline-brand ${ready ? '' : 'pointer-events-none opacity-45'}`}>
                   Chọn tệp audio
                   <input type="file" accept="audio/*" className="sr-only" disabled={!ready} onChange={(e) => {
