@@ -30,7 +30,8 @@ async function mock(page: Page) {
 async function open(page: Page) {
   await mock(page)
   await page.goto('/ielts/7')
-  // D-155: không còn màn chọn chế độ, vào là làm ngay
+  // D-155: không còn màn chọn chế độ; chưa có lượt dở thì bấm "Bắt đầu" mới tạo lượt
+  await page.getByRole('button', { name: 'Bắt đầu' }).click()
   await expect(page.getByRole('article', { name: 'Câu 1' })).toBeVisible()
 }
 
