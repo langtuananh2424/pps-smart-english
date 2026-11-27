@@ -6,7 +6,7 @@ const para = (i: number) => `<p>Paragraph ${i}. The history of tea in Asia spans
 const mcq = (id: number) => ({ id, type: 'CONNECTIVE_MCQ', prompt: `Question ${id}: which statement matches the passage?`, payload: {}, groupId: 1,
   choices: [{ id: id * 10 + 1, label: 'A', content: 'True' }, { id: id * 10 + 2, label: 'B', content: 'False' }, { id: id * 10 + 3, label: 'C', content: 'Not given' }] })
 const bank = {
-  id: 7, title: 'Reading 1', lessonId: null, isTrial: false, mode: 'PRACTICE', timeLimitSec: 3600, skill: 'READING',
+  id: 7, title: 'Reading 1', ielts: true, lessonId: null, isTrial: false, mode: 'PRACTICE', timeLimitSec: 3600, skill: 'READING',
   questions: Array.from({ length: 8 }, (_, i) => mcq(i + 1)),
   groups: [{ id: 1, title: 'Passage 1', instruction: 'Choose TRUE, FALSE or NOT GIVEN', passageHtml: Array.from({ length: 30 }, (_, i) => para(i + 1)).join(''), sortOrder: 0, hasAudio: false, audioDurationMs: null }],
 }
@@ -30,7 +30,7 @@ async function mock(page: Page) {
 async function open(page: Page) {
   await mock(page)
   await page.goto('/ielts/7')
-  await page.getByRole('button', { name: 'Bắt đầu' }).click()
+  // D-155: không còn màn chọn chế độ, vào là làm ngay
   await expect(page.getByRole('article', { name: 'Câu 1' })).toBeVisible()
 }
 
