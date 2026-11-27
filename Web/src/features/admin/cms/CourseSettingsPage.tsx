@@ -14,6 +14,7 @@ const int = (min: number, max: number, label: string) =>
 const schema = z.object({
   deliveryMode: z.enum(['SELF_PACED', 'CLASS_BASED']),
   sequential: z.boolean(),
+  ielts: z.boolean(),
   lessonCompletePercent: int(1, 100, 'Tỷ lệ xem bài giảng'),
   examUnlockPercent: int(0, 100, 'Ngưỡng mở kiểm tra cuối khóa'),
   examRetakes: int(0, 1000, 'Số lần thi lại'),
@@ -35,6 +36,7 @@ function SettingsForm({ course }: { course: CourseView }) {
     defaultValues: {
       deliveryMode: course.deliveryMode === 'CLASS_BASED' ? 'CLASS_BASED' : 'SELF_PACED',
       sequential: course.sequential,
+      ielts: !!course.ielts,
       lessonCompletePercent: String(course.lessonCompletePercent),
       examUnlockPercent: String(course.examUnlockPercent),
       examRetakes: String(course.examRetakes),
@@ -50,6 +52,7 @@ function SettingsForm({ course }: { course: CourseView }) {
       const body: Record<string, unknown> = {}
       if (d.deliveryMode) body.deliveryMode = v.deliveryMode
       if (d.sequential) body.sequential = v.sequential
+      if (d.ielts) body.ielts = v.ielts
       for (const k of ['lessonCompletePercent', 'examUnlockPercent', 'examRetakes'] as const) if (d[k]) body[k] = Number(v[k])
       await write.mutateAsync(body)
       form.reset(v) // giá trị vừa lưu thành mốc mới, để lần lưu sau so đúng với máy chủ
@@ -86,6 +89,10 @@ function SettingsForm({ course }: { course: CourseView }) {
       <label className="flex min-h-12 items-center justify-between gap-4 rounded-md bg-input p-3 font-extrabold text-ink">
         Học tuần tự
         <input type="checkbox" role="switch" {...form.register('sequential')} className="size-6 accent-[#c2410c]" />
+      </label>
+      <label className="flex min-h-12 items-center justify-between gap-4 rounded-md bg-input p-3 font-extrabold text-ink">
+        Khóa IELTS
+        <input type="checkbox" role="switch" {...form.register('ielts')} className="size-6 accent-[#c2410c]" />
       </label>
       <Section title="Điều kiện và lịch">
         <div className="grid gap-3 md:grid-cols-2">

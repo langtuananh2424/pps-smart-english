@@ -10,7 +10,7 @@ const mcq = (id: number, prompt: string, groupId: number) => ({
   choices: [{ id: id * 10 + 1, label: 'A', content: `Đúng ${id}` }, { id: id * 10 + 2, label: 'B', content: `Sai ${id}` }],
 })
 const bank = (extra: Partial<Bank> = {}): Bank => ({
-  id: 7, title: 'Reading 1', lessonId: null, isTrial: false, mode: 'PRACTICE', timeLimitSec: 600, skill: 'READING',
+  id: 7, title: 'Reading 1', lessonId: null, isTrial: false, mode: 'PRACTICE', timeLimitSec: 600, skill: 'READING', ielts: true,
   questions: [mcq(1, 'Câu một?', 1), mcq(2, 'Câu hai?', 1), mcq(3, 'Câu ba?', 2)],
   groups: [
     { id: 2, title: 'Passage Hai', instruction: 'Chọn B', passageHtml: '<p>Nội dung hai</p>', sortOrder: 1, hasAudio: false, audioDurationMs: null },
@@ -50,12 +50,12 @@ describe('parts', () => {
     expect(parts.map((p) => [p.key, p.first, p.questions.length])).toEqual([['g1', 0, 2], ['g2', 2, 1], ['rest', 3, 1]])
     expect(ordered.map((q) => q.id)).toEqual([1, 2, 3, 4])
   })
-  test('khung IELTS chỉ cho bộ PRACTICE có skill Reading/Listening', () => {
-    expect(isIeltsBank({ skill: 'READING', mode: 'PRACTICE' })).toBe(true)
-    expect(isIeltsBank({ skill: 'LISTENING', mode: 'PRACTICE' })).toBe(true)
-    expect(isIeltsBank({ skill: 'READING', mode: 'EXAM' })).toBe(false) // bài thi khóa
-    expect(isIeltsBank({ skill: 'WRITING', mode: 'PRACTICE' })).toBe(false)
-    expect(isIeltsBank({ mode: 'PRACTICE' })).toBe(false)
+  test('khung IELTS chỉ cho bộ thuộc khóa IELTS (D-161) có skill đọc/nghe/viết/nói', () => {
+    for (const skill of ['READING', 'LISTENING', 'WRITING', 'SPEAKING'] as const) expect(isIeltsBank({ skill, ielts: true })).toBe(true)
+    expect(isIeltsBank({ skill: 'READING' })).toBe(false) // khóa không có cờ
+    expect(isIeltsBank({ skill: 'READING', ielts: false })).toBe(false)
+    expect(isIeltsBank({ skill: 'GRAMMAR_VOCAB', ielts: true })).toBe(false)
+    expect(isIeltsBank({ ielts: true })).toBe(false)
   })
   test('đánh dấu xem lại ưu tiên hơn đã trả lời', () => {
     expect(navState(true, true)).toBe('flagged')
@@ -67,23 +67,21 @@ describe('parts', () => {
 describe('khung thi IELTS', () => {
   beforeEach(() => setAccessToken('t'))
 
-  test('PracticePage chuyển bộ IELTS sang /ielts và Bắt đầu gửi chế độ đã chọn', async () => {
+  test('PracticePage chuyển bộ IELTS sang /ielts, vào là làm ngay, không hộp chọn chế độ và không gửi mode (D-155)', async () => {
     const calls = wire('EXAM')
     let body: unknown
     mockApiBody((b) => { body = b })
     const router = renderAt('/bai-tap/7')
-    await userEvent.click(await screen.findByRole('radio', { name: 'Mô phỏng thi' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Bắt đầu' }))
     expect(await screen.findByRole('article', { name: 'Câu 1' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/ielts/7')
-    expect(body).toEqual({ mode: 'EXAM' })
+    expect(screen.queryByRole('radiogroup', { name: 'Chế độ làm bài' })).not.toBeInTheDocument()
+    expect(body).toEqual({})
     expect(calls).toContain('/api/banks/7/attempts')
   })
 
   test('Luyện tập: tạm dừng, Cam gợi ý theo câu, popup gợi ý dài, thu gọn', async () => {
     wire('PRACTICE')
     renderAt('/ielts/7')
-    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
     expect(await screen.findByText('Tìm từ khóa')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Tạm dừng' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Xem chi tiết' }))
@@ -98,7 +96,6 @@ describe('khung thi IELTS', () => {
   test('bố cục ngang điện thoại: hai cột cuộn riêng, ẩn nút Xem bài đọc, thanh gọn (US-508)', async () => {
     wire('PRACTICE')
     renderAt('/ielts/7')
-    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
     const q = await screen.findByRole('article', { name: 'Câu 1' })
     expect(screen.getByRole('button', { name: 'Xem bài đọc' })).toHaveClass('land:hidden')
     expect(q.closest('div[class*="land:overflow-y-auto"]')).not.toBeNull()
@@ -110,8 +107,6 @@ describe('khung thi IELTS', () => {
   test('Mô phỏng thi: không tạm dừng, không gọi gợi ý', async () => {
     const calls = wire('EXAM')
     renderAt('/ielts/7')
-    await userEvent.click(await screen.findByRole('radio', { name: 'Mô phỏng thi' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Bắt đầu' }))
     await screen.findByRole('article', { name: 'Câu 1' })
     expect(screen.queryByRole('button', { name: 'Tạm dừng' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Hỏi Cam' })).not.toBeInTheDocument()
@@ -126,7 +121,6 @@ describe('khung thi IELTS', () => {
       '/api/attempts/9/questions/1/check': (b) => { calls.push(b); return json(200, { questionId: 1, correct: false, checksLeft: 1 }) },
     })
     renderAt('/ielts/7')
-    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
     const q1 = await screen.findByRole('article', { name: 'Câu 1' })
     await userEvent.click(within(q1).getByRole('radio', { name: /Sai 1/ }))
     await userEvent.click(within(q1).getByRole('button', { name: 'Kiểm tra' }))
@@ -138,8 +132,6 @@ describe('khung thi IELTS', () => {
   test('Mô phỏng thi không có nút Kiểm tra dù bộ là PRACTICE', async () => {
     wire('EXAM')
     renderAt('/ielts/7')
-    await userEvent.click(await screen.findByRole('radio', { name: 'Mô phỏng thi' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Bắt đầu' }))
     await screen.findByRole('article', { name: 'Câu 1' })
     expect(screen.queryByRole('button', { name: 'Kiểm tra' })).not.toBeInTheDocument()
   })
@@ -147,7 +139,6 @@ describe('khung thi IELTS', () => {
   test('điều hướng câu đổi phần, đánh dấu, xem lại, xác nhận rồi nộp và xem band', async () => {
     const calls = wire('PRACTICE')
     renderAt('/ielts/7')
-    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
     expect(await screen.findByText('Nội dung một')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('radio', { name: /Đúng 1/ }))
     await userEvent.click(screen.getByRole('button', { name: 'Câu 3' }))

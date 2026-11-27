@@ -32,6 +32,8 @@ export function describeError(e: unknown): Info {
       return { title: 'Bộ bài tập đang khóa', body: 'Bạn cần đăng ký khóa học chứa bộ này để làm bài.' }
     case 'exam_locked':
       return { title: 'Bài thi chưa mở', body: `Cần hoàn thành ≥ ${num(e.details, 'requiredPercent')}% bài học để mở, hiện ${num(e.details, 'progressPercent')}%.` }
+    case 'bank_assigned_as_exam':
+      return { title: 'Bộ này đang được giao làm bài thi', body: 'Giáo viên đã giao bộ này ở chế độ thi. Hãy làm bài được giao trong lớp, xong rồi bạn tự luyện lại được.' }
     case 'exam_not_started':
       return { title: 'Bài thi chưa mở', body: 'Bài thi này chưa đến giờ mở.' }
     case 'exam_attempts_exhausted':

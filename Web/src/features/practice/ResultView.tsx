@@ -9,16 +9,17 @@ import { useGrammarElements } from './elements'
 import { describeAnswer } from './describe'
 import { BuildDetail, IdentifyDetail } from './ResultDetails'
 import { isAnswerable } from './questions/registry'
-import { isAiType } from '../exercises/format'
+import { isAiType, isReflexType } from '../exercises/format'
 import { AiReview } from './AiReview'
 import { PendingCard } from './PendingCard'
+import { VideoResult } from './video/VideoResult'
 import { QuestionStem } from './QuestionStem'
 import { ResultList } from './ResultList'
 import { useAiOutcomes } from './useAiOutcomes'
 import { ForcedResultView } from './listening/ForcedResultView'
 import { ResultBreakdown } from './ResultBreakdown'
 import { pillNeutral, pillPrimary } from './questions/ui'
-import type { Answers, AttemptResult, Bank, Question, QuestionResult } from './types'
+import type { Answers, AttemptResult, Bank, GroupLayout, Question, QuestionResult } from './types'
 
 export const POLL_MS = 3000
 export const POLL_LIMIT_MS = 120_000
@@ -59,6 +60,7 @@ export function ResultView({ bank, initial, answers, onRetry }: Props) {
 
   const elements = useGrammarElements()
   const hasAi = bank.questions.some((x) => isAiType(x.type))
+  const reflex = bank.questions.filter((x) => isReflexType(x.type)) // D-158: tổng "Đã hoàn thành n/n câu"
   // Điểm từng câu Viết/Nói chỉ mở khi cả bộ đã chấm xong (D-147).
   const ai = useAiOutcomes(r.id, hasAi && !hidden)
   if (r.forced) return <ForcedResultView bank={bank} attemptId={r.id} forced={r.forced} onRetry={onRetry} />
@@ -108,13 +110,21 @@ export function ResultView({ bank, initial, answers, onRetry }: Props) {
           {quotaNotice}
         </section>
 
+        {!hidden && bank.questions.some((x) => x.type === 'VIDEO_CONNECTIVE') && <VideoResult attemptId={r.id} />}
+
+        {!hidden && reflex.length > 0 && (
+          <p role="status" className="text-center text-lg font-black text-ink">
+            Đã hoàn thành {reflex.filter((x) => ai.outcomes.get(x.id)?.session.status === 'GRADED').length}/{reflex.length} câu
+          </p>
+        )}
+
         {!hidden && <ResultBreakdown breakdown={r.breakdown} bank={bank} elementName={elements.name} />}
 
         {!hidden && hasAi && <ResultList bank={bank} results={r.results ?? []} outcomes={ai.outcomes} ready={ai.ready} onReview={setReview} />}
 
         {!hidden && <ol className="flex flex-col gap-4">
           {bank.questions.map((question, i) => (isAiType(question.type) ? null : (
-            <Row key={question.id} index={i} question={question} result={byQuestion.get(question.id)} mine={answers?.[question.id]} showMine={answers !== undefined} pending={pending} elementName={elements.name} />
+            <Row key={question.id} index={i} question={question} result={byQuestion.get(question.id)} mine={answers?.[question.id]} showMine={answers !== undefined} layout={bank.groups?.find((g) => g.id === question.groupId)?.layout} pending={pending} elementName={elements.name} />
           )))}
         </ol>}
 
@@ -131,12 +141,12 @@ export function ResultView({ bank, initial, answers, onRetry }: Props) {
   )
 }
 
-function Row({ index, question, result, mine, showMine, pending, elementName }: { index: number; question: Question; result?: QuestionResult; mine?: Answers[number]; showMine: boolean; pending: boolean; elementName: (c: string) => string }) {
+function Row({ index, question, result, mine, showMine, pending, elementName, layout }: { layout?: GroupLayout | null; index: number; question: Question; result?: QuestionResult; mine?: Answers[number]; showMine: boolean; pending: boolean; elementName: (c: string) => string }) {
   const skipped = !isAnswerable(question.type)
   const grading = !skipped && result?.isCorrect == null && pending
   const badge = skipped ? null : grading ? ['Đang chấm…', 'bg-muted text-ink-secondary'] : result?.isCorrect ? ['Đúng', 'bg-success-bg text-success-fg'] : result?.isCorrect === false ? ['Chưa đúng', 'bg-danger-bg text-danger-fg'] : ['Chưa chấm', 'bg-muted text-ink-secondary']
-  const yours = describeAnswer(question, mine, elementName)
-  const correct = describeAnswer(question, result?.correctAnswer, elementName)
+  const yours = describeAnswer(question, mine, elementName, layout)
+  const correct = describeAnswer(question, result?.correctAnswer, elementName, layout)
   // Hai dạng có bố cục kết quả riêng (Figma 415); các dạng còn lại hiện dòng Bài làm / Đáp án đúng.
   const custom = result?.correctAnswer && (question.type === 'GRAMMAR_IDENTIFY' ? IdentifyDetail : question.type === 'GRAMMAR_BUILD' ? BuildDetail : null)
   return (

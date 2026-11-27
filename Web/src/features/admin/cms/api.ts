@@ -15,6 +15,7 @@ export interface CourseView {
   targetType: string | null
   status: Status
   sequential: boolean
+  ielts: boolean // D-161
   lessonCompletePercent: number
   examUnlockPercent: number
   examRetakes: number

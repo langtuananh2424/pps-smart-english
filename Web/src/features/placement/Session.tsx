@@ -4,6 +4,7 @@ import { labelOf } from '../exercises/format'
 import { BottomBar } from '../practice/BottomBar'
 import { ConfirmDialog } from '../practice/ConfirmDialog'
 import { PlayHeader } from '../practice/PlayHeader'
+import { QuestionStem } from '../practice/QuestionStem'
 import { isAnswerable, isAnswered, rendererOf } from '../practice/questions/registry'
 import type { Answer } from '../practice/types'
 import { useCountdown } from '../practice/useCountdown'
@@ -102,7 +103,7 @@ export function Session({ saved, onDone }: Props) {
           <p className="text-[13px] font-extrabold leading-[18px] text-brand-strong">
             Câu {index + 1}/{qs.length} · {SKILL_LABEL[question.skill] ?? question.skill} · {labelOf(question.type)}
           </p>
-          <p className="whitespace-pre-line text-lg font-black leading-6 text-ink md:text-2xl md:leading-[30px]">{question.prompt}</p>
+          <QuestionStem question={question} className="whitespace-pre-line text-lg font-black leading-6 text-ink md:text-2xl md:leading-[30px]" />
           <Component key={question.id} question={question} value={sync.answers[question.id]} onChange={onChange} disabled={busy} />
         </article>
       </main>

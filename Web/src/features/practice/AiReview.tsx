@@ -1,5 +1,6 @@
-import { labelOf } from '../exercises/format'
+import { isReflexType, labelOf } from '../exercises/format'
 import logo from '../../assets/logo-pps.png'
+import { QuestionStem } from './QuestionStem'
 import { pillPrimary } from './questions/ui'
 import { hasReview, type AiOutcome } from './useAiOutcomes'
 import type { Bank } from './types'
@@ -32,9 +33,9 @@ export function AiReview({ bank, questionId, outcomes, onGo, onBack }: Props) {
         <section aria-label={writing ? 'Đề viết' : 'Đề nói'} className={card}>
           <p className="text-[13px] font-extrabold text-brand-strong">Câu {index + 1} · {writing ? 'Đề viết' : 'Đề nói'}</p>
           {question.instruction && <p className="text-base font-bold text-brand-strong">{question.instruction}</p>}
-          <p className="text-2xl font-black leading-[30px] text-ink">{question.prompt}</p>
+          <QuestionStem question={question} className="text-2xl font-black leading-[30px] text-ink" />
         </section>
-        {writing ? <WritingFeedback o={o} /> : <SpeakingFeedback o={o} />}
+        {writing ? <WritingFeedback o={o} /> : <SpeakingFeedback o={o} criteria={isReflexType(question.type)} />}
       </main>
       <nav aria-label="Câu có nhận xét" className="fixed inset-x-0 bottom-0 z-20 flex h-[72px] items-center justify-between gap-3 border-t border-line bg-surface px-4 md:px-7">
         <ol className="flex min-w-0 gap-1 overflow-x-auto">
@@ -80,7 +81,10 @@ function WritingFeedback({ o }: { o?: AiOutcome }) {
   )
 }
 
-function SpeakingFeedback({ o }: { o?: AiOutcome }) {
+// Tiêu chí theo Figma 11.28: chỉ hiện tiêu chí engine Nói đã trả (GV, DM chưa có nên chưa hiện).
+const CRITERIA = [['P', 'Phát âm', 'pronunciation'], ['FC', 'Độ trôi chảy', 'fluency'], ['LR', 'Từ vựng', 'lexical'], ['GRA', 'Ngữ pháp', 'grammar']] as const
+
+function SpeakingFeedback({ o, criteria }: { o?: AiOutcome; criteria?: boolean }) {
   const sub = o?.speaking
   const r = sub?.result
   if (!sub || !r?.bands) return null
@@ -91,6 +95,16 @@ function SpeakingFeedback({ o }: { o?: AiOutcome }) {
         <span className={chipCls}>Band {(r.overall ?? 0).toFixed(1)}</span>
       </div>
       {sub.audioUrl && <audio aria-label="Nghe lại bản ghi" controls src={sub.audioUrl} className="w-full" />}
+      {criteria && (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-extrabold text-ink">Điểm theo từng tiêu chí</h3>
+          <ul className="grid grid-cols-2 gap-2">
+            {CRITERIA.filter(([, , k]) => typeof r.bands?.[k] === 'number').map(([code, name, k]) => (
+              <li key={code} className="flex justify-between rounded-md bg-subtle px-3 py-2 text-sm font-extrabold text-ink"><span>{code} · {name}</span><span>{r.bands![k].toFixed(1)}</span></li>
+            ))}
+          </ul>
+        </div>
+      )}
       {r.mispronounced && r.mispronounced.length > 0 && (
         <div className="flex flex-col gap-2">
           <h3 className="text-sm font-extrabold text-ink">Phát âm từng từ</h3>

@@ -20,9 +20,41 @@ export const QUESTION_TYPES = [
   ['WRITING', 'Viết tự luận'],
   ['SPEAKING', 'Nói'],
 ] as const
-export type QuestionType = (typeof QUESTION_TYPES)[number][0]
-export const typeLabel = (t: string) => QUESTION_TYPES.find(([c]) => c === t)?.[1] ?? t
-export const usesChoices = (t: QuestionType) => t === 'CONNECTIVE_MCQ' || t === 'CHOICE_MULTI'
+// D-154: kiểu Luyện tập PPS mới.
+export const PPS_TYPES = [
+  ['LETTER_ORDER', 'Sắp xếp chữ cái'],
+  ['DICTATION', 'Chép chính tả'],
+  ['LISTEN_FORM', 'Nghe điền phiếu thông tin'],
+  ['LISTEN_RECORD', 'Nghe rồi nộp bản ghi'],
+  ['VIDEO_CONNECTIVE', 'Video từ nối'],
+  ['VIDEO_SHORT', 'Video phản xạ · Câu ngắn'],
+  ['VIDEO_CUE', 'Video phản xạ · Cue card'],
+  ['VIDEO_DISCUSS', 'Video phản xạ · Thảo luận'],
+  ['VIDEO_PICTURE', 'Video phản xạ · Tả tranh'],
+] as const
+// D-157: mỗi dạng IELTS Reading/Listening một kiểu; phần chung nằm ở layout của nhóm câu.
+export const IELTS_TYPES = [
+  ['IELTS_TFNG', 'True / False / Not Given'],
+  ['IELTS_YNNG', 'Yes / No / Not Given'],
+  ['IELTS_MATCH_INFO', 'Matching information'],
+  ['IELTS_MATCH_HEADINGS', 'Matching headings'],
+  ['IELTS_MATCH_FEATURES', 'Matching features'],
+  ['IELTS_MATCH_ENDINGS', 'Matching sentence endings'],
+  ['IELTS_MATCHING', 'Matching (Listening)'],
+  ['IELTS_SENTENCE', 'Sentence completion'],
+  ['IELTS_SUMMARY', 'Summary completion (gõ chữ)'],
+  ['IELTS_SUMMARY_BANK', 'Summary completion (hộp từ)'],
+  ['IELTS_NOTE', 'Note completion'],
+  ['IELTS_TABLE', 'Table completion'],
+  ['IELTS_FLOWCHART', 'Flow-chart completion'],
+  ['IELTS_FORM', 'Form completion'],
+  ['IELTS_DIAGRAM', 'Diagram label completion'],
+  ['IELTS_MAP', 'Plan / Map labelling'],
+  ['IELTS_SHORT', 'Short-answer questions'],
+] as const
+export type QuestionType = (typeof QUESTION_TYPES | typeof PPS_TYPES | typeof IELTS_TYPES)[number][0]
+export const typeLabel = (t: string) => [...QUESTION_TYPES, ...PPS_TYPES, ...IELTS_TYPES].find(([c]) => c === t)?.[1] ?? t
+export const usesChoices = (t: QuestionType) => t === 'CONNECTIVE_MCQ' || t === 'CHOICE_MULTI' || t === 'VIDEO_CONNECTIVE'
 
 export const SKILLS = ['LISTENING', 'READING', 'GRAMMAR'] as const
 export const DISPLAY_SIZES = [
@@ -61,6 +93,9 @@ export interface BankView {
   playLimit: number | null
   // Ngưỡng đạt % của bộ bài (D-145); backend có thể chưa trả.
   passPct?: number | null
+  // D-161: bộ thuộc khóa IELTS (cho soạn kiểu IELTS_*) và kỹ năng của topic chứa bộ.
+  ielts?: boolean
+  skill?: string | null
 }
 export interface ChoiceView {
   id: number
@@ -109,6 +144,11 @@ export interface GroupView {
   audioAssetId: number | null
   audioDurationMs: number | null
   transcriptHtml: string | null
+  videoAssetId: number | null
+  videoYoutubeId: string | null
+  videoDurationSec?: number | null // D-159: thời lượng video YouTube do CMS nhập
+  // D-154: bố cục dùng chung của dạng IELTS/Nghe; kind xem layout/layoutModel.ts.
+  layout?: Obj | null
 }
 export interface BankDetail {
   bank: BankView

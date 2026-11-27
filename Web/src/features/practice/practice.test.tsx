@@ -84,12 +84,12 @@ describe('renderer tạo đúng answer', () => {
   })
   test('WRITING không có đáp án và không tính câu chưa làm', () => {
     mount(q('WRITING', {}, { id: 42 }))
-    expect(screen.getByRole('link', { name: 'Làm ở màn Viết' })).toHaveAttribute('href', '/viet/42')
+    expect(screen.getByText('Dạng câu này chưa hỗ trợ ở màn này')).toBeInTheDocument()
     expect(isAnswered('WRITING', { text: 'x' })).toBe(false)
   })
-  test('SPEAKING dẫn tới màn Nói', () => {
+  test('SPEAKING cũng chỉ báo trung tính', () => {
     mount(q('SPEAKING', {}, { id: 43 }))
-    expect(screen.getByRole('link', { name: 'Làm ở màn Nói' })).toHaveAttribute('href', '/noi/43')
+    expect(screen.queryByRole('link')).toBeNull()
   })
 })
 

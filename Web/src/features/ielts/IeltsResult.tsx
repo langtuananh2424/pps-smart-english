@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import cam from '../../assets/exercises/cam-kinh-lup.webp'
 import { describeAnswer } from '../practice/describe'
+import { QuestionStem } from '../practice/QuestionStem'
 import { pillNeutral, pillPrimary } from '../practice/questions/ui'
 import { ErrorCard } from '../practice/StatusCard'
 import type { Bank, QuestionResult } from '../practice/types'
@@ -55,11 +56,14 @@ export function IeltsResult({ bank, attemptId, onRetry }: { bank: Bank; attemptI
             <ol>
               {ordered.map((x, i) => {
                 const res = byQuestion.get(x.id)
-                const right = res?.correctAnswer ? describeAnswer(x, res.correctAnswer) : null
+                const right = res?.correctAnswer ? describeAnswer(x, res.correctAnswer, undefined, bank.groups?.find((g) => g.id === x.groupId)?.layout) : null
                 return (
                   <li key={x.id} className="flex flex-col gap-1 border-b border-line py-3 last:border-b-0">
                     <div className="flex items-start justify-between gap-3">
-                      <p className="font-black text-ink">Câu {i + 1}. {x.prompt}</p>
+                      <div className="flex min-w-0 flex-col gap-2">
+                        <p className="font-black text-ink">Câu {i + 1}.</p>
+                        <QuestionStem question={x} className="font-black text-ink" />
+                      </div>
                       <span className={`shrink-0 text-sm font-black ${res?.isCorrect ? 'text-success-fg' : 'text-danger-fg'}`}>{res?.isCorrect === true ? 'Đúng' : res?.isCorrect === false ? 'Sai' : 'Chưa làm'}</span>
                     </div>
                     {right && <p className="text-sm font-semibold text-ink">Đáp án: {right}</p>}

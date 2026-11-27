@@ -18,7 +18,19 @@ export interface Question {
   media?: QuestionMedia[]
 }
 // D-133: bài đọc/audio dùng chung; passageHtml đã được máy chủ làm sạch.
-export interface BankGroup { id: number; title: string | null; instruction: string | null; passageHtml: string | null; sortOrder: number; hasAudio: boolean; audioDurationMs: number | null }
+// D-154: bố cục dùng chung của nhóm; html đã được máy chủ làm sạch, {slot} là chỗ trống của câu có payload.slot trùng.
+export interface LayoutImage { url: string; width: number; height: number }
+export type GroupLayout =
+  | { kind: 'OPTIONS'; title?: string; options: { id: string; text: string }[]; reuse?: boolean }
+  | { kind: 'TEXT'; html: string }
+  | { kind: 'TEXT_BANK'; html: string; words: { id: string; text: string }[]; reuse?: boolean }
+  | { kind: 'NOTE'; title?: string; lines: { html: string }[] }
+  | { kind: 'TABLE'; title?: string; header: string[]; rows: string[][] }
+  | { kind: 'FLOW'; title?: string; steps: string[] }
+  | { kind: 'FORM'; title?: string; rows: { label: string; slot?: string; value?: string }[] }
+  | { kind: 'DIAGRAM'; title?: string; image?: LayoutImage; points: { slot: string; x: number; y: number }[] }
+  | { kind: 'MAP'; title?: string; image?: LayoutImage; options: { id: string; x: number; y: number }[] }
+export interface BankGroup { id: number; title: string | null; instruction: string | null; passageHtml: string | null; sortOrder: number; hasAudio: boolean; audioDurationMs: number | null; videoUrl?: string | null; videoYoutubeId?: string | null; layout?: GroupLayout | null }
 // D-135: FREE tự do · EXAM tự phát, ít lượt · LOCKED (Nghe ép) không tua, nghe lại khi audio đã hết.
 export type PlaybackMode = 'FREE' | 'EXAM' | 'LOCKED'
 export interface Bank {
@@ -32,6 +44,7 @@ export interface Bank {
   groups?: BankGroup[]
   playbackMode?: PlaybackMode
   playLimit?: number | null // mặc định của bộ, KHÔNG phải số lượt còn lại
+  ielts?: boolean // D-161: bộ thuộc khóa có cờ "Khóa IELTS" mở khung thi IELTS
   skill?: 'LISTENING' | 'READING' | 'WRITING' | 'SPEAKING' | 'GRAMMAR_VOCAB' // D-58: kỹ năng của topic chứa bộ
 }
 
@@ -42,6 +55,18 @@ export interface AnswerItem { questionId: number; answer: Answer }
 
 // D-145: phiên Viết/Nói mới nhất của một câu trong lượt; id là sessionId (Viết) hoặc submissionId (Nói). Không có điểm.
 export interface AiSession { questionId: number; kind: 'WRITING' | 'SPEAKING'; id: number; status: 'NOT_SUBMITTED' | 'GRADING' | 'GRADED' | 'FAILED' }
+// D-158: khớp ReflexProgress.View của backend. Không có điểm hay bản sửa (D-147), chỉ cờ đạt và số lần.
+export interface ReflexProgress {
+  writingFirst: boolean
+  writeUsed: number
+  writeMax: number
+  writePassed: boolean
+  writePending: boolean
+  speakOpen: boolean
+  recordUsed: number
+  recordMax: number
+  maxSeconds: number
+}
 export interface AttemptSummary { id: number; bankId: number; startedAt: string; submittedAt: string | null; score: number | null; maxScore: number | null }
 export interface Started { id: number; bankId: number; startedAt: string; timeLimitSec: number | null; mode?: 'PRACTICE' | 'EXAM' | null }
 // D-150: kiểm tra từng câu. checksLeft = số lần kiểm tra còn lại; câu khóa khi đúng hoặc checksLeft = 0. Không có đáp án.
@@ -93,4 +118,5 @@ export interface QuestionProps {
   value: Answer | undefined
   onChange: (v: Answer | undefined) => void
   disabled?: boolean
+  layout?: GroupLayout | null // bố cục của nhóm chứa câu (danh sách lựa chọn, hộp từ)
 }

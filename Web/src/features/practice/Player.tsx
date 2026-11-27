@@ -2,7 +2,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError } from '../../lib/api'
 import { pillPrimary } from './questions/ui'
-import { isAiType, labelOf } from '../exercises/format'
+import { isAiType, isReflexType, labelOf } from '../exercises/format'
+import { ReflexSession } from './reflex/ReflexSession'
 import { AiAnswer } from './ai/AiAnswer'
 import { isSent, writingKey, type SendAction } from './ai/answer'
 import { useAiRefs } from './ai/useAiRefs'
@@ -12,12 +13,15 @@ import { CheckBar } from './CheckBar'
 import { CamHint } from './CamHint'
 import { ConfirmDialog } from './ConfirmDialog'
 import { GroupPassage } from './GroupPassage'
+import { GroupVideo } from './GroupVideo'
+import { VideoQuizGroup } from './video/VideoQuizGroup'
 import { GroupAudio } from './listening/GroupAudio'
 import { PlayHeader } from './PlayHeader'
 import { QuestionStem } from './QuestionStem'
 import { ErrorCard } from './StatusCard'
+import { GroupLayoutView, isHeadLayout, isInlineLayout, LayoutHead, type LayoutItem } from './layout'
 import { isAnswerable, isAnswered, rendererOf } from './questions/registry'
-import type { AiSession, Answer, Answers, AttemptResult, Bank, Progress } from './types'
+import type { Answer, Answers, AttemptResult, Bank, Progress } from './types'
 import { clearStoredText } from '../writing/useStoredText'
 import { useCheck, isCheckable, isLocked } from './useCheck'
 import { useCountdown } from './useCountdown'
@@ -113,7 +117,9 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
   const pending = bank.questions.flatMap((x, i) => (!answered[i] && (isAiType(x.type) || isAnswerable(x.type)) ? [i] : []))
   const zeroAi = pending.filter((i) => isAiType(bank.questions[i].type)).length
   const grading = Object.values(ai.refs).filter((s) => s.status === 'GRADING').length
-  const aiQ = isAiType(question.type)
+  const isReflex = isReflexType(question.type) // D-158: cả nhóm Video phản xạ là một màn toàn màn hình
+  const aiQ = isAiType(question.type) && !isReflex
+  const isVideoQuiz = question.type === 'VIDEO_CONNECTIVE' // D-159: cả nhóm video là một màn, câu hỏi nằm trong màn đó
   const last = index === bank.questions.length - 1
   const { Component } = rendererOf(question.type)
   const group = question.groupId != null ? bank.groups?.find((g) => g.id === question.groupId) : undefined
@@ -123,6 +129,12 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
     setConfirm(true)
   }
   const onChange = (v: Answer | undefined) => setAnswers((a) => ({ ...a, [question.id]: v }))
+  // D-154: bố cục nhóm (phiếu, bảng...) hiện cả nhóm trên một màn, mỗi ô là một câu của bộ.
+  const layout = group?.layout
+  const inline = !aiQ && isInlineLayout(layout) ? layout : null
+  const layoutItems: LayoutItem[] = inline
+    ? bank.questions.flatMap((x, i) => (x.groupId === group!.id ? [{ question: x, n: i + 1, disabled: paused || busy || (retry.enabled && isCheckable(x.type) && isLocked(retry.checks[x.id])) }] : []))
+    : []
 
   return (
     <div className="min-h-dvh bg-page pb-[124px] md:pb-[72px]">
@@ -134,21 +146,36 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
           {group && twoCol && <GroupPassage group={group} />}
           <div className="flex flex-col gap-3">
             {group && !twoCol && <GroupPassage group={group} />}
+            {group && !isVideoQuiz && !isReflex && <GroupVideo group={group} />}
+            {isHeadLayout(layout) && <LayoutHead layout={layout} />}
             {group?.hasAudio && <GroupAudio key={group.id} attemptId={attemptId} group={group} mode={bank.playbackMode ?? 'FREE'} defaultLimit={bank.playLimit} disabled={paused || busy} />}
+        {isReflex && group ? (
+          <ReflexSession
+            key={group.id} attemptId={attemptId} group={group} questions={bank.questions.filter((x) => x.groupId === group.id && isReflexType(x.type)).sort((a, b) => (a.payload?.at ?? 0) - (b.payload?.at ?? 0))}
+            refs={ai.refs} disabled={paused || busy} onSpoken={(id, sub) => ai.set(id, sub, 'SPEAKING', 'GRADING')} track={track}
+          />
+        ) : isVideoQuiz && group ? (
+          <VideoQuizGroup attemptId={attemptId} group={group} questions={bank.questions.filter((x) => x.groupId === group.id)} answers={answers} onChange={(id, v) => setAnswers((a) => ({ ...a, [id]: v }))} disabled={paused || busy} />
+        ) : (
         <article aria-label={`Câu ${index + 1}`} className="flex flex-col gap-3 rounded-lg border-[1.5px] border-line bg-surface p-4 md:p-6">
           <p className="text-[13px] font-extrabold leading-[18px] text-brand-strong">
             Câu {index + 1}/{bank.questions.length} · {question.instruction ?? labelOf(question.type)}
           </p>
-          <QuestionStem question={question} className="text-lg font-black leading-6 text-ink md:text-2xl md:leading-[30px]" />
-          {!aiQ && <Component key={question.id} question={question} value={answers[question.id]} onChange={onChange} disabled={paused || busy || locked} />}
+          {inline ? (
+            <GroupLayoutView layout={inline} items={layoutItems} answers={answers} onChange={(id, v) => setAnswers((a) => ({ ...a, [id]: v }))} />
+          ) : (
+            <QuestionStem question={question} className="text-lg font-black leading-6 text-ink md:text-2xl md:leading-[30px]" />
+          )}
+          {!aiQ && !inline && <Component key={question.id} layout={layout} question={question} value={answers[question.id]} onChange={onChange} disabled={paused || busy || locked} />}
           {checkable && <CheckBar state={checkState} canCheck={!paused && !busy && isAnswered(question.type, answers[question.id])} pending={retry.pending} onCheck={() => void runCheck()} />}
         </article>
+        )}
           </div>
           {aiQ && (
             <div className="flex flex-col gap-3">
               <AiAnswer
                 key={question.id} question={question} attemptId={attemptId} session={ai.refs[question.id]} loaded={ai.ready} disabled={paused || busy}
-                onRef={(id, status) => ai.set(question.id, id, question.type as AiSession['kind'], status)} onSend={setSend} track={track}
+                onRef={(id, status) => ai.set(question.id, id, question.type === 'WRITING' ? 'WRITING' : 'SPEAKING', status)} onSend={setSend} track={track}
                 onSkip={() => (last ? openConfirm() : setIndex(index + 1))}
               />
             </div>
@@ -165,7 +192,7 @@ function Session({ bank, attemptId, onDone, progress, syncedAt }: Props & { prog
           </div>
         )}
       </main>
-      <CamHint hints={paused ? [] : (question.hints ?? [])} notice={checkable && !locked && retry.wrong?.questionId === question.id ? 'Cần sửa, thử lại nhé' : null} openKey={retry.wrong?.questionId === question.id ? retry.wrong.n : undefined} />
+      <CamHint faqBankId={bank.mode === 'PRACTICE' ? bank.id : undefined} hints={paused ? [] : (question.hints ?? [])} notice={checkable && !locked && retry.wrong?.questionId === question.id ? 'Cần sửa, thử lại nhé' : null} openKey={retry.wrong?.questionId === question.id ? retry.wrong.n : undefined} />
       <BottomBar count={bank.questions.length} index={index} answered={answered} onGo={setIndex} onSubmit={openConfirm} disabled={paused || busy} submitDisabled={uploading} send={aiQ ? send : null} />
       {confirm && <ConfirmDialog pending={pending} zeroAi={zeroAi} grading={grading} busy={busy} error={error} onGo={(i) => { setIndex(i); setConfirm(false) }} onConfirm={() => void submit()} onCancel={() => setConfirm(false)} />}
     </div>
