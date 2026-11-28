@@ -1,6 +1,6 @@
 import type { AsgProgressRow, ClassDetail, StudentProgress, TeachAssignment, TeachClass } from './api'
 
-export const cls: TeachClass = { id: 3, courseId: 9, courseTitle: 'IELTS Foundation', name: 'Lớp A1', startsOn: '2026-12-01', endsOn: '2027-03-01', mode: 'ONLINE', capacity: 30, status: 'OPEN', activeMembers: 12 }
+export const cls: TeachClass = { id: 3, courseId: 9, courseTitle: 'IELTS Foundation', name: 'Lớp A1', startsOn: '2026-12-01', endsOn: '2027-03-01', mode: 'ONLINE', capacity: 30, status: 'OPEN', activeMembers: 12, avgLessonPercent: 62, laggingCount: 2 }
 
 export const detail: ClassDetail = {
   info: cls,
