@@ -10,9 +10,11 @@ import com.pps.smartenglish.classroom.dto.AssignmentDtos.ProgressRow;
 import com.pps.smartenglish.classroom.dto.AssignmentDtos.UpdateAssignment;
 import com.pps.smartenglish.classroom.dto.AssignmentDtos.AssignableTree;
 import com.pps.smartenglish.classroom.service.AssignableService;
+import com.pps.smartenglish.classroom.service.AssignmentAttemptResultReader;
 import com.pps.smartenglish.classroom.service.AssignmentProgressService;
 import com.pps.smartenglish.classroom.service.AssignmentService;
 import com.pps.smartenglish.classroom.service.AssignmentSubmissionReader;
+import com.pps.smartenglish.exercise.dto.AttemptReview;
 import com.pps.smartenglish.exercise.dto.AttemptStarted;
 import com.pps.smartenglish.shared.security.CurrentUser;
 import com.pps.smartenglish.shared.web.PathId;
@@ -43,9 +45,11 @@ class AssignmentController {
     private final AssignmentProgressService progress;
     private final AssignmentSubmissionReader submissions;
     private final AssignableService assignable;
+    private final AssignmentAttemptResultReader results;
 
     AssignmentController(AssignmentService assignments, AssignmentProgressService progress, AssignmentSubmissionReader submissions,
-                         AssignableService assignable) {
+                         AssignableService assignable, AssignmentAttemptResultReader results) {
+        this.results = results;
         this.assignable = assignable;
         this.assignments = assignments;
         this.progress = progress;
@@ -118,6 +122,13 @@ class AssignmentController {
     AiSubmissionDetail submission(Authentication auth, @PathVariable String classId, @PathVariable String id, @PathVariable String submissionId) {
         return submissions.read(CurrentUser.id(auth), cls(classId), asg(id),
                 PathId.parse(submissionId, "submission_not_found", "Không tìm thấy bài nộp của bài này"));
+    }
+
+    /** D-174: giáo viên xem từng câu của lượt nộp bài giao bộ câu, chỉ đọc. */
+    @GetMapping(BASE + "/{id}/attempts/{attemptId}/result")
+    AttemptReview attemptResult(Authentication auth, @PathVariable String classId, @PathVariable String id, @PathVariable String attemptId) {
+        return results.read(CurrentUser.id(auth), cls(classId), asg(id),
+                PathId.parse(attemptId, "attempt_not_found", "Không tìm thấy lượt làm bài"));
     }
 
     @PutMapping(BASE + "/{id}/attempts/{attemptId}/grade")
