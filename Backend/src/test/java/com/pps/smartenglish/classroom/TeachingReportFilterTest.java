@@ -35,6 +35,11 @@ class TeachingReportFilterTest extends ApiTestBase {
 
     private static final String PASSWORD = "mat-khau-1";
 
+    // Ngày cố định riêng cho từng test có xuất báo cáo: bảng teaching_report_exports dùng chung giữa các test, mốc xuất của test khác không được phủ tới.
+    private static final LocalDate DAY_FILTER = LocalDate.of(2021, 5, 10);
+    private static final LocalDate DAY_MARK = LocalDate.of(2021, 6, 10);
+    private static final LocalDate DAY_ROLE = LocalDate.of(2021, 7, 10);
+
     @Autowired EntityManagerFactory emf;
 
     private long insert(String table, Map<String, Object> cols) {
@@ -84,10 +89,24 @@ class TeachingReportFilterTest extends ApiTestBase {
 
     /** Buổi nhóm đã qua, đã điểm danh một học viên. */
     private long markedSession(long cls, Account teacher, Account student, String status) {
-        long id = insert("class_sessions", Map.of("class_id", cls, "kind", "GROUP", "mode", "ONLINE", "starts_at", Timestamp.from(Instant.now().minusSeconds(7200)),
-                "ends_at", Timestamp.from(Instant.now().minusSeconds(3600)), "taught_by", teacher.id(), "created_by", teacher.id()));
+        return markedSession(cls, teacher, student, status, Instant.now().minusSeconds(7200));
+    }
+
+    /** Buổi bắt đầu lúc start, dài 1 giờ. Test có xuất báo cáo dùng ngày cố định riêng (xem day) để các lần xuất của test khác không phủ tới. */
+    private long markedSession(long cls, Account teacher, Account student, String status, Instant start) {
+        long id = insert("class_sessions", Map.of("class_id", cls, "kind", "GROUP", "mode", "ONLINE", "starts_at", Timestamp.from(start),
+                "ends_at", Timestamp.from(start.plusSeconds(3600)), "taught_by", teacher.id(), "created_by", teacher.id()));
         jdbc.update("insert into attendance_marks (session_id, user_id, status, marked_by, marked_at) values (?, ?, ?, ?, CURRENT_TIMESTAMP)", id, student.id(), status, teacher.id());
         return id;
+    }
+
+    /** 10:00 giờ Việt Nam của ngày day. */
+    private static Instant at(LocalDate day) {
+        return day.atTime(10, 0).atZone(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toInstant();
+    }
+
+    private static String around(LocalDate day) {
+        return "?from=" + day.minusDays(1) + "&to=" + day.plusDays(1);
     }
 
     private JsonNode rows(String url, String token) throws Exception {
@@ -118,11 +137,11 @@ class TeachingReportFilterTest extends ApiTestBase {
         staff(b, u, "TEACHER");
         var sa = member(a, course);
         var sb = member(b, course);
-        markedSession(a, t, sa, "PRESENT");
-        markedSession(b, t, sb, "PRESENT");
-        markedSession(b, u, sb, "PRESENT");
+        markedSession(a, t, sa, "PRESENT", at(DAY_FILTER));
+        markedSession(b, t, sb, "PRESENT", at(DAY_FILTER));
+        markedSession(b, u, sb, "PRESENT", at(DAY_FILTER));
         var acc = withRole("ACCOUNTANT");
-        String range = "?from=" + LocalDate.now().minusDays(2) + "&to=" + LocalDate.now().plusDays(1);
+        String range = around(DAY_FILTER);
 
         // một người ở hai vai thì hai dòng
         assertEquals(List.of("%d:TEACHER:1".formatted(t.id()), "%d:ASSISTANT:1".formatted(t.id()), "%d:TEACHER:1".formatted(u.id())).stream().sorted().toList(),
@@ -177,11 +196,11 @@ class TeachingReportFilterTest extends ApiTestBase {
         staff(b, as, "ASSISTANT");
         var sa = member(a, course);
         var sb = member(b, course);
-        long teacherA = markedSession(a, t, sa, "PRESENT");
-        long teacherB = markedSession(b, t, sb, "PRESENT");
-        long assistantB = markedSession(b, as, sb, "PRESENT");
+        long teacherA = markedSession(a, t, sa, "PRESENT", at(DAY_MARK));
+        long teacherB = markedSession(b, t, sb, "PRESENT", at(DAY_MARK));
+        long assistantB = markedSession(b, as, sb, "PRESENT", at(DAY_MARK));
         var acc = withRole("ACCOUNTANT");
-        String range = "?from=" + LocalDate.now().minusDays(2) + "&to=" + LocalDate.now().plusDays(1);
+        String range = around(DAY_MARK);
         Instant before = Instant.now().minusSeconds(60);
         for (long s : new long[] {teacherA, teacherB, assistantB}) change(s, sb, t, before);
 
@@ -205,10 +224,10 @@ class TeachingReportFilterTest extends ApiTestBase {
         staff(b, as, "ASSISTANT");
         var sa = member(a, course);
         var sb = member(b, course);
-        long teacherA = markedSession(a, t, sa, "PRESENT");
-        long assistantB = markedSession(b, as, sb, "PRESENT");
+        long teacherA = markedSession(a, t, sa, "PRESENT", at(DAY_ROLE));
+        long assistantB = markedSession(b, as, sb, "PRESENT", at(DAY_ROLE));
         var acc = withRole("ACCOUNTANT");
-        String range = "?from=" + LocalDate.now().minusDays(2) + "&to=" + LocalDate.now().plusDays(1);
+        String range = around(DAY_ROLE);
         change(teacherA, sa, t, Instant.now().minusSeconds(60));
         change(assistantB, sb, as, Instant.now().minusSeconds(60));
 
