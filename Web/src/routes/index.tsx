@@ -20,6 +20,7 @@ import { AssignmentsPage } from '../features/assignments/AssignmentsPage'
 import { ExtraPracticePage } from '../features/extra/ExtraPage'
 import { ExtraRunPage } from '../features/extra/ExtraRunPage'
 import { ExercisePickerPage } from '../features/exercises/PickerPage'
+import { LearningProfilePage } from '../features/profile/LearningProfilePage'
 import { ProfilePage } from '../features/profile/ProfilePage'
 import { AttemptResultPage } from '../features/practice/AttemptResultPage'
 import { IeltsPage } from '../features/ielts/IeltsPage'
@@ -84,6 +85,7 @@ export const routes: RouteObject[] = [
               { path: '/bai-giao', element: <AssignmentsPage /> },
               { path: '/lop/:classId/bai-giao/:assignmentId', element: <AssignmentPage /> },
               { path: '/ho-so', element: <ProfilePage /> },
+              { path: '/ho-so/nang-luc', element: <LearningProfilePage /> },
               { path: '/chuoi-hoc', element: <StreakPage /> },
               { path: '/muc-tieu', element: <GoalPage /> },
               { path: '/thanh-toan', element: <ConfirmPage /> },

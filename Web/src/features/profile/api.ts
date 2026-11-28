@@ -19,6 +19,31 @@ export const useMe = () => useQuery({ queryKey: ['me'], queryFn: () => api<Me>('
 
 export const levelLabel = (l: SelfLevel | null | undefined) => SELF_LEVELS.find((x) => x.value === l)?.label
 
+// GET /api/me/learning-profile (FR-EX-09). aiAverageScore là điểm thô của Cam, không quy ra %.
+export interface ProfileMetric {
+  key: string
+  label: string
+  answered: number
+  correct: number
+  accuracy: number | null
+  ungraded: number
+  aiGraded: number
+  aiAverageScore: number | null
+}
+export interface LearningProfile {
+  answered: number
+  accuracy: number | null
+  bySkill: ProfileMetric[]
+  byType: ProfileMetric[]
+  byGrammar: ProfileMetric[]
+  byTopic: ProfileMetric[]
+  weeklyTrend: { weekStart: string; answered: number; correct: number; accuracy: number | null }[]
+  improvements: { dimension: string; key: string; label: string; accuracy: number; answered: number }[]
+}
+
+export const useLearningProfile = () =>
+  useQuery({ queryKey: ['me', 'learning-profile'], queryFn: () => api<LearningProfile>('/me/learning-profile') })
+
 export interface ProfilePatch {
   displayName: string
   selfLevel?: SelfLevel

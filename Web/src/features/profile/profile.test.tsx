@@ -39,6 +39,7 @@ test('tổng quan hiện đủ dữ liệu và link đích', async () => {
   expect(screen.getByText('12 ngày')).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Chỉnh sửa mục tiêu' })).toHaveAttribute('href', '/muc-tieu')
   expect(screen.getByRole('link', { name: 'Xem chuỗi học' })).toHaveAttribute('href', '/chuoi-hoc')
+  expect(screen.getByRole('link', { name: 'Xem hồ sơ năng lực' })).toHaveAttribute('href', '/ho-so/nang-luc')
   expect(screen.getByRole('link', { name: 'Đơn hàng' })).toHaveAttribute('href', '/don-hang')
 })
 
