@@ -1,6 +1,7 @@
 package com.pps.smartenglish.lms.repository;
 
 import com.pps.smartenglish.catalog.domain.Topic;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
@@ -28,23 +29,24 @@ public interface UnitProgressRepository extends Repository<Topic, Long> {
     /**
      * Topic CHƯA xong của học viên (D-122): còn bài giảng chưa hoàn thành, hoặc còn bộ bài tập (có câu hỏi) chưa nộp lần nào (bộ video từ nối: chưa đủ lượt đạt, D-159),
      * hoặc chưa nộp kiểm tra chương. Kiểm tra chương chỉ cần nộp, không cần đạt.
+     * Trả [mã học viên, mã topic] cho cả danh sách học viên (một truy vấn, không N+1).
      */
     @Query(nativeQuery = true, value = """
-            SELECT t.id FROM topics t JOIN course_levels lv ON lv.id = t.level_id
+            SELECT u.id, t.id FROM topics t JOIN course_levels lv ON lv.id = t.level_id JOIN users u ON u.id IN (:userIds)
             WHERE lv.course_id = :courseId AND lv.status = 'PUBLISHED' AND t.status = 'PUBLISHED' AND (
                 EXISTS (SELECT 1 FROM lessons l WHERE l.topic_id = t.id AND l.status = 'PUBLISHED'
                         AND NOT EXISTS (SELECT 1 FROM lesson_progress p
-                                        WHERE p.lesson_id = l.id AND p.user_id = :userId AND p.completed_at IS NOT NULL))
+                                        WHERE p.lesson_id = l.id AND p.user_id = u.id AND p.completed_at IS NOT NULL))
                 OR EXISTS (SELECT 1 FROM question_banks b WHERE b.topic_id = t.id AND b.status = 'PUBLISHED'
                            AND b.mode = 'PRACTICE' AND b.purpose = 'COURSE'
                            AND EXISTS (SELECT 1 FROM questions q WHERE q.bank_id = b.id)
                            AND NOT (
                     (NOT EXISTS (SELECT 1 FROM questions vq WHERE vq.bank_id = b.id AND vq.type = 'VIDEO_CONNECTIVE' AND vq.archived_at IS NULL)
                      AND EXISTS (SELECT 1 FROM student_exercise_attempts a
-                                 WHERE a.bank_id = b.id AND a.user_id = :userId AND a.submitted_at IS NOT NULL))
+                                 WHERE a.bank_id = b.id AND a.user_id = u.id AND a.submitted_at IS NOT NULL))
                     OR (EXISTS (SELECT 1 FROM questions vq WHERE vq.bank_id = b.id AND vq.type = 'VIDEO_CONNECTIVE' AND vq.archived_at IS NULL)
                         AND (SELECT COUNT(*) FROM student_exercise_attempts a
-                             WHERE a.bank_id = b.id AND a.user_id = :userId AND a.submitted_at IS NOT NULL
+                             WHERE a.bank_id = b.id AND a.user_id = u.id AND a.submitted_at IS NOT NULL
                                AND NOT EXISTS (SELECT 1 FROM questions vq WHERE vq.bank_id = b.id AND vq.type = 'VIDEO_CONNECTIVE'
                                                AND vq.archived_at IS NULL
                                                AND NOT EXISTS (SELECT 1 FROM attempt_video_groups v
@@ -53,7 +55,12 @@ public interface UnitProgressRepository extends Repository<Topic, Long> {
                 ))
                 OR (t.chapter_test_bank_id IS NOT NULL
                     AND NOT EXISTS (SELECT 1 FROM student_exercise_attempts a
-                                    WHERE a.bank_id = t.chapter_test_bank_id AND a.user_id = :userId AND a.submitted_at IS NOT NULL)))
+                                    WHERE a.bank_id = t.chapter_test_bank_id AND a.user_id = u.id AND a.submitted_at IS NOT NULL)))
             """)
-    List<Long> unfinishedTopicIds(@Param("courseId") long courseId, @Param("userId") long userId);
+    List<Object[]> unfinishedTopicIdsOf(@Param("courseId") long courseId, @Param("userIds") Collection<Long> userIds);
+
+    /** Một học viên; dùng chung truy vấn gom ở trên. */
+    default List<Long> unfinishedTopicIds(long courseId, long userId) {
+        return unfinishedTopicIdsOf(courseId, List.of(userId)).stream().map(r -> ((Number) r[1]).longValue()).toList();
+    }
 }

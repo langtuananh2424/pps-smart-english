@@ -19,6 +19,15 @@ test('danh sách lớp: tên lớp, khóa, sĩ số, mở tiến độ', async (
   expect(await screen.findByRole('heading', { name: 'Tiến độ lớp' })).toBeInTheDocument()
 })
 
+test('danh sách lớp: tiến độ TB và theo dõi', async () => {
+  mockApi({ ...base, '/api/teaching/classes': () => json(200, [cls, { ...cls, id: 4, name: 'Lớp B', avgLessonPercent: null, laggingCount: 0 }]) })
+  renderAt('/giang-day')
+  expect(await screen.findByText('62%')).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: '2 học viên cần hỗ trợ' })).toHaveAttribute('href', '/giang-day/lop/3')
+  expect(screen.getByText('—')).toBeInTheDocument()
+  expect(screen.getByText('Ổn định')).toBeInTheDocument()
+})
+
 test('không có lớp: trạng thái trống', async () => {
   mockApi({ ...base, '/api/teaching/classes': () => json(200, []) })
   renderAt('/giang-day')

@@ -65,12 +65,33 @@ public class ClassProgressService {
 
     @Transactional(readOnly = true)
     public ProgressBoard board(long callerId, long classId) {
-        ClassRoom room = access.requireStaff(callerId, classId);
+        return build(access.requireStaff(callerId, classId)).board();
+    }
+
+    /** Tóm tắt cho danh sách lớp của giáo viên (D-176): cùng quy tắc với bảng tiến độ. Người gọi tự kiểm quyền với lớp. */
+    @Transactional(readOnly = true)
+    public ClassSummary summary(ClassRoom room) {
+        Built b = build(room);
+        var students = b.board().students();
+        int lagging = (int) students.stream().filter(StudentProgress::lagging).count();
+        if (students.isEmpty() || b.lessonTotal() == 0) {
+            return new ClassSummary(null, lagging); // chưa có học viên đang học hoặc khóa chưa có bài giảng xuất bản
+        }
+        return new ClassSummary((int) Math.round(students.stream().mapToInt(StudentProgress::lessonPercent).average().orElse(0)), lagging);
+    }
+
+    public record ClassSummary(Integer avgLessonPercent, int laggingCount) {}
+
+    private record Built(ProgressBoard board, long lessonTotal) {}
+
+    // shortcut: tính từng lớp (bài giao theo từng bài vẫn truy vấn riêng), ổn với số lớp nhỏ của một giáo viên; gộp theo khóa nếu lớp nhiều.
+    private Built build(ClassRoom room) {
+        long classId = room.getId();
         long courseId = room.getCourseId();
         Thresholds th = thresholds.get(courseId);
         List<Long> ids = members.findByClassIdAndStatus(classId, ClassMember.ACTIVE).stream().map(ClassMember::getUserId).toList();
         if (ids.isEmpty()) {
-            return new ProgressBoard(classId, courseId, th, 0, List.of());
+            return new Built(new ProgressBoard(classId, courseId, th, 0, List.of()), 0);
         }
         Map<Long, String> names = new HashMap<>();
         classRepo.people(ids).forEach(r -> names.put(((Number) r[0]).longValue(), (String) r[1]));
@@ -79,8 +100,7 @@ public class ClassProgressService {
         Map<Long, Long> lessonsDone = new HashMap<>();
         reports.lessonsDone(courseId, ids).forEach(r -> lessonsDone.put(((Number) r[0]).longValue(), ((Number) r[1]).longValue()));
 
-        Map<Long, Position> positions = new HashMap<>();
-        ids.forEach(id -> positions.put(id, units.position(id, courseId)));
+        Map<Long, Position> positions = units.positions(ids, courseId);
         int median = median(positions.values().stream().map(Position::index).toList());
         Map<Long, String> topicTitles = new HashMap<>();
         var topicIds = positions.values().stream().map(Position::topicId).filter(t -> t != null).distinct().toList();
@@ -120,7 +140,7 @@ public class ClassProgressService {
                     new AssignmentCounts(agg.submitted, agg.late, agg.overdue, agg.pending), avg,
                     chapter.getOrDefault(id, List.of()), att, !reasons.isEmpty(), reasons));
         }
-        return new ProgressBoard(classId, courseId, th, median + 1, out);
+        return new Built(new ProgressBoard(classId, courseId, th, median + 1, out), lessonTotal);
     }
 
     /** Trung vị thấp của các vị trí unit (0-based): mốc "chậm hơn lớp". */

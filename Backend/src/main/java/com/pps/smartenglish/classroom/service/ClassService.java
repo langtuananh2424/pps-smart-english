@@ -161,7 +161,7 @@ public class ClassService {
         classes.courseTitles(courseIds).forEach(r -> titles.put(((Number) r[0]).longValue(), (String) r[1]));
         return rooms.stream().map(c -> new ClassView(c.getId(), c.getCourseId(), titles.get(c.getCourseId()), c.getName(),
                 c.getStartsOn(), c.getEndsOn(), c.getMode(), c.getCapacity(), c.getStatus(),
-                counts.getOrDefault(c.getId(), 0L), teachers.get(c.getId()))).toList();
+                counts.getOrDefault(c.getId(), 0L), teachers.get(c.getId()), null, 0)).toList();
     }
 
     /** Khóa dòng lớp; các service xếp, chuyển, phân công dùng chung. */

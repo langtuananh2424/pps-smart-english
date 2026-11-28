@@ -23,7 +23,7 @@ export function ClassesPage() {
                 <caption className="sr-only">Lớp của tôi</caption>
                 <thead className="hidden bg-muted md:table-header-group">
                   <tr>
-                    {['Lớp/khóa', 'Hình thức', 'Sĩ số', ''].map((h, i) => <th key={i} scope="col" className={th}>{h || <span className="sr-only">Tiến độ</span>}</th>)}
+                    {['Lớp/khóa', 'Hình thức', 'Sĩ số', 'Tiến độ TB', 'Theo dõi', ''].map((h, i) => <th key={i} scope="col" className={th}>{h || <span className="sr-only">Tiến độ</span>}</th>)}
                   </tr>
                 </thead>
                 <tbody className="flex flex-col gap-3 md:table-row-group">
@@ -36,6 +36,16 @@ export function ClassesPage() {
                       </td>
                       <td className={cell}>{MODE_LABEL[c.mode]}</td>
                       <td className={cell}>{c.activeMembers}/{c.capacity}</td>
+                      <td className={cell}>{c.avgLessonPercent == null ? '—' : `${c.avgLessonPercent}%`}</td>
+                      <td className={cell}>
+                        {c.laggingCount > 0 ? (
+                          <Link to={classPath(c.id)} className="font-extrabold text-danger-fg underline">
+                            {c.laggingCount} học viên cần hỗ trợ
+                          </Link>
+                        ) : (
+                          'Ổn định'
+                        )}
+                      </td>
                       <td className={cell}>
                         <Link to={classPath(c.id)} aria-label={`Xem tiến độ lớp ${c.name}`} className="inline-flex min-h-11 items-center font-extrabold text-brand-strong underline">
                           Xem tiến độ

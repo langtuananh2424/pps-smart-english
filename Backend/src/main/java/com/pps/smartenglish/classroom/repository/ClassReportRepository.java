@@ -64,26 +64,41 @@ public interface ClassReportRepository extends Repository<ClassRoom, Long> {
     List<Object[]> topicTitles(@Param("ids") Collection<Long> ids);
 
     /**
-     * Buổi đã diễn ra và đã có điểm danh trong [from, to): [id, lớp, tên lớp, loại, người dạy, tên người dạy, bắt đầu, kết thúc].
-     * Chỉ đếm buổi đã điểm danh (FR-CLS-07); buổi hủy không đếm.
+     * Buổi đã diễn ra và đã có điểm danh trong [from, to): [id, lớp, tên lớp, loại, người dạy, tên người dạy, bắt đầu, kết thúc, vai].
+     * Chỉ đếm buổi đã điểm danh (FR-CLS-07); buổi hủy không đếm. Vai (D-176) lấy từ phân công lớp của người dạy, ưu tiên bản ghi
+     * phủ ngày của buổi theo giờ zone (Việt Nam), bỏ phân công đã thu hồi trước giờ bắt đầu buổi. role, classId null = không lọc.
      */
     @Query(nativeQuery = true, value = """
-            SELECT s.id, s.class_id, c.name, s.kind, s.taught_by, p.display_name, s.starts_at, s.ends_at
-            FROM class_sessions s JOIN classes c ON c.id = s.class_id LEFT JOIN user_profiles p ON p.user_id = s.taught_by
-            WHERE s.status = 'SCHEDULED' AND s.starts_at >= :from AND s.starts_at < :to
-              AND EXISTS (SELECT 1 FROM attendance_marks m WHERE m.session_id = s.id)
-            ORDER BY s.taught_by, s.starts_at, s.id
+            SELECT x.* FROM (
+              SELECT s.id, s.class_id, c.name, s.kind, s.taught_by, p.display_name, s.starts_at, s.ends_at,
+                     (SELECT st.role FROM class_staff st WHERE st.class_id = s.class_id AND st.user_id = s.taught_by
+                        AND (st.revoked_at IS NULL OR st.revoked_at > s.starts_at)
+                      ORDER BY CASE WHEN TO_CHAR(st.assigned_from, 'YYYY-MM-DD') <= TO_CHAR(s.starts_at AT TIME ZONE CAST(:zone AS varchar(64)), 'YYYY-MM-DD')
+                                     AND (st.assigned_to IS NULL
+                                          OR TO_CHAR(st.assigned_to, 'YYYY-MM-DD') >= TO_CHAR(s.starts_at AT TIME ZONE CAST(:zone AS varchar(64)), 'YYYY-MM-DD'))
+                                    THEN 0 ELSE 1 END, st.id DESC
+                      LIMIT 1) AS staff_role
+              FROM class_sessions s JOIN classes c ON c.id = s.class_id LEFT JOIN user_profiles p ON p.user_id = s.taught_by
+              WHERE s.status = 'SCHEDULED' AND s.starts_at >= :from AND s.starts_at < :to
+                AND (CAST(:classId AS bigint) IS NULL OR s.class_id = CAST(:classId AS bigint))
+                AND EXISTS (SELECT 1 FROM attendance_marks m WHERE m.session_id = s.id)
+            ) x
+            WHERE CAST(:role AS varchar) IS NULL OR x.staff_role = CAST(:role AS varchar)
+            ORDER BY x.taught_by, x.starts_at, x.id
             """)
-    List<Object[]> markedSessions(@Param("from") Instant from, @Param("to") Instant to);
+    List<Object[]> markedSessions(@Param("from") Instant from, @Param("to") Instant to, @Param("role") String role,
+                                  @Param("classId") Long classId, @Param("zone") String zone);
 
-    /** [session_id, số lần sửa, lần sửa gần nhất] của điểm danh bị sửa sau thời điểm since. */
+    /** [id, tên lớp, tên khóa, trạng thái] của mọi lớp (kể cả đã đóng) cho ô chọn lớp của báo cáo. */
     @Query(nativeQuery = true, value = """
-            SELECT ch.session_id, COUNT(*), MAX(ch.changed_at) FROM attendance_changes ch
-            WHERE ch.changed_at > :since GROUP BY ch.session_id
+            SELECT c.id, c.name, co.title, c.status FROM classes c JOIN courses co ON co.id = c.course_id ORDER BY c.name, c.id
             """)
-    List<Object[]> editsSince(@Param("since") Instant since);
+    List<Object[]> reportClasses();
 
-    /** Lần xuất báo cáo gần nhất của bất kỳ ai; rỗng nếu chưa từng xuất. */
-    @Query(nativeQuery = true, value = "SELECT MAX(e.exported_at) FROM teaching_report_exports e")
-    List<Object> lastExportAt();
+    /** [session_id, thời điểm sửa] của điểm danh bị sửa sau since, ở các buổi bắt đầu trong [from, to). */
+    @Query(nativeQuery = true, value = """
+            SELECT ch.session_id, ch.changed_at FROM attendance_changes ch JOIN class_sessions s ON s.id = ch.session_id
+            WHERE s.starts_at >= :from AND s.starts_at < :to AND ch.changed_at > :since
+            """)
+    List<Object[]> editsInRange(@Param("from") Instant from, @Param("to") Instant to, @Param("since") Instant since);
 }

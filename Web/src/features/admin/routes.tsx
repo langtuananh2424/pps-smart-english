@@ -19,6 +19,7 @@ import { StaffAccessPage } from './StaffAccessPage'
 import { StaffPage } from './StaffPage'
 import { StudentProfilePage } from './StudentProfilePage'
 import { StudentsPage } from './StudentsPage'
+import { TeachingReportPage } from './TeachingReportPage'
 
 // Tab của nhóm Nhân sự, chỉ hiện tab người dùng có quyền.
 function StaffTabs() {
@@ -63,6 +64,8 @@ export const adminRoutes: RouteObject = {
       { path: 'hoc-vien', element: <StudentsPage /> },
       { path: 'hoc-vien/:id', element: <StudentProfilePage /> },
     ]),
+    // Báo cáo số buổi dạy (#62, D-176).
+    guarded('report.teaching', [{ path: 'buoi-day', element: <TeachingReportPage /> }]),
     guarded('cms.content', [{ path: 'cms', element: <CmsHome /> }]),
     // Khóa học, bài giảng, học tuần tự (#17, #63): /quan-tri/cms/khoa-hoc.
     guarded('cms.content', cmsRoutes),

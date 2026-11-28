@@ -13,6 +13,8 @@ export interface TeachClass {
   capacity: number
   status: string
   activeMembers: number
+  avgLessonPercent: number | null
+  laggingCount: number
 }
 export interface Member {
   userId: number

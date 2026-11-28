@@ -2,6 +2,8 @@ package com.pps.smartenglish.lms.service;
 
 import com.pps.smartenglish.lms.repository.UnitProgressRepository;
 import com.pps.smartenglish.shared.error.ApiException;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,14 +36,29 @@ public class UnitUnlockService {
 
     @Transactional(readOnly = true)
     public Position position(long userId, long courseId) {
+        return positions(List.of(userId), courseId).get(userId);
+    }
+
+    /** Vị trí của nhiều học viên bằng hai truy vấn (thứ tự unit, unit chưa xong), không phụ thuộc số học viên. */
+    @Transactional(readOnly = true)
+    public Map<Long, Position> positions(Collection<Long> userIds, long courseId) {
         List<Long> ordered = units.orderedTopicIds(courseId);
-        Set<Long> unfinished = new HashSet<>(units.unfinishedTopicIds(courseId, userId));
-        for (int i = 0; i < ordered.size(); i++) {
-            if (unfinished.contains(ordered.get(i))) {
-                return new Position(i, ordered.size(), ordered.get(i));
+        Map<Long, Set<Long>> unfinished = new HashMap<>();
+        units.unfinishedTopicIdsOf(courseId, userIds).forEach(r -> unfinished.computeIfAbsent(((Number) r[0]).longValue(), k -> new HashSet<>())
+                .add(((Number) r[1]).longValue()));
+        Map<Long, Position> out = new HashMap<>();
+        for (Long userId : userIds) {
+            Set<Long> open = unfinished.getOrDefault(userId, Set.of());
+            Position pos = new Position(ordered.size(), ordered.size(), null);
+            for (int i = 0; i < ordered.size(); i++) {
+                if (open.contains(ordered.get(i))) {
+                    pos = new Position(i, ordered.size(), ordered.get(i));
+                    break;
+                }
             }
+            out.put(userId, pos);
         }
-        return new Position(ordered.size(), ordered.size(), null);
+        return out;
     }
 
     /** Topic CHƯA xong của học viên trong khóa (D-122). */

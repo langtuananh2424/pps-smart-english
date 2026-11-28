@@ -44,8 +44,11 @@ public final class ProgressDtos {
 
     public record UnlockView(Long id, Long classId, Long topicId, Long userId, Long grantedBy, String grantedByName, Instant grantedAt, Instant revokedAt) {}
 
-    public record TeacherRow(Long userId, String displayName, int groupSessions, BigDecimal groupHours, int tutoringSessions,
+    public record TeacherRow(Long userId, String displayName, String role, int groupSessions, BigDecimal groupHours, int tutoringSessions,
                              BigDecimal tutoringHours, int totalSessions, BigDecimal totalHours) {}
+
+    /** Lớp để chọn ở bộ lọc báo cáo. */
+    public record ReportClass(Long id, String name, String courseTitle, String status) {}
 
     public record EditedSession(Long sessionId, Long classId, String className, Long teacherId, String teacherName, Instant startsAt,
                                 int edits, Instant lastEditedAt) {}
