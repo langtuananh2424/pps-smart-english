@@ -3,13 +3,15 @@ import logo from '../assets/logo-pps.png'
 import { VerifyEmailBanner } from '../auth/VerifyEmailBanner'
 import { Icon } from '../components/Icon'
 import { GradedBubble } from '../features/notifications/GradedBubble'
-import { inPath, navItems } from './navItems'
+import { useMyPermissions } from '../features/admin/api'
+import { inPath, navItems, teachItem } from './navItems'
 
 // Desktop: sidebar trái; mobile: thanh tab dưới cùng.
 export function AppShell() {
   // Q&A gợi ý khóa (Figma mobile) không có thanh tab dưới.
   const qa = !!useMatch('/goi-y-khoa')
   const { pathname } = useLocation()
+  const items = useMyPermissions().data?.has('class.teach') ? [...navItems, teachItem] : navItems
   return (
     <div className="min-h-dvh bg-page md:flex md:p-4">
       <nav
@@ -18,7 +20,7 @@ export function AppShell() {
       >
         <img src={logo} alt="PPS Smart English" className="hidden h-11 w-auto self-center md:block" />
         <ul className="flex flex-1 justify-around md:flex-col md:justify-start md:gap-2">
-          {navItems.map((item) => (
+          {items.map((item) => (
             <li key={item.to} className="flex-1 md:flex-none">
               <NavLink
                 to={item.to}
