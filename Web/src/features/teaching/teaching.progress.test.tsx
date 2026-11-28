@@ -23,7 +23,7 @@ test('danh sách lớp: tiến độ TB và theo dõi', async () => {
   mockApi({ ...base, '/api/teaching/classes': () => json(200, [cls, { ...cls, id: 4, name: 'Lớp B', avgLessonPercent: null, laggingCount: 0 }]) })
   renderAt('/giang-day')
   expect(await screen.findByText('62%')).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: '2 học viên cần hỗ trợ' })).toHaveAttribute('href', '/giang-day/lop/3')
+  expect(screen.getByRole('link', { name: '2 học viên cần hỗ trợ' })).toHaveAttribute('href', '/giang-day/lop/3?loc=tut-lai')
   expect(screen.getByText('—')).toBeInTheDocument()
   expect(screen.getByText('Ổn định')).toBeInTheDocument()
 })
@@ -47,6 +47,19 @@ test('tiến độ: lọc tụt lại, nhãn lý do, tìm theo tên', async () =
   await userEvent.type(screen.getByLabelText('Tên học viên'), 'min')
   expect(screen.queryByRole('link', { name: 'Nga' })).not.toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Minh' })).toBeInTheDocument()
+})
+
+test('tiến độ: ?loc=tut-lai bật sẵn bộ lọc, đổi bộ lọc cập nhật URL', async () => {
+  mockApi(base)
+  const router = renderAt('/giang-day/lop/3?loc=tut-lai')
+  expect(await screen.findByRole('link', { name: 'Nga' })).toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: 'Minh' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Chỉ học viên tụt lại' })).toHaveAttribute('aria-pressed', 'true')
+  await userEvent.click(screen.getByRole('button', { name: 'Tất cả học viên' }))
+  expect(await screen.findByRole('link', { name: 'Minh' })).toBeInTheDocument()
+  expect(router.state.location.search).toBe('')
+  await userEvent.click(screen.getByRole('button', { name: 'Chỉ học viên tụt lại' }))
+  expect(router.state.location.search).toBe('?loc=tut-lai')
 })
 
 test('tiến độ: điểm TB null hiện dấu gạch, học viên ngoài lớp nhận lỗi không tìm thấy', async () => {

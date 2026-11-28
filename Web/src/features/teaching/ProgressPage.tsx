@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { PageHead, Section, inputCls, labelCls } from '../admin/ui'
 import { useBoard, useClassDetail, type StudentProgress } from './api'
 import { classPath, KICKER, LAG_LABEL, num } from './format'
@@ -42,7 +42,10 @@ export function ProgressPage() {
   const classId = useNum('classId')
   const board = useBoard(classId)
   const detail = useClassDetail(classId)
-  const [lagOnly, setLagOnly] = useState(false)
+  // Bộ lọc nằm trên URL (?loc=tut-lai) để link "cần hỗ trợ" ở danh sách lớp mở đúng bộ lọc.
+  const [params, setParams] = useSearchParams()
+  const lagOnly = params.get('loc') === 'tut-lai'
+  const setLagOnly = (on: boolean) => setParams((p) => { on ? p.set('loc', 'tut-lai') : p.delete('loc'); return p }, { replace: true })
   const [name, setName] = useState('')
   const tab = (on: boolean) =>
     `inline-flex min-h-11 items-center rounded-md border px-3.5 font-extrabold ${on ? 'border-brand bg-subtle text-ink' : 'border-line-brand bg-surface text-ink-secondary'}`
