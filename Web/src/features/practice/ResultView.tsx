@@ -142,7 +142,7 @@ export function ResultView({ bank, initial, answers, onRetry }: Props) {
   )
 }
 
-function Row({ index, question, result, mine, showMine, pending, elementName, layout }: { layout?: GroupLayout | null; index: number; question: Question; result?: QuestionResult; mine?: Answers[number]; showMine: boolean; pending: boolean; elementName: (c: string) => string }) {
+export function Row({ index, question, result, mine, showMine, pending, elementName, layout, credit, mineLabel }: { mineLabel?: string; credit?: number | null; layout?: GroupLayout | null; index: number; question: Question; result?: QuestionResult; mine?: Answers[number]; showMine: boolean; pending: boolean; elementName: (c: string) => string }) {
   const skipped = !isAnswerable(question.type)
   const grading = !skipped && result?.isCorrect == null && pending
   const badge = skipped ? null : grading ? ['Đang chấm…', 'bg-muted text-ink-secondary'] : result?.isCorrect ? ['Đúng', 'bg-success-bg text-success-fg'] : result?.isCorrect === false ? ['Chưa đúng', 'bg-danger-bg text-danger-fg'] : ['Chưa chấm', 'bg-muted text-ink-secondary']
@@ -154,7 +154,10 @@ function Row({ index, question, result, mine, showMine, pending, elementName, la
     <li className="flex flex-col gap-3 rounded-lg border-[1.5px] border-line bg-surface p-4 md:p-6">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[13px] font-extrabold leading-[18px] text-brand-strong">Câu {index + 1} · {question.instruction ?? labelOf(question.type)}</p>
-        {badge && <span className={`${chip} ${badge[1]}`}>{badge[0]}</span>}
+        <span className="flex items-center gap-2">
+          {credit != null && <span className="text-xs font-extrabold text-ink-secondary">{formatScore(credit)} điểm</span>}
+          {badge && <span className={`${chip} ${badge[1]}`}>{badge[0]}</span>}
+        </span>
       </div>
       <QuestionStem question={question} className="text-lg font-black leading-6 text-ink" />
       {skipped ? (
@@ -166,7 +169,7 @@ function Row({ index, question, result, mine, showMine, pending, elementName, la
           {custom ? (
             (() => {
               const Detail = custom
-              return <Detail question={question} mine={showMine ? mine : undefined} correct={result!.correctAnswer!} />
+              return <Detail question={question} mine={showMine ? mine : undefined} correct={result!.correctAnswer!} mineLabel={mineLabel} />
             })()
           ) : (
             <dl className="flex flex-col gap-1.5 text-sm font-semibold">
