@@ -6,8 +6,13 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.sql.PreparedStatement;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -21,6 +26,12 @@ public class LearningStatsRepository {
     /** D-147: lượt còn job AI chấm lần đầu chưa xong chỉ có điểm tạm, không đưa vào thống kê (cùng điều kiện AttemptResultGate). */
     private static final String SETTLED = " and not exists (select 1 from ai_jobs j where j.attempt_id = t.id "
             + "and j.regrade_item_id is null and j.status in ('PENDING', 'RUNNING'))";
+
+    /** Câu AI đã có điểm cuối: credit 0..1 (Viết = scorePercent/100, Nói = band/bandMax); lỗi chấm thì không tính. */
+    private static final String AI_SCORED = "a.is_correct is null and a.credit is not null and a.ai_fail_reason is null";
+
+    private static final int STREAM_FETCH_SIZE = 200;
+    private static final int QUERY_TIMEOUT_SECONDS = 10; // chưa có timeout truy vấn toàn cục trong dự án
 
     public enum Dimension {
         SKILL("coalesce(q.skill, tp.skill, 'UNSPECIFIED')", "coalesce(q.skill, tp.skill, 'UNSPECIFIED')", "", ""),
@@ -57,6 +68,9 @@ public class LearningStatsRepository {
     /** Một lượt đã nộp: thời điểm nộp, số câu đã chấm, số câu đúng. */
     public record AttemptTotals(OffsetDateTime submittedAt, long answered, long correct) {}
 
+    /** Phiên Viết/Nói độc lập (không gắn lượt bộ câu): json là output job hoặc result lượt nói, done=false là đang chấm. */
+    public record AiSessionRow(String skill, boolean done, String json) {}
+
     private final JdbcTemplate jdbc;
 
     LearningStatsRepository(JdbcTemplate jdbc) {
@@ -69,12 +83,11 @@ public class LearningStatsRepository {
                 + "sum(case when a.is_correct = true then 1 else 0 end), "
                 + "coalesce(sum(a.credit), 0), "
                 + "sum(case when a.is_correct is null then 1 else 0 end), "
-                + "sum(case when a.is_correct is null and g.id is not null then 1 else 0 end), "
-                + "coalesce(sum(case when a.is_correct is null then g.score end), 0) "
+                + "sum(case when " + AI_SCORED + " then 1 else 0 end), "
+                + "coalesce(sum(case when " + AI_SCORED + " then a.credit * 100 end), 0) "
                 + "from student_answers a join student_exercise_attempts t on t.id = a.attempt_id "
                 + "join questions q on q.id = a.question_id "
                 + "left join question_banks b on b.id = q.bank_id left join topics tp on tp.id = b.topic_id " + d.join + " "
-                + "left join student_answer_grading g on g.answer_id = a.id and g.grader = 'AI' "
                 + "where " + scope.where + d.filter + " group by " + d.key + ", " + d.label + " order by 1";
         return jdbc.query(sql, (rs, i) -> {
             long answered = rs.getLong(3);
@@ -85,6 +98,44 @@ public class LearningStatsRepository {
             return new Metric(rs.getString(1), rs.getString(2), answered, correct, rs.getBigDecimal(5),
                     answered == 0 ? null : (int) Math.round(correct * 100.0 / answered), rs.getLong(6), aiGraded, aiAvg);
         }, scope.arg);
+    }
+
+    /**
+     * Phiên Viết/Nói đã nộp chấm của học viên mà không gắn lượt bộ câu (gắn lượt thì đã nằm trong student_answers, đếm
+     * hai lần là sai). Chỉ đọc kết quả Cam, không đọc grade_overrides: hồ sơ không đổi theo điểm giáo viên sửa (D-166).
+     * Đọc theo luồng (fetch size + callback) vì mỗi dòng mang JSON kết quả: không nạp cả list vào bộ nhớ. PostgreSQL chỉ
+     * stream khi autocommit tắt, nên phải gọi trong transaction (service đã @Transactional).
+     */
+    public void forEachAiSession(long userId, Consumer<AiSessionRow> sink) {
+        stream("select j.status, j.output from writing_sessions s join ai_jobs j on j.id = s.grade_job_id "
+                + "where s.user_id = ? and s.attempt_id is null and s.status = 'SUBMITTED' "
+                + "and j.status in ('PENDING', 'RUNNING', 'DONE')", userId,
+                rs -> sink.accept(new AiSessionRow("WRITING", "DONE".equals(rs.getString(1)), rs.getString(2))));
+        stream("select status, result from speaking_submissions "
+                + "where user_id = ? and attempt_id is null and status in ('GRADING', 'GRADED')", userId,
+                rs -> sink.accept(new AiSessionRow("SPEAKING", "GRADED".equals(rs.getString(1)), rs.getString(2))));
+    }
+
+    private void stream(String sql, long userId, RowCallbackHandler handler) {
+        jdbc.query(con -> {
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setFetchSize(STREAM_FETCH_SIZE);
+            ps.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
+            ps.setLong(1, userId);
+            return ps;
+        }, handler);
+    }
+
+    /** Tổng điểm % (credit x 100) các câu AI đã chấm theo kỹ năng: để gộp trung bình mà không làm tròn hai lần. */
+    public Map<String, BigDecimal> aiCreditSumsBySkill(Scope scope) {
+        Map<String, BigDecimal> out = new HashMap<>();
+        jdbc.query("select " + Dimension.SKILL.key + ", sum(a.credit * 100) "
+                + "from student_answers a join student_exercise_attempts t on t.id = a.attempt_id "
+                + "join questions q on q.id = a.question_id "
+                + "left join question_banks b on b.id = q.bank_id left join topics tp on tp.id = b.topic_id "
+                + "where " + scope.where + " and " + AI_SCORED + " group by " + Dimension.SKILL.key,
+                (RowCallbackHandler) rs -> out.put(rs.getString(1), rs.getBigDecimal(2)), scope.arg);
+        return out;
     }
 
     /**

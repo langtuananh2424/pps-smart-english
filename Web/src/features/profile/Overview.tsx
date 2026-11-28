@@ -66,7 +66,10 @@ function ProgressCard() {
           </div>
         ))}
       </dl>
-      <Link to="/chuoi-hoc" className={`${outline} lg:self-start`}>Xem chuỗi học</Link>
+      <div className="flex flex-col gap-2 lg:flex-row">
+        <Link to="/chuoi-hoc" className={outline}>Xem chuỗi học</Link>
+        <Link to="/ho-so/nang-luc" className={outline}>Xem hồ sơ năng lực</Link>
+      </div>
     </section>
   )
 }
