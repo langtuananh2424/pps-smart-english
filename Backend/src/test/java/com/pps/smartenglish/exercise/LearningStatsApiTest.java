@@ -139,14 +139,14 @@ class LearningStatsApiTest extends AiTestSupport {
         answer(att, w.q()[0], true);
         long ai = answer(att, wq, null);
         answer(att, w.q()[1], null); // chờ chấm, chưa có điểm AI
-        jdbc.update("insert into student_answer_grading (answer_id, grader, score) values (?, 'AI', 6)", ai);
+        jdbc.update("update student_answers set credit = 0.6 where id = ?", ai);
 
         var p = get("/api/me/learning-profile", u, 200);
         var writing = metric(p.get("byType"), "WRITING");
         assertEquals(0, writing.get("answered").asInt());
         assertTrue(writing.get("accuracy").isNull());
         assertEquals(1, writing.get("aiGraded").asInt());
-        assertEquals(6.0, writing.get("aiAverageScore").asDouble());
+        assertEquals(60.0, writing.get("aiAverageScore").asDouble()); // D-167: % 0..100
         assertEquals(1, p.get("answered").asInt()); // chỉ q1 vào tỉ lệ
         assertEquals(100, p.get("accuracy").asInt());
         assertEquals(1, metric(p.get("byType"), "CONNECTIVE_MCQ").get("ungraded").asInt());

@@ -1,5 +1,8 @@
 package com.pps.smartenglish.exercise.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pps.smartenglish.ai.speaking.SpeakingProperties;
 import com.pps.smartenglish.exercise.config.LearningStatsProperties;
 import com.pps.smartenglish.exercise.dto.LearningDtos.Breakdown;
 import com.pps.smartenglish.exercise.dto.LearningDtos.Improvement;
@@ -7,10 +10,13 @@ import com.pps.smartenglish.exercise.dto.LearningDtos.Metric;
 import com.pps.smartenglish.exercise.dto.LearningDtos.Profile;
 import com.pps.smartenglish.exercise.dto.LearningDtos.WeekPoint;
 import com.pps.smartenglish.exercise.repository.LearningStatsRepository;
+import com.pps.smartenglish.exercise.repository.LearningStatsRepository.AiSessionRow;
 import com.pps.smartenglish.exercise.repository.LearningStatsRepository.AttemptTotals;
 import com.pps.smartenglish.exercise.repository.LearningStatsRepository.Dimension;
 import com.pps.smartenglish.exercise.repository.LearningStatsRepository.Scope;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -35,11 +41,16 @@ public class LearningStatsService {
     private final LearningStatsRepository stats;
     private final LearningStatsProperties props;
     private final Clock clock;
+    private final ObjectMapper json;
+    private final SpeakingProperties speaking;
 
-    LearningStatsService(LearningStatsRepository stats, LearningStatsProperties props, Clock clock) {
+    LearningStatsService(LearningStatsRepository stats, LearningStatsProperties props, Clock clock, ObjectMapper json,
+                         SpeakingProperties speaking) {
         this.stats = stats;
         this.props = props;
         this.clock = clock;
+        this.json = json;
+        this.speaking = speaking;
     }
 
     /** attemptId phải là lượt đã nộp của userId (AttemptService đã kiểm). */
@@ -57,7 +68,7 @@ public class LearningStatsService {
     @Transactional(readOnly = true)
     public Profile profile(long userId) {
         var scope = Scope.user(userId);
-        var bySkill = stats.metrics(Dimension.SKILL, scope);
+        var bySkill = withAiSessions(stats.metrics(Dimension.SKILL, scope), scope, userId);
         var byType = stats.metrics(Dimension.TYPE, scope);
         var byGrammar = stats.metrics(Dimension.GRAMMAR, scope);
         long answered = byType.stream().mapToLong(Metric::answered).sum();
@@ -65,6 +76,62 @@ public class LearningStatsService {
         BigDecimal credit = byType.stream().map(Metric::credit).reduce(BigDecimal.ZERO, BigDecimal::add);
         return new Profile(answered, correct, credit, percent(correct, answered), bySkill, byType, byGrammar,
                 stats.metrics(Dimension.TOPIC, scope), weeklyTrend(userId), improvements(bySkill, byGrammar));
+    }
+
+    /**
+     * Gộp phiên Viết/Nói độc lập vào kỹ năng: đã có điểm Cam thì tăng ungraded và aiGraded, đang chấm thì chỉ tăng ungraded.
+     * answered/correct/accuracy giữ nguyên (chỉ câu có đúng/sai). Điểm quy về % 0..100 (D-167): Viết = scorePercent,
+     * Nói = band / bandMax x 100. Đọc phiên theo luồng, cộng dồn từng dòng; trung bình làm tròn một lần ở cuối, từ tổng
+     * chính xác của bộ câu (không dựng lại từ trung bình đã làm tròn).
+     */
+    private List<Metric> withAiSessions(List<Metric> bySkill, Scope scope, long userId) {
+        Map<String, BigDecimal[]> add = new TreeMap<>(); // [ungraded, graded, tổng %]
+        stats.forEachAiSession(userId, r -> {
+            BigDecimal[] a = add.computeIfAbsent(r.skill(), k -> new BigDecimal[] {BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO});
+            a[0] = a[0].add(BigDecimal.ONE);
+            BigDecimal pct = r.done() ? percentOf(r) : null;
+            if (pct != null) {
+                a[1] = a[1].add(BigDecimal.ONE);
+                a[2] = a[2].add(pct);
+            }
+        });
+        if (add.isEmpty()) {
+            return bySkill;
+        }
+        Map<String, BigDecimal> sums = stats.aiCreditSumsBySkill(scope);
+        Map<String, Metric> out = new TreeMap<>();
+        bySkill.forEach(m -> out.put(m.key(), m));
+        add.forEach((skill, a) -> {
+            Metric m = out.getOrDefault(skill, new Metric(skill, skill, 0, 0, BigDecimal.ZERO, null, 0, 0, null));
+            long graded = m.aiGraded() + a[1].longValue();
+            BigDecimal total = sums.getOrDefault(skill, BigDecimal.ZERO).add(a[2]);
+            BigDecimal avg = graded == 0 ? null : total.divide(BigDecimal.valueOf(graded), 2, RoundingMode.HALF_UP);
+            out.put(skill, new Metric(m.key(), m.label(), m.answered(), m.correct(), m.credit(), m.accuracy(),
+                    m.ungraded() + a[0].longValue(), graded, avg));
+        });
+        return List.copyOf(out.values());
+    }
+
+    /** Nói GRADED thiếu overall dạng số tính 0 điểm, đã chấm (khớp AttemptAiScores.speakingLinked); null chỉ khi JSON hỏng. */
+    private BigDecimal percentOf(AiSessionRow r) {
+        try {
+            JsonNode n = r.json() == null ? null : json.readTree(r.json());
+            if (n != null && n.isTextual()) { // H2 có thể lưu json thành chuỗi
+                n = json.readTree(n.asText());
+            }
+            BigDecimal v;
+            if ("WRITING".equals(r.skill())) {
+                v = n == null ? BigDecimal.ZERO : BigDecimal.valueOf(n.path("scorePercent").asInt(0));
+            } else if (n != null && n.path("overall").isNumber()) {
+                v = n.path("overall").decimalValue().multiply(BigDecimal.valueOf(100))
+                        .divide(BigDecimal.valueOf(speaking.bandMax()), 6, RoundingMode.HALF_UP);
+            } else {
+                v = BigDecimal.ZERO;
+            }
+            return v.max(BigDecimal.ZERO).min(BigDecimal.valueOf(100));
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     /** Thứ Hai đầu tuần theo múi giờ cấu hình; đủ trendWeeks tuần gần nhất, tuần trống là 0. */

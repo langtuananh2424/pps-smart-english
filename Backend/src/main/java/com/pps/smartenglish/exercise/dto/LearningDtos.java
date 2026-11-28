@@ -11,8 +11,8 @@ public final class LearningDtos {
 
     /**
      * Một dòng của một chiều thống kê. answered/correct chỉ đếm câu đã có đúng/sai (accuracy = correct/answered, %);
-     * câu dạng AI chưa có đúng/sai (ungraded) tách riêng: aiGraded đã có điểm AI (aiAverageScore, điểm thô của AI), phần còn
-     * lại đang chờ chấm. Không trộn vào accuracy.
+     * câu dạng AI chưa có đúng/sai (ungraded) tách riêng: aiGraded đã có điểm Cam (aiAverageScore, % 0 đến 100, D-167: Viết là
+     * scorePercent, Nói là band / bandMax x 100), phần còn lại đang chờ chấm. Không trộn vào accuracy.
      */
     public record Metric(String key, String label, long answered, long correct, BigDecimal credit, Integer accuracy,
                          long ungraded, long aiGraded, BigDecimal aiAverageScore) {}
