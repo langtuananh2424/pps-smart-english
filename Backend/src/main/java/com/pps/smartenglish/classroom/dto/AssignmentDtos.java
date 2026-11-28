@@ -3,6 +3,7 @@ package com.pps.smartenglish.classroom.dto;
 import com.pps.smartenglish.exercise.listening.ListeningDtos.RuleInput;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
@@ -47,7 +48,8 @@ public final class AssignmentDtos {
                               com.pps.smartenglish.exercise.listening.ListeningDtos.ForcedProgress forced) {}
 
     public record GradeRequest(
-            @DecimalMin(value = "0", message = "Điểm không âm") BigDecimal score,
+            @DecimalMin(value = "0", message = "Điểm không âm")
+            @Digits(integer = 6, fraction = 2, message = "Điểm tối đa 2 chữ số thập phân") BigDecimal score,
             @Size(max = 4000, message = "Nhận xét tối đa 4000 ký tự") String comment) {}
 
     public record GradeView(Long id, Long attemptId, BigDecimal score, String comment, Long gradedBy, Instant gradedAt) {}
