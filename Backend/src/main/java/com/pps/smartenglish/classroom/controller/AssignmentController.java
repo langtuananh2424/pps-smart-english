@@ -8,6 +8,8 @@ import com.pps.smartenglish.classroom.dto.AssignmentDtos.GradeView;
 import com.pps.smartenglish.classroom.dto.AssignmentDtos.MyResult;
 import com.pps.smartenglish.classroom.dto.AssignmentDtos.ProgressRow;
 import com.pps.smartenglish.classroom.dto.AssignmentDtos.UpdateAssignment;
+import com.pps.smartenglish.classroom.dto.AssignmentDtos.AssignableTree;
+import com.pps.smartenglish.classroom.service.AssignableService;
 import com.pps.smartenglish.classroom.service.AssignmentProgressService;
 import com.pps.smartenglish.classroom.service.AssignmentService;
 import com.pps.smartenglish.classroom.service.AssignmentSubmissionReader;
@@ -40,8 +42,11 @@ class AssignmentController {
     private final AssignmentService assignments;
     private final AssignmentProgressService progress;
     private final AssignmentSubmissionReader submissions;
+    private final AssignableService assignable;
 
-    AssignmentController(AssignmentService assignments, AssignmentProgressService progress, AssignmentSubmissionReader submissions) {
+    AssignmentController(AssignmentService assignments, AssignmentProgressService progress, AssignmentSubmissionReader submissions,
+                         AssignableService assignable) {
+        this.assignable = assignable;
         this.assignments = assignments;
         this.progress = progress;
         this.submissions = submissions;
@@ -53,6 +58,12 @@ class AssignmentController {
 
     private static long asg(String raw) {
         return PathId.parse(raw, ASG_NF, ASG_NF_MSG);
+    }
+
+    /** FR-ASG-01: bộ và câu Viết/Nói giao được, theo unit của khóa của lớp. */
+    @GetMapping("/api/classes/{classId}/assignable")
+    AssignableTree assignable(Authentication auth, @PathVariable String classId) {
+        return assignable.tree(CurrentUser.id(auth), cls(classId));
     }
 
     @PostMapping(BASE)

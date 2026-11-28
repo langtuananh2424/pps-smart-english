@@ -42,7 +42,7 @@ public final class ProgressDtos {
             @NotNull(message = "Unit là bắt buộc") Long topicId,
             @Size(max = 200, message = "Tối đa 200 học viên") List<Long> studentIds) {}
 
-    public record UnlockView(Long id, Long classId, Long topicId, Long userId, Long grantedBy, Instant grantedAt, Instant revokedAt) {}
+    public record UnlockView(Long id, Long classId, Long topicId, Long userId, Long grantedBy, String grantedByName, Instant grantedAt, Instant revokedAt) {}
 
     public record TeacherRow(Long userId, String displayName, int groupSessions, BigDecimal groupHours, int tutoringSessions,
                              BigDecimal tutoringHours, int totalSessions, BigDecimal totalHours) {}

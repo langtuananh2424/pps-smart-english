@@ -130,6 +130,27 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
             """)
     List<Object[]> progress(@Param("id") Long id, @Param("classId") Long classId);
 
+    /**
+     * [assignment id, số người nhận còn hiệu lực, số đã nộp] cho nhiều bài. Người nhận tính như recipientIds (danh sách riêng nếu có, không thì học viên đang học lớp).
+     * Đã nộp: lượt bài thường đã nộp, phiên viết đã nộp (job chấm không lỗi hẳn), lượt nói GRADING/GRADED. Bài không người nhận không có dòng.
+     */
+    @Query(nativeQuery = true, value = """
+            SELECT r.aid, COUNT(*), SUM(CASE WHEN
+                EXISTS (SELECT 1 FROM student_exercise_attempts x WHERE x.assignment_id = r.aid AND x.user_id = r.uid AND x.submitted_at IS NOT NULL)
+                OR EXISTS (SELECT 1 FROM writing_sessions w WHERE w.assignment_id = r.aid AND w.user_id = r.uid AND w.status = 'SUBMITTED'
+                    AND NOT EXISTS (SELECT 1 FROM ai_jobs j WHERE j.id = w.grade_job_id AND j.status = 'FAILED'))
+                OR EXISTS (SELECT 1 FROM speaking_submissions s WHERE s.assignment_id = r.aid AND s.user_id = r.uid AND s.status IN ('GRADING', 'GRADED'))
+                THEN 1 ELSE 0 END)
+            FROM (SELECT a.id AS aid, t.user_id AS uid FROM assignments a
+                  JOIN assignment_targets t ON t.assignment_id = a.id WHERE a.id IN (:ids)
+                  UNION
+                  SELECT a.id, m.user_id FROM assignments a
+                  JOIN class_members m ON m.class_id = a.class_id AND m.status = 'ACTIVE'
+                  WHERE a.id IN (:ids) AND NOT EXISTS (SELECT 1 FROM assignment_targets t2 WHERE t2.assignment_id = a.id)) r
+            GROUP BY r.aid
+            """)
+    List<Object[]> recipientCounts(@Param("ids") Collection<Long> ids);
+
     /** [attempt id, user id, điểm AI, điểm tối đa, nộp lúc]: lượt đã nộp của bài này. */
     @Query(nativeQuery = true, value = """
             SELECT a.id, a.user_id, a.score, a.max_score, a.submitted_at FROM student_exercise_attempts a

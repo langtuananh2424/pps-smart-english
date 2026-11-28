@@ -205,7 +205,7 @@ public class AssignmentService {
         if (relation == ClassAccess.Relation.STUDENT) {
             return views(assignments.forStudentInClass(classId, callerId, PageRequest.of(0, LIST_LIMIT)), callerId);
         }
-        return views(assignments.findByClassIdOrderByIdDesc(classId, PageRequest.of(0, LIST_LIMIT)), 0);
+        return views(assignments.findByClassIdOrderByIdDesc(classId, PageRequest.of(0, LIST_LIMIT)), 0, true);
     }
 
     /** Mọi bài chưa nộp còn hiệu lực + tối đa MINE_SUBMITTED_LIMIT bài đã nộp gần nhất theo hạn; hạn gần nhất trước. */
@@ -260,6 +260,11 @@ public class AssignmentService {
 
     /** viewerId > 0: điền trạng thái của học viên đó. */
     private List<AssignmentView> views(List<Assignment> rows, long viewerId) {
+        return views(rows, viewerId, false);
+    }
+
+    /** withCounts: nhân sự xem, điền recipients và submitted bằng một truy vấn gộp. */
+    private List<AssignmentView> views(List<Assignment> rows, long viewerId, boolean withCounts) {
         if (rows.isEmpty()) {
             return List.of();
         }
@@ -272,10 +277,19 @@ public class AssignmentService {
         });
         Set<Long> withTargets = new HashSet<>();
         targets.findByAssignmentIdIn(ids).forEach(t -> withTargets.add(t.getAssignmentId()));
+        Map<Long, Object[]> counts = new HashMap<>();
+        if (withCounts) {
+            assignments.recipientCounts(ids).forEach(r -> counts.put(((Number) r[0]).longValue(), r));
+        }
         Instant now = classes.now();
         return rows.stream().map(a -> new AssignmentView(a.getId(), a.getClassId(), a.getBankId(), titles.get(a.getBankId()), a.getQuestionId(),
                 a.getQuestionType(), a.getDueAt(), a.getStatus(), !withTargets.contains(a.getId()), viewerId > 0 ? myStatus(a, viewerId, now) : null,
-                a.isAiQuestion() ? null : (a.getMode() != null ? a.getMode() : bankModes.get(a.getBankId())))).toList();
+                a.isAiQuestion() ? null : (a.getMode() != null ? a.getMode() : bankModes.get(a.getBankId())),
+                withCounts ? count(counts.get(a.getId()), 1) : null, withCounts ? count(counts.get(a.getId()), 2) : null)).toList();
+    }
+
+    private static int count(Object[] row, int col) {
+        return row == null ? 0 : ((Number) row[col]).intValue();
     }
 
     private String myStatus(Assignment a, long userId, Instant now) {
