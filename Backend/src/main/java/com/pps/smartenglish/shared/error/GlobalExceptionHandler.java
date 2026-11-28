@@ -14,6 +14,7 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
@@ -36,6 +37,12 @@ public class GlobalExceptionHandler {
         Map<String, String> details = new LinkedHashMap<>();
         e.getBindingResult().getFieldErrors().forEach(f -> details.putIfAbsent(f.getField(), f.getDefaultMessage()));
         return build(HttpStatus.BAD_REQUEST, "validation_failed", "Dữ liệu không hợp lệ", details);
+    }
+
+    /** Tham số query/path sai kiểu (ngày, số): 400 kèm tên tham số thay vì 500. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ApiError> typeMismatch(MethodArgumentTypeMismatchException e) {
+        return build(HttpStatus.BAD_REQUEST, "validation_failed", "Dữ liệu không hợp lệ", Map.of(e.getName(), "Giá trị không hợp lệ"));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
