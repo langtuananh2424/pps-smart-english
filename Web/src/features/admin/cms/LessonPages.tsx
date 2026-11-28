@@ -1,5 +1,7 @@
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { Loading, PageHead, RetryError, Section, WriteError } from '../ui'
+import { GlossaryCard } from './GlossaryCard'
+import { LessonVideoCard } from './LessonVideoCard'
 import { cmsWrites, LESSON_TYPES, useCmsWrite, useCourseTree, type CourseTree, type LessonView } from './api'
 import { NodeForm, type FieldDef } from './NodeForm'
 import { small } from './NodeRow'
@@ -10,7 +12,6 @@ const infoFields: FieldDef[] = [
   { name: 'type', label: 'Loại bài', kind: 'select', options: LESSON_TYPES, required: true },
   { name: 'durationSec', label: 'Thời lượng (giây)', kind: 'number' },
 ]
-const videoFields: FieldDef[] = [{ name: 'videoRef', label: 'Video (mã hoặc URL YouTube)' }]
 
 // Tìm bài giảng trong cây kèm đường dẫn "Khóa / Cấp độ / Chủ đề" cho dòng phụ đề.
 function locate(tree: CourseTree, lessonId: string) {
@@ -24,7 +25,7 @@ function locate(tree: CourseTree, lessonId: string) {
 
 const notFound = <p role="alert" className="font-bold text-ink-secondary">Không tìm thấy bài giảng.</p>
 
-// FR-ADM-01: chỉnh sửa bài giảng (Figma 369:8154). Hai thẻ gửi PATCH một phần; chưa có mô tả, tải video, phụ đề (xem báo cáo).
+// FR-ADM-01: chỉnh sửa bài giảng (Figma 369:8154). Các thẻ gửi PATCH một phần; thẻ video có tải lên và phụ đề (D-171, D-172), thẻ từ nối là D-173.
 export function LessonEditPage() {
   const { courseId = '', lessonId = '' } = useParams()
   const navigate = useNavigate()
@@ -56,8 +57,7 @@ export function LessonEditPage() {
             onSubmit={(b) => patch.mutateAsync(b)}
           />
         </Section>
-        <Section title="Video">
-          <NodeForm key={`v${lesson.id}`} fields={videoFields} initial={{ videoRef: lesson.videoRef ?? '' }} submitLabel="Lưu video" onSubmit={(b) => patch.mutateAsync(b)} />
+        <LessonVideoCard lesson={lesson}>
           <div className="flex flex-wrap items-center gap-2">
             <StatusPill status={lesson.status} />
             <button type="button" className={pillPrimary} disabled={publish.isPending} onClick={toggle}>
@@ -65,7 +65,8 @@ export function LessonEditPage() {
             </button>
           </div>
           {publish.isError && <WriteError error={publish.error} onRetry={() => publish.reset()} />}
-        </Section>
+        </LessonVideoCard>
+        <GlossaryCard lessonId={lesson.id} />
       </div>
       <Link to={courseUrl(courseId)} className={`${small} self-start`}>
         Về nội dung khóa

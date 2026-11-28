@@ -164,7 +164,7 @@ public class CmsGroupService {
 
     /** Video phải READY và đúng loại; null = không có video file. */
     private Long videoId(Long id) {
-        return id == null ? null : video.requireVideo(id).getId();
+        return id == null ? null : video.requireQuizVideo(id).getId();
     }
 
     /** Link/mã YouTube chuẩn hóa về mã 11 ký tự; rỗng = không có. */

@@ -21,6 +21,16 @@ docker compose up --build
 - PostgreSQL: localhost:5432
 - Redis: 127.0.0.1:6379 (bộ đếm rate limit; Redis lỗi thì backend vẫn chạy, giới hạn chuyển sang bộ nhớ)
 
+## Nhập từ điển Wiktionary (D-175)
+
+Gợi ý nghĩa cho glossary bài giảng lấy từ bảng `dictionary_entries`. Nạp một lần từ file wiktextract JSONL (`.jsonl` hoặc `.jsonl.gz`, tải ở kaikki.org), chạy xong ứng dụng tự thoát; chạy lại thì xóa và nạp lại:
+
+```bash
+cd Backend && mvn spring-boot:run -Dspring-boot.run.arguments="--app.dictionary.import-file=/duong/dan/file.jsonl.gz --app.dictionary.import-edition=vi"
+```
+
+`import-edition`: `vi` (vi.wiktionary, nghĩa tiếng Việt trong glosses, mặc định) hoặc `en` (en.wiktionary, lấy bản dịch sang tiếng Việt, không có ví dụ).
+
 ## Chạy từng phần khi phát triển
 
 ```bash

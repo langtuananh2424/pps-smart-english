@@ -46,8 +46,8 @@ export async function uploadAudio(file: File): Promise<UploadedAudio> {
 }
 
 // D-156: video lớn nên dùng XHR để báo tiến trình (fetch không có upload progress). Cùng presigned POST như audio.
-export async function uploadVideo(file: File, onProgress: (pct: number) => void): Promise<UploadedVideo> {
-  const permit = await postJson<Permit>('/admin/cms/media/video', { contentType: file.type })
+export async function uploadVideo(file: File, onProgress: (pct: number) => void, permitPath = '/admin/cms/media/video'): Promise<UploadedVideo> {
+  const permit = await postJson<Permit>(permitPath, { contentType: file.type })
   if (file.size > permit.maxBytes) throw fail(`Tệp vượt quá ${Math.floor(permit.maxBytes / 1024 / 1024)} MB.`)
   const form = new FormData()
   for (const [k, v] of Object.entries(permit.fields)) form.append(k, v)

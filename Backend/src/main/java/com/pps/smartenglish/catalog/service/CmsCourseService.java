@@ -18,12 +18,15 @@ import com.pps.smartenglish.catalog.repository.LessonRepository;
 import com.pps.smartenglish.catalog.repository.TopicRepository;
 import com.pps.smartenglish.exercise.domain.QuestionBank;
 import com.pps.smartenglish.exercise.repository.QuestionBankRepository;
+import com.pps.smartenglish.media.config.MediaProperties;
 import com.pps.smartenglish.shared.audit.AuditRecorder;
+import com.pps.smartenglish.shared.storage.ObjectStorage;
 import com.pps.smartenglish.shared.error.ApiException;
 import com.pps.smartenglish.shared.persistence.CmsWrites;
 import com.pps.smartenglish.shared.web.CursorPage;
 import com.pps.smartenglish.shared.web.Cursors;
 import java.math.BigDecimal;
+import com.pps.smartenglish.lessoncontent.LessonSubtitleService;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -48,10 +51,16 @@ public class CmsCourseService {
     private final CmsWrites writes;
     private final ClassRepository classRooms;
     private final AuditRecorder audit;
+    private final LessonSubtitleService subtitles;
+    private final ObjectStorage storage;
+    private final MediaProperties media;
 
     CmsCourseService(CourseRepository courses, CourseLevelRepository levels, TopicRepository topics, LessonRepository lessons,
                      QuestionBankRepository banks, CmsWrites writes, ClassRepository classRooms,
-                     AuditRecorder audit) {
+                     AuditRecorder audit, LessonSubtitleService subtitles, ObjectStorage storage, MediaProperties media) {
+        this.storage = storage;
+        this.media = media;
+        this.subtitles = subtitles;
         this.courses = courses;
         this.levels = levels;
         this.topics = topics;
@@ -84,7 +93,7 @@ public class CmsCourseService {
         return after;
     }
 
-    /** Cây đầy đủ kể cả DRAFT, dựng bằng 4 truy vấn cố định. */
+    /** Cây đầy đủ kể cả DRAFT, dựng bằng 5 truy vấn cố định (gồm phụ đề của các bài; ký URL xem thử là tính cục bộ). */
     @Transactional(readOnly = true)
     public CourseTree tree(long id) {
         Course course = find(id);
@@ -94,8 +103,10 @@ public class CmsCourseService {
         List<Lesson> lss = tps.isEmpty() ? List.of()
                 : lessons.findByTopicIdInOrderBySortOrderAscIdAsc(tps.stream().map(Topic::getId).toList());
 
+        var subs = subtitles.summaries(lss.stream().map(Lesson::getId).toList());
         Map<Long, List<com.pps.smartenglish.catalog.dto.CmsDtos.LessonView>> lessonsByTopic = lss.stream()
-                .collect(Collectors.groupingBy(Lesson::getTopicId, Collectors.mapping(CmsLessonService::view, Collectors.toList())));
+                .collect(Collectors.groupingBy(Lesson::getTopicId,
+                        Collectors.mapping(l -> CmsLessonService.view(l, subs.getOrDefault(l.getId(), List.of()), CmsLessonService.videoUrl(l, storage, media)), Collectors.toList())));
         Map<Long, List<TopicNode>> topicsByLevel = tps.stream().collect(Collectors.groupingBy(Topic::getLevelId,
                 Collectors.mapping(t -> new TopicNode(CmsTopicService.view(t), lessonsByTopic.getOrDefault(t.getId(), List.of())),
                         Collectors.toList())));

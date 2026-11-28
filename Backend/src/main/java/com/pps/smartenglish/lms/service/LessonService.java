@@ -1,5 +1,7 @@
 package com.pps.smartenglish.lms.service;
 
+import com.pps.smartenglish.lessoncontent.LessonGlossaryService;
+import com.pps.smartenglish.lessoncontent.LessonSubtitleService;
 import com.pps.smartenglish.lms.dto.LessonResponse;
 import com.pps.smartenglish.lms.dto.LessonResponse.VideoInfo;
 import com.pps.smartenglish.shared.storage.ObjectStorage;
@@ -18,8 +20,13 @@ public class LessonService {
     private final LessonGate gate;
     private final ObjectStorage storage;
     private final Clock clock;
+    private final LessonSubtitleService subtitles;
+    private final LessonGlossaryService glossary;
 
-    LessonService(LessonGate gate, ObjectStorage storage, Clock clock) {
+    LessonService(LessonGate gate, ObjectStorage storage, Clock clock, LessonSubtitleService subtitles,
+                  LessonGlossaryService glossary) {
+        this.subtitles = subtitles;
+        this.glossary = glossary;
         this.gate = gate;
         this.storage = storage;
         this.clock = clock;
@@ -29,7 +36,8 @@ public class LessonService {
     public LessonResponse get(Long lessonId, Long userId) {
         var l = gate.require(lessonId, userId);
         return new LessonResponse(l.id(), l.title(), l.type(), l.durationSec(), video(l.videoSource(), l.videoRef()),
-                l.courseId(), l.courseSlug(), l.courseTitle(), l.topicId(), l.topicTitle(), l.levelId());
+                l.courseId(), l.courseSlug(), l.courseTitle(), l.topicId(), l.topicTitle(), l.levelId(),
+                subtitles.cues(lessonId), glossary.terms(lessonId));
     }
 
     private VideoInfo video(String source, String ref) {

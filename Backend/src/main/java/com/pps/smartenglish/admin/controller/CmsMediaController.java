@@ -43,6 +43,13 @@ class CmsMediaController {
         return video.createUpload(CurrentUser.id(auth), req.contentType());
     }
 
+    /** D-171: video bài giảng (tối đa app.media.lesson-video.max-bytes); xác nhận bằng complete-video. */
+    @PostMapping("/lesson-video")
+    @ResponseStatus(HttpStatus.CREATED)
+    UploadPermit createLessonVideoUpload(Authentication auth, @Valid @RequestBody UploadRequest req) {
+        return video.createLessonUpload(CurrentUser.id(auth), req.contentType());
+    }
+
     @PostMapping("/{id}/complete-video")
     VideoFile completeVideo(Authentication auth, @PathVariable String id) {
         return video.complete(CurrentUser.id(auth), PathId.parse(id, "media_not_found", "Không tìm thấy video"));
