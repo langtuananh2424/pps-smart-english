@@ -298,4 +298,40 @@ class D168TeacherAiScoreEdgeTest extends AiTestSupport {
         String after = call(HttpMethod.GET, "/api/me/learning-profile", s, null).andReturn().getResponse().getContentAsString();
         assertEquals(json.readTree(before), json.readTree(after));
     }
+
+    /** D-169: bài đã hủy khóa chấm (Viết và Nói): 409, không ghi dòng sửa; đọc lịch sử vẫn được. */
+    @Test
+    void cancelledAssignmentLocksGrading() throws Exception {
+        var f = fixture();
+        var s = member(f);
+        long asg = assign(f, f.writing());
+        long session = submitWriting(f, s, asg);
+        long sp = assign(f, f.speaking());
+        long sub = submitSpeaking(f, s, sp);
+        call(HttpMethod.PUT, gradeUrl(f, asg, session), f.teacher(), Map.of("score", 60)).andExpect(status().isCreated());
+        for (long a : new long[] {asg, sp}) {
+            postJson(base(f) + "/" + a + "/cancel", f.teacher(), Map.of()).andExpect(status().isOk());
+        }
+        call(HttpMethod.PUT, gradeUrl(f, asg, session), f.teacher(), Map.of("score", 90)).andExpect(status().isConflict());
+        call(HttpMethod.PUT, gradeUrl(f, asg, session), f.teacher(), Map.of("comment", "Muộn")).andExpect(status().isConflict());
+        call(HttpMethod.PUT, gradeUrl(f, sp, sub), f.teacher(), Map.of("score", 7)).andExpect(status().isConflict());
+        assertEquals(1, overridesOf(session));
+        assertEquals(0, count("select count(*) from grade_overrides where speaking_submission_id = ?", sub));
+        call(HttpMethod.GET, base(f) + "/" + asg + "/attempts/" + session + "/grades", f.teacher(), null).andExpect(status().isOk());
+    }
+
+    /** D-170: điểm Nói là bội số của 0,5; Viết giữ thang cũ. */
+    @Test
+    void speakingScoreStepIsHalfBand() throws Exception {
+        var f = fixture();
+        var s = member(f);
+        long sp = assign(f, f.speaking());
+        long sub = submitSpeaking(f, s, sp);
+        call(HttpMethod.PUT, gradeUrl(f, sp, sub), f.teacher(), Map.of("score", 7.3)).andExpect(status().isBadRequest());
+        assertEquals(0, count("select count(*) from grade_overrides where speaking_submission_id = ?", sub));
+        call(HttpMethod.PUT, gradeUrl(f, sp, sub), f.teacher(), Map.of("score", 7.5)).andExpect(status().isCreated());
+        long asg = assign(f, f.writing());
+        long session = submitWriting(f, s, asg);
+        call(HttpMethod.PUT, gradeUrl(f, asg, session), f.teacher(), Map.of("score", 85.12)).andExpect(status().isCreated());
+    }
 }
