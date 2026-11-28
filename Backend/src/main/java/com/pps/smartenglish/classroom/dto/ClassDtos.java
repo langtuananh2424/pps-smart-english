@@ -34,7 +34,13 @@ public final class ClassDtos {
     public record Person(Long userId, String displayName) {}
 
     public record ClassView(Long id, Long courseId, String courseTitle, String name, LocalDate startsOn, LocalDate endsOn,
-                            String mode, int capacity, String status, long activeMembers, Person teacher) {}
+                            String mode, int capacity, String status, long activeMembers, Person teacher,
+                            Integer avgLessonPercent, int laggingCount) {
+        /** D-176: chỉ danh sách lớp của giáo viên điền; chỗ khác để null và 0. */
+        public ClassView withProgress(Integer avg, int lagging) {
+            return new ClassView(id, courseId, courseTitle, name, startsOn, endsOn, mode, capacity, status, activeMembers, teacher, avg, lagging);
+        }
+    }
 
     public record StaffView(Long id, Long userId, String displayName, String role, LocalDate assignedFrom, LocalDate assignedTo,
                             boolean active) {}

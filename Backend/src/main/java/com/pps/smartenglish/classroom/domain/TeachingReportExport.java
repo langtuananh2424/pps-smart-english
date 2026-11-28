@@ -30,9 +30,18 @@ public class TeachingReportExport {
     @Column(name = "to_date", nullable = false, updatable = false)
     private LocalDate toDate;
 
+    /** null = mọi vai trò / mọi lớp. */
+    @Column(name = "role", length = 10, updatable = false)
+    private String role;
+
+    @Column(name = "class_id", updatable = false)
+    private Long classId;
+
     protected TeachingReportExport() {}
 
-    public TeachingReportExport(Long exportedBy, Instant exportedAt, LocalDate fromDate, LocalDate toDate) {
+    public TeachingReportExport(Long exportedBy, Instant exportedAt, LocalDate fromDate, LocalDate toDate, String role, Long classId) {
+        this.role = role;
+        this.classId = classId;
         this.exportedBy = exportedBy;
         this.exportedAt = exportedAt;
         this.fromDate = fromDate;
@@ -40,4 +49,8 @@ public class TeachingReportExport {
     }
 
     public Instant getExportedAt() { return exportedAt; }
+    public LocalDate getFromDate() { return fromDate; }
+    public LocalDate getToDate() { return toDate; }
+    public String getRole() { return role; }
+    public Long getClassId() { return classId; }
 }
