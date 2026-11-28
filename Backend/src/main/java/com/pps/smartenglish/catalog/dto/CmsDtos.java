@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import com.pps.smartenglish.lessoncontent.LessonContentDtos.SubtitleInfo;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -71,14 +72,15 @@ public final class CmsDtos {
             Boolean clearChapterTest,
             @Min(0) @Max(1000) Integer chapterTestRetakes) {}
 
-    /** type: CONNECTIVE_VIDEO hoặc REFLEX_VIDEO. videoSource chỉ nhận YOUTUBE; videoRef là mã hoặc URL YouTube. */
+    /** type: CONNECTIVE_VIDEO hoặc REFLEX_VIDEO. videoSource YOUTUBE (videoRef là mã hoặc URL) hoặc STORAGE (videoMediaId là video READY, D-171). */
     public record CreateLesson(
             @NotBlank @Pattern(regexp = "CONNECTIVE_VIDEO|REFLEX_VIDEO", message = "CONNECTIVE_VIDEO hoặc REFLEX_VIDEO") String type,
             @NotBlank @Size(max = 200) String title,
             @Min(1) Integer durationSec,
             @Min(0) Integer sortOrder,
             String videoSource,
-            @Size(max = 500) String videoRef) {}
+            @Size(max = 500) String videoRef,
+            Long videoMediaId) {}
 
     public record PatchLesson(
             @Pattern(regexp = "CONNECTIVE_VIDEO|REFLEX_VIDEO", message = "CONNECTIVE_VIDEO hoặc REFLEX_VIDEO") String type,
@@ -86,7 +88,8 @@ public final class CmsDtos {
             @Min(1) Integer durationSec,
             @Min(0) Integer sortOrder,
             String videoSource,
-            @Size(max = 500) String videoRef) {}
+            @Size(max = 500) String videoRef,
+            Long videoMediaId) {}
 
     // ---- phản hồi ----
 
@@ -100,8 +103,9 @@ public final class CmsDtos {
     public record TopicView(Long id, Long levelId, String title, int sortOrder, boolean isFreeTrial, TopicSkill skill,
                            String status, Long chapterTestBankId, int chapterTestRetakes) {}
 
+    /** videoUrl: link xem lại của video STORAGE (chỉ ở phản hồi một bài, null ở cây). */
     public record LessonView(Long id, Long topicId, String type, String title, Integer durationSec, int sortOrder, String status,
-                             String videoSource, String videoRef) {}
+                             String videoSource, String videoRef, String videoUrl, List<SubtitleInfo> subtitles) {}
 
     /** Cây đầy đủ kể cả DRAFT cho màn soạn. */
     public record CourseTree(CourseView course, List<LevelNode> levels) {}

@@ -41,12 +41,20 @@ public class VideoMediaService {
     }
 
     public UploadPermit createUpload(long userId, String contentType) {
+        return permit(userId, contentType, media.video().maxBytes(), "media/video/");
+    }
+
+    /** D-171: video bài giảng, trần dung lượng riêng; xác nhận dùng chung complete. */
+    public UploadPermit createLessonUpload(long userId, String contentType) {
+        return permit(userId, contentType, media.lessonVideo().maxBytes(), "media/lesson-video/");
+    }
+
+    private UploadPermit permit(long userId, String contentType, long max, String prefix) {
         if (!MP4.equals(contentType)) {
             throw bad("video_type_unsupported", "Chỉ nhận video MP4");
         }
-        long max = media.video().maxBytes();
         Instant expires = Instant.now(clock).plus(media.uploadTtl());
-        String key = "media/video/" + UUID.randomUUID();
+        String key = prefix + UUID.randomUUID();
         var asset = assets.save(MediaAsset.pendingVideo(userId, key, max, expires));
         var form = storage.presignPost(key, contentType, max, media.uploadTtl());
         return new UploadPermit(asset.getId(), form.url(), form.fields(), max, contentType, expires);
@@ -86,10 +94,25 @@ public class VideoMediaService {
         return file(assets.save(asset));
     }
 
-    /** Video READY theo id; không phải video hoặc chưa xong thì 400 (dùng khi gắn vào nhóm câu). */
+    /** Video READY theo id; không phải video hoặc chưa xong thì 400 (bài giảng, trần 300 MB). */
     public MediaAsset requireVideo(long id) {
-        return assets.findById(id).filter(a -> a.isReady() && MediaAsset.VIDEO.equals(a.getKind()))
+        return requireVideo(id, Long.MAX_VALUE);
+    }
+
+    /** Như requireVideo nhưng giữ trần dung lượng của video làm đề (D-156), không nhận video bài giảng lớn hơn. */
+    public MediaAsset requireQuizVideo(long id) {
+        return requireVideo(id, media.video().maxBytes());
+    }
+
+    private MediaAsset requireVideo(long id, long maxBytes) {
+        return assets.findById(id).filter(a -> a.isReady() && MediaAsset.VIDEO.equals(a.getKind())
+                        && (a.getSizeBytes() == null || a.getSizeBytes() <= maxBytes))
                 .orElseThrow(() -> bad("media_not_ready", "Video chưa tải xong hoặc không tồn tại: " + id));
+    }
+
+    /** Khóa kho của video READY; dùng khi xuất bản bài STORAGE. */
+    public boolean isReadyVideoKey(String key) {
+        return assets.findByStorageKey(key).filter(a -> a.isReady() && MediaAsset.VIDEO.equals(a.getKind())).isPresent();
     }
 
     /** Thời lượng (giây, làm tròn lên) của video READY; không có thì empty. */

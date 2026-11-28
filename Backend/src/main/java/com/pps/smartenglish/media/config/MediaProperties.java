@@ -8,6 +8,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 @ConfigurationProperties(prefix = "app.media")
 public record MediaProperties(@DefaultValue Image image,
                               @DefaultValue Video video,
+                              @DefaultValue LessonVideo lessonVideo,
                               @DefaultValue("20") int maxPerQuestion,
                               @DefaultValue("120m") Duration urlTtl,
                               @DefaultValue("15m") Duration uploadTtl,
@@ -19,6 +20,15 @@ public record MediaProperties(@DefaultValue Image image,
         public Video {
             if (maxBytes <= 0) {
                 throw new IllegalArgumentException("app.media.video.max-bytes phải dương");
+            }
+        }
+    }
+
+    /** D-171: video bài giảng tải thẳng lên kho, chỉ mp4; maxBytes mặc định 300 MB. */
+    public record LessonVideo(@DefaultValue("314572800") long maxBytes) {
+        public LessonVideo {
+            if (maxBytes <= 0) {
+                throw new IllegalArgumentException("app.media.lesson-video.max-bytes phải dương");
             }
         }
     }

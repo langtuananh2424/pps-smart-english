@@ -119,6 +119,18 @@ class GroupVideoApiTest extends ListeningTestSupport {
     }
 
     @Test
+    void quizGroupRejectsLessonVideoLargerThanQuizCap() throws Exception {
+        var admin = withRole("ADMIN");
+        var w = world("FREE", null);
+        long video = uploadVideo(admin);
+        jdbc.update("update media_assets set size_bytes = 200000000 where id = ?", video); // video bài giảng 200 MB
+        patchGroup(admin, w.g1(), Map.of("videoAssetId", video)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("media_not_ready"));
+        jdbc.update("update media_assets set size_bytes = 104857600 where id = ?", video);
+        patchGroup(admin, w.g1(), Map.of("videoAssetId", video)).andExpect(status().isOk());
+    }
+
+    @Test
     void groupHoldsOneVideoSourceAndStudentsSeeIt() throws Exception {
         var admin = withRole("ADMIN");
         var w = world("FREE", null);
