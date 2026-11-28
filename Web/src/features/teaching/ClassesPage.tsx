@@ -39,7 +39,7 @@ export function ClassesPage() {
                       <td className={cell}>{c.avgLessonPercent == null ? '—' : `${c.avgLessonPercent}%`}</td>
                       <td className={cell}>
                         {c.laggingCount > 0 ? (
-                          <Link to={classPath(c.id)} className="font-extrabold text-danger-fg underline">
+                          <Link to={`${classPath(c.id)}?loc=tut-lai`} className="font-extrabold text-danger-fg underline">
                             {c.laggingCount} học viên cần hỗ trợ
                           </Link>
                         ) : (
