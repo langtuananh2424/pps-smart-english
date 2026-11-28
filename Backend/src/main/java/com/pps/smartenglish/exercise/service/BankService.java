@@ -78,11 +78,24 @@ public class BankService {
     public BankResponse get(Long bankId, Long userId) {
         exam.guardView(userId, bankId); // trước gate: cùng mã lỗi exam_* như lúc bắt đầu thi
         var bank = gate.requireReadable(bankId, userId);
-        var set = loader.load(bankId);
-        var playback = banks.findById(bankId).orElseThrow(); // findInfo vừa tìm thấy bộ này
         // D-155: lượt Thi (đang mở, hoặc bài giao Thi) không có gợi ý; lượt Luyện tập lấy qua /attempts/{id}/hints
         var examNow = attempts.findFirstByUserIdAndBankIdAndSubmittedAtIsNullOrderByIdDesc(userId, bankId)
                 .map(a -> !modes.practiceAllowed(a)).orElseGet(() -> modes.examAssigned(userId, bankId));
+        long attemptId = attempts.findFirstByUserIdAndBankIdAndSubmittedAtIsNullOrderByIdDesc(userId, bankId)
+                .map(StudentAttempt::getId).orElse(0L); // chưa có lượt mở: seed 0, vẫn khác thứ tự soạn
+        return build(bank, loader.load(bankId), examNow, attemptId);
+    }
+
+    /** D-174: đề của một lượt đã nộp cho giáo viên (người gọi đã kiểm lớp và bài giao, không qua BankGate); không gợi ý, cùng thứ tự lựa chọn của lượt. */
+    @Transactional(readOnly = true)
+    public BankResponse forReview(StudentAttempt a, java.util.Collection<Long> answeredQuestionIds) {
+        var bank = banks.findInfo(a.getBankId()).orElseThrow();
+        return build(bank, loader.loadForHistory(a, answeredQuestionIds), true, a.getId());
+    }
+
+    private BankResponse build(com.pps.smartenglish.exercise.dto.BankInfo bank, QuestionSet set, boolean examNow, long attemptId) {
+        var bankId = bank.id();
+        var playback = banks.findById(bankId).orElseThrow(); // findInfo vừa tìm thấy bộ này
         var hintsByQuestion = examNow ? Map.<Long, List<HintView>>of() : hintsOf(bank.mode(), set.questions());
         var groupRows = groups.findByBankIdOrderBySortOrderAscIdAsc(bankId);
         // một lần gọi kho ảnh cho mọi HTML của đề (đề bài, lựa chọn, bài đọc)
@@ -92,8 +105,6 @@ public class BankService {
         var durations = audio.durations(groupRows.stream().map(QuestionGroup::getAudioAssetId).filter(java.util.Objects::nonNull).toList());
         var videoUrls = video.signedUrls(groupRows.stream().map(QuestionGroup::getVideoAssetId).filter(java.util.Objects::nonNull).toList());
         var layoutByGroup = layouts.render(groupRows);
-        long attemptId = attempts.findFirstByUserIdAndBankIdAndSubmittedAtIsNullOrderByIdDesc(userId, bankId)
-                .map(StudentAttempt::getId).orElse(0L); // chưa có lượt mở: seed 0, vẫn khác thứ tự soạn
         return new BankResponse(bank.id(), bank.title(), bank.lessonId(), bank.trial(), bank.mode(),
                 bank.timeLimitSec(), questionViews(set, hintsByQuestion,
                         media.forQuestions(set.questions().stream().map(Question::getId).toList()), html, attemptId),

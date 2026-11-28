@@ -123,10 +123,10 @@ describe('chấm bài (FR-ASG-03)', () => {
     expect(await screen.findByText('Bài giao Nghe ép không có điểm nên không sửa điểm được.')).toBeInTheDocument()
   })
 
-  test('bộ câu: ghi chú chưa xem được câu trả lời, vẫn chấm được', async () => {
+  test('bộ câu: lỗi tải từng câu vẫn không chặn việc chấm', async () => {
     mockApi({ ...base, '/api/classes/3/assignments': () => json(200, [asg()]) })
     renderAt(URL)
-    expect(await screen.findByText('Chưa xem được từng câu trả lời ở đây.')).toBeInTheDocument()
+    expect(await screen.findByText('Bài làm của học viên')).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Lưu nhận xét' })).toBeInTheDocument()
   })
 })

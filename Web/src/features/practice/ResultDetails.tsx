@@ -9,7 +9,7 @@ const h3 = 'text-[19px] font-black text-ink'
 const tag = 'text-[13px] font-bold text-danger-fg'
 
 // Kết quả nhận diện cấu trúc (Figma 415:7861): câu có gạch chân đáp án, bài làm chia Đúng/Sai nhãn/Thừa, cụm đúng kèm Bị bỏ sót.
-export function IdentifyDetail({ question, mine, correct }: { question: Question; mine?: Answer; correct: Answer }) {
+export function IdentifyDetail({ question, mine, correct, mineLabel = 'Bài làm của bạn' }: { question: Question; mine?: Answer; correct: Answer; mineLabel?: string }) {
   const { name: elementName, color: elementColor } = useGrammarElements()
   const tokens = question.payload.tokens as string[]
   const right = spansOf(correct)
@@ -26,8 +26,8 @@ export function IdentifyDetail({ question, mine, correct }: { question: Question
       </section>
       <div className="grid gap-4 md:grid-cols-2">
         {given && (
-          <section aria-label="Bài làm của bạn" className={panel}>
-            <h3 className={h3}>Bài làm của bạn</h3>
+          <section aria-label={mineLabel} className={panel}>
+            <h3 className={h3}>{mineLabel}</h3>
             {given.length === 0 && <p className="text-[15px] text-ink">Chưa chọn cụm nào.</p>}
             {given.map((s, i) => {
               const v = verdict(s)
@@ -55,7 +55,7 @@ export function IdentifyDetail({ question, mine, correct }: { question: Question
 }
 
 // Kết quả xếp khối (Figma 415:8122): khối của bạn tô xanh/đỏ theo từng vị trí, rồi câu đúng.
-export function BuildDetail({ question, mine, correct }: { question: Question; mine?: Answer; correct: Answer }) {
+export function BuildDetail({ question, mine, correct, mineLabel = 'Bài làm của bạn' }: { question: Question; mine?: Answer; correct: Answer; mineLabel?: string }) {
   const blocks = question.payload.blocks as { id: Id; text: string }[]
   const text = (id: Id) => blocks.find((b) => same(b.id, id))?.text ?? String(id)
   const right = (correct.order ?? []) as Id[]
@@ -64,8 +64,8 @@ export function BuildDetail({ question, mine, correct }: { question: Question; m
   return (
     <div className="flex flex-col gap-4">
       {given && (
-        <section aria-label="Bài làm của bạn" className={panel}>
-          <h3 className={h3}>Bài làm của bạn</h3>
+        <section aria-label={mineLabel} className={panel}>
+          <h3 className={h3}>{mineLabel}</h3>
           <ol className="flex flex-col gap-3">
             {right.map((_, i) => (
               <li key={i} className={`rounded-[12px] p-3 text-[15px] font-bold text-ink md:max-w-[510px] ${given[i] != null && same(given[i], right[i]) ? 'bg-success-bg' : 'bg-danger-bg'}`}>

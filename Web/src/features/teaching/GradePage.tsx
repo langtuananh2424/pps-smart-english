@@ -5,10 +5,12 @@ import { GradeForm } from './GradeForm'
 import { GradeHistory } from './GradeHistory'
 import { classPath, KICKER, score } from './format'
 import { useSubmission } from './submissionApi'
+import { AttemptReviewView } from './AttemptReviewView'
+import { useAttemptReview } from './reviewApi'
 import { SubmissionView } from './SubmissionView'
 import { Gate, NavLinkBtn, useNum } from './ui'
 
-// #61, FR-ASG-03, D-141: chấm bài. Viết/Nói xem bài nộp; bộ câu chưa có API xem câu trả lời (shortcut: chỉ hiện điểm).
+// #61, FR-ASG-03, D-141: chấm bài. Viết/Nói xem bài nộp; bộ câu xem từng câu chỉ đọc (D-174).
 export function GradePage() {
   const classId = useNum('classId')
   const id = useNum('assignmentId')
@@ -22,6 +24,7 @@ export function GradePage() {
   const row = rows.data?.find((r) => r.attemptId === attemptId)
   const ai = a?.questionType != null
   const sub = useSubmission(classId, id, attemptId, ai)
+  const review = useAttemptReview(classId, id, attemptId, a != null && !ai)
   const max = row?.maxScore ?? null
   return (
     <>
@@ -30,8 +33,8 @@ export function GradePage() {
         <div className="flex min-w-0 flex-col gap-4">
           {ai ? <Gate q={sub}>{(s) => <SubmissionView s={s} />}</Gate> : (
             <Section title="Bài làm của học viên">
-              <p className="font-semibold text-ink-secondary">Chưa xem được từng câu trả lời ở đây.</p>
               <p className="font-semibold text-ink">Điểm cuối: {score(row?.finalScore ?? null, max)}</p>
+              <Gate q={review}>{(r) => <AttemptReviewView review={r} />}</Gate>
             </Section>
           )}
         </div>
