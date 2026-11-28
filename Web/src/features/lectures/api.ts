@@ -9,12 +9,17 @@ export interface LessonVideo {
   expiresAt?: string
 }
 
+export interface Cue { startMs: number; endMs: number; text: string }
+export interface GlossaryEntry { phrase: string; partOfSpeech: string | null; meaningVi: string; example: string | null; source: 'MANUAL' | 'WIKTIONARY' }
+
 export interface LessonDetail {
   id: number
   title: string
   type: string
   durationSec: number | null
   video: LessonVideo | null // null: bài chưa tải video lên
+  subtitles?: { en: Cue[]; vi: Cue[] } // D-172; chỉ có khi qua cùng cổng với video
+  glossary?: GlossaryEntry[] // D-173
   courseId: number
   courseSlug: string
   courseTitle: string

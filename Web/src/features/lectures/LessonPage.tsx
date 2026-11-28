@@ -3,14 +3,17 @@ import { Link, useParams } from 'react-router'
 import { useAuth } from '../../auth/AuthContext'
 import { Skeleton } from '../home/BlockState'
 import { useRoadmap } from '../home/api'
-import { useCatalogDetail, useLesson, useLessonProgress, type LessonDetail, type LessonProgress } from './api'
+import { useCatalogDetail, useLesson, useLessonProgress, type GlossaryEntry, type LessonDetail, type LessonProgress } from './api'
 import { FinishedCard } from './FinishedCard'
 import { LessonError } from './LessonStates'
 import { fromCatalog, fromRoadmap, LessonSidebar, type TopicView } from './LessonSidebar'
 import type { LessonStatus } from './status'
 import { btnNeutral, chip, chipTone } from './ui'
 import { useProgressReporting } from './useProgressReporting'
-import { VideoPlayer } from './VideoPlayer'
+import { SubtitleBlock } from './SubtitleBlock'
+import { VideoPlayer, type PlayerControl } from './VideoPlayer'
+
+const EMPTY: GlossaryEntry[] = []
 
 const statusChip: Record<LessonStatus, { text: string; tone: keyof typeof chipTone }> = {
   DONE: { text: 'Đã xem xong', tone: 'success' },
@@ -28,6 +31,10 @@ function Watch({ lesson, progress, topic, bankId, reload }: { lesson: LessonDeta
   const [ended, setEnded] = useState(false)
   const [failed, setFailed] = useState(false)
   const retried = useRef(false)
+  // Phụ đề: thời gian phát đi từ trình phát sang SubtitleBlock; playingRef để popup biết có cần phát tiếp.
+  const timeRef = useRef<(sec: number) => void>(() => {})
+  const control = useRef<PlayerControl | null>(null)
+  const playingRef = useRef(false)
 
   // URL ký hết hạn: lấy lại bài đúng một lần rồi mới báo lỗi.
   const onMediaError = () => {
@@ -71,13 +78,22 @@ function Watch({ lesson, progress, topic, bankId, reload }: { lesson: LessonDeta
             positionRef={position}
             failed={failed}
             onPlay={() => {
+              playingRef.current = true
               setPlayed(true)
               onPlay()
             }}
-            onPause={onPause}
+            onPause={() => {
+              playingRef.current = false
+              onPause()
+            }}
+            onTime={(s) => timeRef.current(s)}
+            controlRef={control}
             onEnded={() => setEnded(true)}
             onMediaError={onMediaError}
           />
+          {lesson.video && lesson.subtitles && (
+            <SubtitleBlock subtitles={lesson.subtitles} glossary={lesson.glossary ?? EMPTY} timeRef={timeRef} control={control} playingRef={playingRef} />
+          )}
           <header className="flex flex-col gap-2">
             <div className="flex flex-wrap gap-2">
               <span className={`${chip} ${chipTone[statusChip[status].tone]}`}>{statusChip[status].text}</span>
