@@ -159,6 +159,9 @@ public class AssignmentProgressService {
     public GradeView grade(long callerId, long classId, long assignmentId, long attemptId, GradeRequest req) {
         access.requireStaff(callerId, classId);
         Assignment a = assignmentService.require(classId, assignmentId);
+        if (!a.isActive()) { // D-169: bài đã hủy chỉ đọc
+            throw new ApiException(HttpStatus.CONFLICT, "assignment_cancelled", "Bài này đã được giáo viên hủy");
+        }
         if (!a.isAiQuestion() && assignments.resultModeOf(attemptId).contains("COUNT_ONLY")) { // D-142: lượt Nghe ép không có điểm để sửa
             throw new ApiException(HttpStatus.CONFLICT, "grade_not_supported", "Bài giao Nghe ép không có điểm nên không sửa điểm được");
         }
@@ -170,6 +173,9 @@ public class AssignmentProgressService {
         if (req.score() != null && sub.max() != null && req.score().compareTo(BigDecimal.valueOf(sub.max())) > 0) {
             throw ApiException.validation("score", "Điểm vượt điểm tối đa của bài");
         }
+        if (req.score() != null && Assignment.SPEAKING.equals(a.getQuestionType()) && !isBand(req.score())) { // D-170
+            throw ApiException.validation("score", "Điểm Nói phải từ 0 đến 9, bước 0,5");
+        }
         var row = overrides.saveAndFlush(GradeOverride.of(a.getQuestionType(), attemptId, req.score(), comment, callerId, classes.now()));
         if (req.score() != null && !a.isAiQuestion()) { // D-166: điểm sửa thành điểm của lượt, Đạt/Chưa tính lại lúc đọc
             attempts.applyTeacherScore(attemptId, req.score());
@@ -178,6 +184,10 @@ public class AssignmentProgressService {
         var view = view(row);
         audit.record("ASSIGNMENT_GRADE", "CLASS", classId, null, view);
         return view;
+    }
+
+    private static boolean isBand(BigDecimal s) {
+        return s.signum() >= 0 && s.compareTo(BigDecimal.valueOf(9)) <= 0 && s.multiply(BigDecimal.TWO).stripTrailingZeros().scale() <= 0;
     }
 
     private static ApiException attemptNotFound() {
