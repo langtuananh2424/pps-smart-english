@@ -72,8 +72,8 @@ test('tuần có học nhưng 0% vẫn có cột thấy được; tuần không 
 })
 
 test('không có chữ "AI" trên màn (dùng "Cam")', async () => {
-  show({ bySkill: [m('WRITING', 'Viết', { accuracy: null, answered: 0, ungraded: 4, aiGraded: 4, aiAverageScore: 6.5 })] })
-  expect(await screen.findByText(/Điểm Cam chấm trung bình 6.5/)).toBeInTheDocument()
+  show({ bySkill: [m('WRITING', 'Viết', { accuracy: null, answered: 0, ungraded: 4, aiGraded: 4, aiAverageScore: 65 })] })
+  expect(await screen.findByText(/65% · Cam chấm 4 bài/)).toBeInTheDocument()
   expect(document.body.textContent).not.toMatch(/\bAI\b/)
 })
 
@@ -110,6 +110,6 @@ test('BUG: chỉ làm câu Viết/Nói đã có điểm Cam thì không hiện "
   show({ answered: 0, accuracy: null, byType: [], improvements: [],
     bySkill: [m('WRITING', 'Viết', { answered: 0, correct: 0, accuracy: null, ungraded: 3, aiGraded: 3, aiAverageScore: 70 })] })
   expect(await screen.findByRole('heading', { name: 'Hồ sơ năng lực', level: 1 })).toBeInTheDocument()
-  expect(await screen.findByText(/Điểm Cam chấm trung bình 70/)).toBeInTheDocument()
+  expect(await screen.findByText(/70% · Cam chấm 3 bài/)).toBeInTheDocument()
   expect(screen.queryByText(/Bạn chưa làm bài nào/)).not.toBeInTheDocument()
 })

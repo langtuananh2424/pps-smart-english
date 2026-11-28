@@ -100,12 +100,12 @@ function SkillRow({ m }: { m: ProfileMetric }) {
     m.accuracy != null
       ? `${m.accuracy}% · ${num(m.answered)} câu`
       : m.aiAverageScore != null
-        ? `Điểm Cam chấm trung bình ${m.aiAverageScore}`
+        ? `${m.aiAverageScore}%`
         : 'Chưa có câu'
   return (
     <li className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
       <span className="text-[15px] font-bold text-ink sm:w-28 sm:shrink-0">{m.label || m.key}</span>
-      <Bar value={m.accuracy} />
+      <Bar value={m.accuracy ?? m.aiAverageScore} />
       <span className="text-xs font-extrabold text-ink-secondary sm:w-56 sm:shrink-0">
         {detail}
         {m.aiGraded > 0 && ` · Cam chấm ${num(m.aiGraded)} bài`}

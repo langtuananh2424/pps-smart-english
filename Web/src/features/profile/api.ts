@@ -19,7 +19,7 @@ export const useMe = () => useQuery({ queryKey: ['me'], queryFn: () => api<Me>('
 
 export const levelLabel = (l: SelfLevel | null | undefined) => SELF_LEVELS.find((x) => x.value === l)?.label
 
-// GET /api/me/learning-profile (FR-EX-09). aiAverageScore là điểm thô của Cam, không quy ra %.
+// GET /api/me/learning-profile (FR-EX-09). aiAverageScore là % 0 đến 100 (D-167).
 export interface ProfileMetric {
   key: string
   label: string

@@ -11,7 +11,7 @@ const profile = {
   bySkill: [
     m('READING', 'Đọc', { accuracy: 74, answered: 168 }),
     m('WRITING', 'Viết', { accuracy: 66, ungraded: 15, aiGraded: 12 }),
-    m('SPEAKING', 'Nói', { accuracy: null, answered: 0, ungraded: 2, aiGraded: 2, aiAverageScore: 0.75 }),
+    m('SPEAKING', 'Nói', { accuracy: null, answered: 0, ungraded: 2, aiGraded: 2, aiAverageScore: 75 }),
     m('UNSPECIFIED', 'Khác'),
   ],
   byType: [m('FILL_TEXT', 'Điền từ', { answered: 74, accuracy: 71 })],
@@ -38,7 +38,7 @@ test('hiện đủ các thẻ, bỏ UNSPECIFIED, tuần không học để cột
   expect(screen.getByText('Tuần 3: không học')).toBeInTheDocument()
   expect(screen.getByText(/74% · 168 câu/)).toBeInTheDocument()
   expect(screen.getByText(/Cam chấm 12 bài/)).toBeInTheDocument()
-  expect(screen.getByText('Điểm Cam chấm trung bình 0.75 · Cam chấm 2 bài')).toBeInTheDocument()
+  expect(screen.getByText('75% · Cam chấm 2 bài')).toBeInTheDocument()
   expect(screen.queryByText('Khác')).not.toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Về hồ sơ' })).toHaveAttribute('href', '/ho-so')
 })
