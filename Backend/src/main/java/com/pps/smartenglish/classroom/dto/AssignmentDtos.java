@@ -35,7 +35,17 @@ public final class AssignmentDtos {
     /** mode: chế độ hiệu lực (bài giao, không thì bộ); null với bài giao câu Viết/Nói. questionId, questionType (WRITING, SPEAKING): bài giao câu Viết/Nói, null khi giao cả bộ. myStatus chỉ điền khi người xem là học viên. */
     public record AssignmentView(Long id, Long classId, Long bankId, String bankTitle, Long questionId, String questionType, Instant dueAt,
                                  String status, boolean wholeClass, String myStatus,
-                                 String mode) {}
+                                 String mode, Integer recipients, Integer submitted) {}
+
+    /** FR-ASG-01: nội dung đã xuất bản của khóa lớp mà giáo viên chọn để giao (cùng tập POST /assignments chấp nhận). kind = chế độ bộ PRACTICE|EXAM. */
+    public record AssignableTree(Long courseId, List<AssignableTopic> topics) {}
+
+    public record AssignableTopic(Long topicId, String title, int position, List<AssignableBank> banks, List<AssignableQuestion> aiQuestions) {}
+
+    public record AssignableBank(Long bankId, String title, String kind, int questionCount) {}
+
+    /** type: WRITING | SPEAKING. */
+    public record AssignableQuestion(Long questionId, String type, String title) {}
 
     /**
      * status: NOT_SUBMITTED, SUBMITTED, LATE (nộp sau hạn), OVERDUE (quá hạn chưa nộp). finalScore = điểm giáo viên sửa mới nhất, không có thì điểm AI.

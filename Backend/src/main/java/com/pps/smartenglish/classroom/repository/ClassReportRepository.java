@@ -55,6 +55,10 @@ public interface ClassReportRepository extends Repository<ClassRoom, Long> {
     @Query(nativeQuery = true, value = "SELECT lv.course_id FROM topics t JOIN course_levels lv ON lv.id = t.level_id WHERE t.id = :topicId")
     List<Long> courseOfTopic(@Param("topicId") long topicId);
 
+    /** [user_id, tên hiển thị] theo id. */
+    @Query(nativeQuery = true, value = "SELECT p.user_id, p.display_name FROM user_profiles p WHERE p.user_id IN (:ids)")
+    List<Object[]> displayNames(@Param("ids") Collection<Long> ids);
+
     /** [tên topic] theo id, để hiện unit hiện tại. */
     @Query(nativeQuery = true, value = "SELECT t.id, t.title FROM topics t WHERE t.id IN (:ids)")
     List<Object[]> topicTitles(@Param("ids") Collection<Long> ids);

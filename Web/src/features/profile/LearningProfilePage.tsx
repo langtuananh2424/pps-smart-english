@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent } from 'react'
+import type { UseQueryResult } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import { labelOf } from '../exercises/format'
 import { BlockError, Skeleton } from '../home/BlockState'
@@ -37,15 +38,15 @@ function Overview({ p }: { p: LearningProfile }) {
   )
 }
 
-function Improvements({ list }: { list: LearningProfile['improvements'] }) {
+function Improvements({ list, own }: { list: LearningProfile['improvements']; own: boolean }) {
   return (
     <section aria-labelledby="lp-improve" className={`${card} lg:flex-1`}>
       <h2 id="lp-improve" className={h2}>Cần cải thiện</h2>
       {list.length === 0 ? (
-        <p className="text-[15px] font-semibold text-ink-secondary">Chưa đủ dữ liệu, hãy làm thêm câu ở mỗi phần để Cam gợi ý.</p>
+        <p className="text-[15px] font-semibold text-ink-secondary">{own ? 'Chưa đủ dữ liệu, hãy làm thêm câu ở mỗi phần để Cam gợi ý.' : 'Chưa đủ dữ liệu để Cam gợi ý.'}</p>
       ) : (
         <>
-          <p className="text-[13px] font-semibold text-ink-secondary">Ba phần có tỉ lệ đúng thấp nhất trong các phần bạn đã làm đủ nhiều câu.</p>
+          <p className="text-[13px] font-semibold text-ink-secondary">Ba phần có tỉ lệ đúng thấp nhất trong các phần đã làm đủ nhiều câu.</p>
           <ul className="flex flex-col gap-2.5">
             {list.map((i) => (
               <li key={`${i.dimension}-${i.key}`} className="flex flex-col gap-1">
@@ -58,7 +59,7 @@ function Improvements({ list }: { list: LearningProfile['improvements'] }) {
               </li>
             ))}
           </ul>
-          <Link to="/bai-tap" className={`${btn} lg:self-start`}>Luyện thêm phần này</Link>
+          {own && <Link to="/bai-tap" className={`${btn} lg:self-start`}>Luyện thêm phần này</Link>}
         </>
       )}
     </section>
@@ -165,14 +166,16 @@ function Detail({ p }: { p: LearningProfile }) {
   )
 }
 
-function Body({ p }: { p: LearningProfile }) {
+function Body({ p, own }: { p: LearningProfile; own: boolean }) {
   const skills = p.bySkill.filter((m) => m.key !== 'UNSPECIFIED')
   // Học viên chỉ làm Viết/Nói có answered=0 nhưng vẫn có câu chờ/đã có điểm Cam.
   if (p.answered === 0 && !p.bySkill.some((m) => m.ungraded > 0)) {
     return (
       <section className={card}>
-        <p className="text-[15px] font-semibold text-ink">Bạn chưa làm bài nào. Làm vài bài tập để Cam tổng hợp năng lực của bạn.</p>
-        <Link to="/bai-tap" className={`${btn} bg-brand-strong text-white lg:self-start`}>Đến bài tập</Link>
+        <p className="text-[15px] font-semibold text-ink">
+          {own ? 'Bạn chưa làm bài nào. Làm vài bài tập để Cam tổng hợp năng lực của bạn.' : 'Học viên chưa làm bài nào.'}
+        </p>
+        {own && <Link to="/bai-tap" className={`${btn} bg-brand-strong text-white lg:self-start`}>Đến bài tập</Link>}
       </section>
     )
   }
@@ -180,7 +183,7 @@ function Body({ p }: { p: LearningProfile }) {
     <>
       <Overview p={p} />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
-        <Improvements list={p.improvements} />
+        <Improvements list={p.improvements} own={own} />
         <Trend weeks={p.weeklyTrend} />
       </div>
       <section aria-labelledby="lp-skill" className={card}>
@@ -196,17 +199,37 @@ function Body({ p }: { p: LearningProfile }) {
   )
 }
 
-// FR-EX-09, D-139: hồ sơ năng lực của học viên từ GET /api/me/learning-profile.
-export function LearningProfilePage() {
-  const q = useLearningProfile()
+export interface ProfileViewProps {
+  q: UseQueryResult<LearningProfile>
+  title: string
+  sub: string
+  back: { to: string; label: string }
+  /** false khi giáo viên xem hồ sơ của học viên: ẩn lối vào luyện tập của chính mình. */
+  own?: boolean
+}
+
+// Phần hiển thị dùng chung cho hồ sơ của chính học viên và hồ sơ giáo viên xem (#62).
+export function LearningProfileView({ q, title, sub, back, own = true }: ProfileViewProps) {
   return (
     <div className="flex flex-col gap-4 lg:gap-6">
       <header className="flex flex-col gap-1">
-        <h1 className="text-[28px] font-black leading-[38px] text-ink lg:text-4xl lg:leading-[49px]">Hồ sơ năng lực</h1>
-        <p className="text-[15px] font-semibold text-ink-secondary">Điểm mạnh, điểm yếu và tiến bộ của bạn, tính từ các bài đã làm.</p>
+        <h1 className="text-[28px] font-black leading-[38px] text-ink lg:text-4xl lg:leading-[49px]">{title}</h1>
+        <p className="text-[15px] font-semibold text-ink-secondary">{sub}</p>
       </header>
-      {q.isError ? <BlockError onRetry={() => q.refetch()} /> : !q.data ? <Skeleton className="h-[320px] w-full rounded-lg" /> : <Body p={q.data} />}
-      <Link to="/ho-so" className={`${btn} self-start`}>Về hồ sơ</Link>
+      {q.isError ? <BlockError onRetry={() => q.refetch()} /> : !q.data ? <Skeleton className="h-[320px] w-full rounded-lg" /> : <Body p={q.data} own={own} />}
+      <Link to={back.to} className={`${btn} self-start`}>{back.label}</Link>
     </div>
+  )
+}
+
+// FR-EX-09, D-139: hồ sơ năng lực của học viên từ GET /api/me/learning-profile.
+export function LearningProfilePage() {
+  return (
+    <LearningProfileView
+      q={useLearningProfile()}
+      title="Hồ sơ năng lực"
+      sub="Điểm mạnh, điểm yếu và tiến bộ của bạn, tính từ các bài đã làm."
+      back={{ to: '/ho-so', label: 'Về hồ sơ' }}
+    />
   )
 }

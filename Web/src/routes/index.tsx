@@ -30,6 +30,7 @@ import { SpeakingPage } from '../features/speaking/SpeakingPage'
 import { WritingPage } from '../features/writing/WritingPage'
 import { QaPage } from '../features/qa/QaPage'
 import { adminRoutes } from '../features/admin/routes'
+import { teachingRoutes } from '../features/teaching/routes'
 import { AdaptiveShell } from '../layout/AdaptiveShell'
 import { AppShell } from '../layout/AppShell'
 import { ErrorPage, NotFoundPage } from './ErrorPages'
@@ -101,6 +102,8 @@ export const routes: RouteObject[] = [
       },
       // Khung quản trị nhân sự (FR-ADM-04/05), có shell riêng và kiểm quyền theo route.
       { element: <RequireAuth />, children: [adminRoutes] },
+      // Khu giảng dạy (#61, #62): shell riêng, quyền theo lớp kiểm ở API.
+      { element: <RequireAuth />, children: [teachingRoutes] },
       // Màn làm bài tập trung, có header riêng nên nằm ngoài AppShell.
       {
         element: <RequireAuth />,
